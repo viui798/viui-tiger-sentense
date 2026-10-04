@@ -1,0 +1,327 @@
+# encoding: utf-8
+# 10.1：虎整句引擎更新为 D89-r3 四档纠错瓢虫版（引擎、n-gram/fivegram、
+#       learning 与新增 correction 模块取自
+#       虎整句-Rime-20261001-D89-r3-四档纠错瓢虫版），并完整保留芝士虎整的
+#       辅助集成：快符（;a）、拼音反查、简繁、拼音、拆字、emoji、Unicode
+#       提示/编码、数字转大写、简易计算器、时间/日期、输入统计与击键计数。
+# 9.25：虎整句引擎升级为 TCSKNM03 Q8 五阶模型（引擎、n-gram 模块与模型取自
+#       虎整句-Rime-20260925）。
+schema:
+  schema_id: tiger_sentence
+  name: 虎整句 D89-r3
+  version: "1.5-d89-r3"
+  author:
+    - TigerClaw
+  description: |
+    从虎整句常用字词表生成的变长整句方案。
+    码表/字频/白名单为明文 txt（tiger_sentence.codes.txt 等），运行时加载，
+    不使用 Rime 词典文件或用户覆盖层；可直接替换以导入其它形码方案。
+    只有整个独立输入作为单一码表边时才隐式允许非首选。
+    允许单字重码组句默认开启：分段路径中的非首选单字按语言模型分数竞争，
+    非首选多字词仍必须显式选重；分号/引号/数字写入编码选重。
+    首次输入时用 Lua 优先分页加载 sentence-fivegram-mobile.bin 做五阶打分。
+    形码证据和紧凑词先验仅重排现有候选，不进入自动上屏置信度。
+    集成虎单/虎词辅助功能：快符（;a）、拼音反查、简繁、拼音、拆字、emoji、
+    Unicode 提示/编码、数字转大写、简易计算器、时间/日期。
+  dependencies:
+    - tigress  # 造词检索用的虎词词表
+    - kf  # 快符
+    - tiger_lookup  # 拆分注释
+    - wanxiang_pro_qp  # 拼音反查：全拼拼写索引（与小鹤双拼并存，免切换）
+    - wanxiang_pro_zrm  # 拼音反查：自然码拼写索引（与其它打法并存，免切换）
+    - wanxiang_pro_mspy  # 拼音反查：微软双拼拼写索引（与其它打法并存，免切换）
+    - wanxiang_pro_sogou  # 拼音反查：搜狗双拼拼写索引（与其它打法并存，免切换）
+
+switches: # 0 默认关，1 默认开
+  - name: ascii_mode
+    reset: 0
+    states: [ 中文, 西文 ]
+  # 9.25 修订：ascii_punct / full_shape 加回 reset: 0，与虎单/虎词一致
+  # （每次载入方案回到「中文标点 + 半角」；新版引擎原本去掉 reset 以跨会话记忆）
+  - name: ascii_punct
+    reset: 0
+    states: [ 。，, ．， ]
+  - name: full_shape
+    reset: 0
+    states: [ 半角, 全角 ]
+  # 以下三个整句开关同样不加 reset，选择存 tiger_sentence.options.yaml
+  - name: tiger_sentence_early_commit
+    states: [ 提前上屏关, 提前上屏开 ]
+  - name: tiger_sentence_allow_duplicate_single
+    states: [ 单字重码组句关, 单字重码组句开 ]
+  - name: tiger_sentence_early_commit_to_preedit
+    states: [ 提前上屏至应用, 提前上屏至编码 ]
+  # D89-r3：按键纠错四档（radio 组，同一时间只启用一档；档名存
+  # tiger_sentence.options.yaml，不存分数）。每个错键惩罚：弱 8 / 中 6 / 强 4，
+  # 关闭则不纠错。开启任一档即禁用空码顶屏；纠错候选注释只显示 🐞。
+  # 旧布尔 tiger_sentence_key_correction 仍兼容：true 映射到「中」。
+  - options: [ tiger_sentence_correction_off, tiger_sentence_correction_weak, tiger_sentence_correction_medium, tiger_sentence_correction_strong ]
+    states: [ 按键纠错关, 按键纠错弱, 按键纠错中, 按键纠错强 ]
+    abbrev: [ 关, 弱, 中, 强 ]
+  # 10.2：简繁四档（移植自万象虎 super_replacer 方案）
+  # s2s 简体 / s2t 通繁 / s2hk 港繁 / s2tw 臺繁；不设 reset，首次载入为「简体」
+  - options: [ s2s, s2t, s2hk, s2tw ]
+    states: [ 简体, 通繁, 港繁, 臺繁 ]
+  - name: pinyin  # 拼音滤镜
+    reset: 0
+    states: [ 拼, pīn ]
+  - name: chaifen  # 拆字滤镜
+    reset: 0
+    states: [ 拆隐, 拆显 ]
+  - name: emoji_cn  # emoji滤镜
+    reset: 0
+    states: [ 🈚, 🈶 ]
+  - name: charset_comment_filter  # Unicode字符集提示
+    reset: 0
+    states: [ U区关, U区开 ]
+  - name: udpf_switch  # Unicode编码切换
+    reset: 0
+    states: [ U编关, U编开 ]
+  - name: yin
+    reset: 1
+    states: [ 关, 音码 ]
+  #拼音反查打法：radio 组，同一时间只启用一种（用 /flypy /pinyin /zrm /mspy /sogou 切换）
+  #注意：radio 组不能写 name，否则 librime 只当普通开关、忽略 options
+  - options: [ yin_flypy, yin_qp, yin_zrm, yin_mspy, yin_sogou ]
+    reset: 0
+    states: [ 小鹤, 全拼, 自然码, 微软, 搜狗 ]
+
+engine:
+  processors:
+    - lua_processor@*set_schema #拼音反查打法切换 /flypy /pinyin /zrm /mspy /sogou
+    - lua_processor@tiger_zaoci_processor  # 加词模块：造词写入用户词库
+    - lua_processor@*key_counter  # 击键计数（输入战报 4.2）
+    - lua_processor@tiger_sentence_ascii  # v1.3 内部 ASCII 切换（替代 ascii_composer）
+    - recognizer
+    - key_binder
+    - lua_processor@*tiger_kf  # 快符（立即上屏；init 在载入时连通知器）
+    - lua_processor@tiger_sentence_processor
+    - speller
+    - punctuator
+    - selector
+    - navigator
+    - express_editor
+  segmentors:
+    - matcher
+    - abc_segmentor
+    - lua_segmentor@*yin_pick #拼音反查：按 yin_scheme 开关选定打法（改 tag，必须在各 affix 之前）
+    - affix_segmentor@yin_add_user #拼音反查
+    - affix_segmentor@yin_qp #拼音反查：全拼
+    - affix_segmentor@yin_zrm #拼音反查：自然码
+    - affix_segmentor@yin_mspy #拼音反查：微软双拼
+    - affix_segmentor@yin_sogou #拼音反查：搜狗双拼
+    - affix_segmentor@zaoci # `` ` `` 造词（前缀剥离）
+    - punct_segmentor
+    - fallback_segmentor
+  translators:
+    - punct_translator
+    - script_translator@yin_add_user  # 拼音反查
+    - table_translator@kf  # 快符
+    - table_translator@zaoci           # `` ` `` 造词候选
+    - lua_translator@tiger_zaoci_translator  # 加词模块：内存词库即时出候选
+    - lua_translator@tiger_sentence_translator
+    - lua_translator@number_translator  # 数字转大写
+    - lua_translator@calculator_translator  # 简易计算器
+    - lua_translator@shijian2_translator  # 时间/日期
+    - lua_translator@*input_statistics  # 输入统计
+  filters:
+    - lua_filter@tiger_sentence_buffer_filter  # v1.3 暂存候选过滤
+    - simplifier@pinyin  # 拼音滤镜
+    - lua_filter@*db  # 重码替换+反查后缀处理
+    - lua_filter@*chaifen  # 拆字滤镜
+    - simplifier@emoji_cn  # emoji滤镜
+    - lua_filter@charset_comment_filter  # Unicode字符集提示
+    - lua_filter@lua_unicode_display_filter  # Unicode字符显示
+    - lua_filter@*wanxiang.charset_filter  # 10.2：字符集联动（繁体字集开放）
+    - lua_filter@*wanxiang.super_replacer  # 10.2：简繁转换（四档，替代 OpenCC simplifier）
+    - uniquifier  # 过滤重码
+
+speller:
+  alphabet: "zyxwvutsrqponmlkjihgfedcba;';0123456789~/"  # 含 /：统计指令 //1 //60 需要第二个 / 进编码区
+  initials: "abcdefghijklmnopqrstuvwxyz~/"  # 含 /：统计指令 //1 //60 的第二个 / 需由 speller 接收
+  delimiter: " '"  # 拼音/音码音节分隔符
+  auto_select: true
+  auto_select_pattern: ^;\w+ #立即上屏快速符号
+
+menu:
+  page_size: 5
+
+tiger_sentence:
+  # 内存档：compact 省内存（默认）；balanced 大缓存（桌面可在 custom 补丁里改）
+  memory_profile: compact
+  # 首次默认值；之后以保存的选择为准，存 tiger_sentence.options.yaml
+  # 9.25：本包默认关闭提前上屏（需要时用 Ctrl 或菜单打开，选择会保存）
+  option_defaults:
+    tiger_sentence_early_commit: false
+    tiger_sentence_allow_duplicate_single: true
+    tiger_sentence_early_commit_to_preedit: false
+    # D89-r3：旧布尔开关仅用于兼容旧前端按钮；false = 关，true 映射到「中」。
+    # 首次没有保存偏好时默认关闭（按键纠错关）。
+    tiger_sentence_key_correction: false
+    # 可选：首次默认档位覆盖 off / weak / medium / strong（想默认开启时取消注释）
+    # tiger_sentence_correction_level: off
+  # 学习已提交候选的纠正（直接点选与 Tab 选择）
+  tab_learning: true
+  # 提前上屏与空码自动上屏共用的最短保留编码数；0 表示不额外限制。
+  # 概率型提前上屏仍永远不少于 3。
+  min_retained_raw_length: 0
+  # 高频字仅使用最优码组句的字数上限；0 表示全部放开非最优码。
+  high_freq_limit: 1500
+
+key_binder:
+  bindings:
+    # 10.2：Tab/Shift+Tab 交给引擎自带处理（本机 librime 不响应 key_binder 注入式 send，
+    #       注入的 Down/Up 不驱动 navigator；改由引擎 context:highlight() 直接移高亮，
+    #       同时置位 tab_pending 以启用 Tab 学习/调频与段落锁定）
+    - { when: paging, accept: minus, send: Page_Up }
+    - { when: has_menu, accept: equal, send: Page_Down }
+    - { accept: "Control+o", toggle: s2t, when: composing }  # 10.2 简繁切换（简 ↔ 通繁）
+    - { when: always, accept: "Control+Shift+4", toggle: s2t }       # 万象虎同款：切简繁
+    - { when: always, accept: "Control+Shift+dollar", toggle: s2t }  # 万象虎同款：切简繁
+    - { accept: "Control+p", toggle: pinyin, when: composing }  # 拼音切换
+    - { accept: "Control+j", toggle: chaifen, when: composing }  # 拆字滤镜开关
+    - { accept: "Control+i", toggle: emoji_cn, when: composing }  # emoji开关
+    - { accept: "Control+q", toggle: yin, when: composing }  # 拼音反查开关
+    - { accept: "Control+u", toggle: charset_comment_filter, when: composing }  # Unicode字符集切换
+    - { accept: "Control+y", toggle: udpf_switch, when: composing }  # Unicode编码切换
+    - { when: always, accept: "Control+period", toggle: ascii_punct }  # 中英文标点切换
+
+punctuator:
+  digit_separators: ""  # v1.3：禁用数字分隔候选
+  # 9.25：改用本包 symbols.yaml 标点表，与虎单/虎词/万象保持一致
+  import_preset: symbols
+
+# ==================== 加词模块（`` ` `` + 编码造词） ====================
+# 用法：`` ` `` + 虎码编码 → 候选与平时输入一致 → 选中上屏，即写入用户词库
+#   · custom_phrase.txt：用户词库（纯文本，只读加载，输入法永不改写）
+#     每行 词<TAB>编码[<TAB>权重]；改完在鼠须管里「重新部署」生效
+#   · 不开自动调频：主码表照旧，只有 `` ` `` 前缀这一条路上屏的词会入库
+zaoci:
+  tag: zaoci          # 与 recognizer/patterns 名字一致
+  prefix: "`"
+  tips: "〔造词〕"
+  dictionary: tigress.extended   # 造词检索用词表（词组，够全）
+  initial_quality: 1
+  enable_completion: true
+  enable_sentence: false
+  enable_user_dict: false        # 不参与自动调频，写入由 lua 负责
+  comment_format:
+    - "xform/~/ /"
+
+tiger_zaoci:
+  table_path: "custom_phrase.txt"   # 相对用户目录，也可填绝对路径
+
+recognizer:
+  import_preset: default
+  patterns:
+    kf: "^;[a-z]?$"  # 快符
+    shijian2: "^/(date|frq|orzh|cdate|fnl|wtxs|time|fsj|fuj|okao|week|fxq|olzh|fjq|lzvq|djs)$"  # 时间/日期
+    punct: "^/(/[0-9A-Za-z]*|[0-9]{1,3}|[A-Za-z]+)$"  # 标点/符号菜单 + 统计指令
+    # 三段分支：//1 //6xx1（统计，2026-07-18 版）｜/0~/9、/10（符号菜单）｜/xh /rtj（符号/统计）
+    zaoci: "^`[a-z]*$"  # `` ` `` 前缀造词（单按 `` ` `` 即进造词模式，preedit 显示 `` `〔造词〕 ``）
+    yin_add_user: "^[A-Za-z';]+`$|^'[A-Za-z';]*$"  # 拼音反查：前缀 ' 或「拼音+`」；单按 ` 让给造词；含 ;（微软/搜狗双拼的 ing 键）
+    expression: "^=.*$"  # 简易计算器
+
+kf:
+  tag: kf
+  dictionary: kf
+  enable_completion: false
+  enable_sentence: false
+  enable_encoder: false
+  enable_user_dict: false
+  initial_quality: 1
+
+# ==================== 简繁转换（10.2 移植自万象虎 super_replacer）====================
+# 开关：s2s 简体 / s2t 通繁 / s2hk 港繁 / s2tw 臺繁（radio 组，见 switches）
+# 实现：lua/wanxiang/super_replacer.lua（自研 OpenCC 替代品）+ 转换表 lua/data/
+# 流水线（chain: true）：
+#   简 --STCharacters/STPhrases--> 通繁 --HKVariants--> 港繁
+#                                  \----TWVariants--> 臺繁
+# 首次使用会按表文件特征在用户目录建 LevelDB 缓存 lua/replacer
+super_replacer:
+  db_name: lua/replacer
+  delimiter: "|"
+  comment_format: "〔%s〕"
+  chain: true
+  rules:
+    # 第一级：简 → 通繁（港繁/臺繁也先过这一级）
+    - option: [ s2t, s2hk, s2tw ]
+      mode: replace          # 直接替换候选文本
+      comment_mode: append   # 保留原候选注释
+      sentence: true         # 整句级替换
+      tags: [ abc ]
+      prefix: "_s2t_"
+      files:
+        - lua/data/STCharacters.txt
+        - lua/data/STPhrases.txt
+    # 第二级：通繁 → 港繁
+    - option: s2hk
+      mode: replace
+      comment_mode: append
+      sentence: true
+      tags: [ abc ]
+      prefix: "_s2hk_"
+      files:
+        - lua/data/HKVariants.txt
+    # 第三级：通繁 → 臺繁
+    - option: s2tw
+      mode: replace
+      comment_mode: append
+      sentence: true
+      tags: [ abc ]
+      prefix: "_s2tw_"
+      files:
+        - lua/data/TWVariants.txt
+
+# 字符集联动（lua/wanxiang/charset_filter.lua）：
+# 开启某一档时把它对应的繁体字集一并开放，避免"转繁后缺字"。
+# 代码含义：a 通规汉字表 / f 通用繁体 / h 香港繁体 / t 台湾繁体（详见该 lua 注释）
+# 三档全关时本滤镜不做任何过滤。
+charset:
+  - option: s2t
+    base: fa
+    addlist: []
+    blacklist: []
+  - option: s2hk
+    base: ha
+    addlist: []
+    blacklist: []
+  - option: s2tw
+    base: ta
+    addlist: []
+    blacklist: []
+
+pinyin:
+  opencc_config: pinyin.json
+  option_name: pinyin
+  show_in_comment: true
+  comment_format:
+    - 'xform/&nbsp;/ /'
+  tips: char
+  tags:
+    - abc
+    - tiger
+    - tigress
+
+chaifen:
+  option_name: chaifen
+
+emoji_cn:
+  opencc_config: emoji.json
+  option_name: emoji_cn
+  tips: all
+
+shijian2_translator:
+  tag: shijian2  # 时间/日期 输入码
+
+ascii_composer:
+  good_old_caps_lock: true
+  switch_key:
+    Caps_Lock: clear
+    Shift_L: commit_code
+    Shift_R: commit_code
+    Control_L: noop
+    Control_R: noop
+
+enum:
+  chaifen: all     # 拆分显示范围：char 单字 | all 完全拆分

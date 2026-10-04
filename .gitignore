@@ -1,0 +1,10 @@
+# macOS metadata
+.DS_Store
+
+# Local Squirrel preferences may disclose installed apps and personal UI choices.
+/squirrel.custom.yaml
+
+# Internal development notes include workstation paths and unpublished test details.
+/docs/CORRECTION_EMPTY_COMMIT.md
+/docs/CORRECTION_LEVELS.md
+/docs/EARLY_EVIDENCE_GATE.md

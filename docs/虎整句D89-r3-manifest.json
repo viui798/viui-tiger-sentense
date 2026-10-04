@@ -1,0 +1,164 @@
+{
+  "package": "虎整句-Rime-20261001-D89-r3-四档纠错瓢虫版",
+  "version": "D89-r3",
+  "created_at": "2026-10-01T16:26:49.468473+08:00",
+  "baseline_commit": "595f52a29a30c1b982d950f79a3e12702facb123",
+  "source_state": "current uncommitted mainline improvements plus D89 experiment; no merge or push",
+  "schema_id": "tiger_sentence",
+  "schema_name": "虎整句 D89-r3",
+  "correction_comment": "🐞",
+  "comment_codepoint": "U+1F41E",
+  "comment_unicode_scalar_count": 1,
+  "levels": {
+    "off": null,
+    "weak": 8,
+    "medium": 6,
+    "strong": 4
+  },
+  "search_penalty": 8,
+  "search_profile": {
+    "name": "A",
+    "seeds": 8,
+    "one": 16,
+    "two": 8,
+    "steps": 4096,
+    "delta_one": 8,
+    "delta_two": 9
+  },
+  "default_correction": "off",
+  "legacy_on_migrates_to": "medium",
+  "empty_code_commit_when_correction_enabled": false,
+  "synchronous_evidence_gate": true,
+  "model_unchanged": true,
+  "file_hash_exclusions": [
+    "manifest.json",
+    "PAYLOAD-SHA256SUMS.txt"
+  ],
+  "files": [
+    {
+      "path": "LICENSE",
+      "bytes": 35149,
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+    },
+    {
+      "path": "README.md",
+      "bytes": 486,
+      "sha256": "c4a7694f8237cf160caf97b7f9cd33ddea01811f6106b3e58e681efa75509096"
+    },
+    {
+      "path": "default-model.json",
+      "bytes": 604,
+      "sha256": "b6e432cd8dd2fa6b5a6dd6dee3d341604604a726f5d44e8f29b06ccb971b6224"
+    },
+    {
+      "path": "docs/CORRECTION_EMPTY_COMMIT.md",
+      "bytes": 2719,
+      "sha256": "854a0d92891f0b891f1b098a025812627c445b479977e401c495c19333f1295f"
+    },
+    {
+      "path": "docs/CORRECTION_LEVELS.md",
+      "bytes": 3084,
+      "sha256": "5be5b581a29c61b7de002f85062cadf83943fac05ad17447bf616602744ab518"
+    },
+    {
+      "path": "docs/EARLY_EVIDENCE_GATE.md",
+      "bytes": 3484,
+      "sha256": "4f259e70093b34d3521d96d040df4c5d79bb81dac8cd36ba825517f365e25ee4"
+    },
+    {
+      "path": "examples/default.custom.yaml",
+      "bytes": 51,
+      "sha256": "8f87e9ee428972a8b8401717a9ddb609bca345873b9bd4d89665359e2c940bd1"
+    },
+    {
+      "path": "lua/tiger_sentence.lua",
+      "bytes": 204496,
+      "sha256": "b4787aa9ab9a2dbf2446e00738f56bee232f2cf6f7a36bb3f94f734129573670"
+    },
+    {
+      "path": "lua/tiger_sentence_cache.lua",
+      "bytes": 1436,
+      "sha256": "8ebd209588fb62d0bf888e752b95d8588ecbcdef2af40f8b009865fc3c41da7c"
+    },
+    {
+      "path": "lua/tiger_sentence_correction.lua",
+      "bytes": 9887,
+      "sha256": "fcb6c5326580ee9fa7d1b73fccbe3a73722a699090da0e53f25dd474efecde74"
+    },
+    {
+      "path": "lua/tiger_sentence_fivegram.lua",
+      "bytes": 15977,
+      "sha256": "a32c818ad81078351feace6f0a53a9851c41394fce9ef0d734f2d8bfa03763c2"
+    },
+    {
+      "path": "lua/tiger_sentence_learning.lua",
+      "bytes": 23274,
+      "sha256": "e79425f9f0cc255290e29b2a3b5ebf234dedf211501dacbfcec7dc3c61cb9b11"
+    },
+    {
+      "path": "lua/tiger_sentence_lexical.lua",
+      "bytes": 5319,
+      "sha256": "d49f45f0ee0033fd2466269d967b4784f508da220ec62215806e227ea590fe8d"
+    },
+    {
+      "path": "lua/tiger_sentence_ngram.lua",
+      "bytes": 1675,
+      "sha256": "f740c5b53237cef704daab71f5fe3231035899e37071112aaf064741d5db9edc"
+    },
+    {
+      "path": "models/sentence-fivegram-mobile.bin",
+      "bytes": 405663171,
+      "sha256": "756f6c92cf43ad6e8e3087ce66b711ac6ad0fc41e6f3fb82b3766e35ecab8681"
+    },
+    {
+      "path": "models/tiger_sentence.lexical.bin",
+      "bytes": 150032,
+      "sha256": "8dbc884b6cb719d07e4cef153c8048db19a11f8224f75a4ed87853e688a27393"
+    },
+    {
+      "path": "rime.lua",
+      "bytes": 279,
+      "sha256": "419df2e184b58ee557138b0026bd7bedc4b9c502013b5b44bac9a045e1dfb04f"
+    },
+    {
+      "path": "symbols.yaml",
+      "bytes": 1540,
+      "sha256": "9b45c4a2f179d42585d5cc1439bfbcb5a585520f0de3ce83232180990e5cc9b1"
+    },
+    {
+      "path": "tiger_sentence.char_ranks.txt",
+      "bytes": 80771,
+      "sha256": "bd64e4bf333b2096a9a61fd5ece868e37912057bd1a812d75b2d5ccb4c994dcf"
+    },
+    {
+      "path": "tiger_sentence.codes.txt",
+      "bytes": 130935,
+      "sha256": "1d3e9b0ce0e4a603be3f220c71acecad846f020e87a52723ecb3814f6b53ac0e"
+    },
+    {
+      "path": "tiger_sentence.full_code_whitelist.txt",
+      "bytes": 727,
+      "sha256": "05d257457898146262f7dbf264103c70a8cf2ee92d188b770ad13232b293f566"
+    },
+    {
+      "path": "tiger_sentence.schema.yaml",
+      "bytes": 4020,
+      "sha256": "f654b30fc6be9061e0e745b077d9d4b03b880f7a1fafd345b3b903bf79122f20"
+    },
+    {
+      "path": "tiger_sentence.supplement.txt",
+      "bytes": 294,
+      "sha256": "538f7d60ae378235628a86e7ef20d24396453488fde950a88e52fdb6f558a5ac"
+    },
+    {
+      "path": "tiger_sentence_ascii.schema.yaml",
+      "bytes": 216,
+      "sha256": "3212d367f0cb407c0451999476d9fd7bdc9e9256f5d1ea4d650b5d11ad23564d"
+    },
+    {
+      "path": "安装与版本核对.txt",
+      "bytes": 2433,
+      "sha256": "77c1154d01b1b2b53f3e6b41adc67134dc7ca15715d583d35a32342ce00cdd6f"
+    }
+  ]
+}

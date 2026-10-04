@@ -1,0 +1,40 @@
+# schema -- 与 wanxiang_pro 共用同一张 table，只额外生成「自然码」prism
+# 作用：让拼音反查同时支持〔小鹤双拼〕〔全拼〕〔自然码〕〔微软双拼〕〔搜狗双拼〕，
+#       五种打法都直接出候选，不需要在输入框里切换 + 重新部署。
+# 原理：wanxiang_pro.schema.yaml 编译 wanxiang_pro.table（词库）与
+#       wanxiang_pro.prism（小鹤双拼拼写索引）；本方案复用同一个词库，
+#       只把 prism 命名为 wanxiang_pro_zrm，用自然码转写规则重建一份拼写索引。
+#       各份索引在部署时一次生成，运行时由多个翻译器各查一份，
+#       重复候选由方案里已有的 uniquifier 滤镜去掉，所以「切换」是零成本的。
+schema:
+  schema_id: wanxiang_pro_zrm
+  name: "万象拼音PRO（自然码反查）"
+  version: "LTS"
+  description: |
+    仅供 yin_add_user_zrm 自然码反查使用。
+    与 wanxiang_pro 共用词库 table，只重建 prism，不额外占用一张码表。
+    不在方案选单中列出，仅作为 tiger / tigress / tiger_sentence 的依赖部署。
+
+engine:
+  processors: []
+  segmentors:
+    - abc_segmentor
+  translators:
+    - table_translator
+  filters: []
+
+speller:
+  alphabet: "zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA1234567890;'"
+  initials: "zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA"
+  delimiter: " '"
+  algebra:
+    __patch:
+      - wanxiang_algebra:/pro/自然码
+      - wanxiang_algebra:/pro/反查纯拼
+
+translator:
+  dictionary: wanxiang_pro
+  prism: wanxiang_pro_zrm
+  enable_user_dict: false
+  enable_completion: false
+  enable_sentence: false

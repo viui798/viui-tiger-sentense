@@ -1,0 +1,32 @@
+# schema —— 用于触发 wanxiang_pro 词典编译，并提供完整的拼音 speller
+# 拼音 speller 是 yin_add_user 反查能查到候选的关键（与万象虎 wanxiang_pro 一致）
+schema:
+  schema_id: wanxiang_pro
+  name: "万象拼音PRO（反查词典）"
+  version: "LTS"
+  description: |
+    供 yin_add_user 反查使用的拼音词典。
+    使用万象虎的拼音转写规则（小鹤双拼 + 直接辅助），保证反查能正确解析拼音。
+
+engine:
+  processors: []
+  segmentors:
+    - abc_segmentor
+  translators:
+    - table_translator
+  filters: []
+
+speller:
+  alphabet: "zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA1234567890;'"
+  initials: "zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA"
+  delimiter: " '"
+  algebra:
+    __patch:
+      - wanxiang_algebra:/pro/小鹤双拼
+      - wanxiang_algebra:/pro/直接辅助
+
+translator:
+  dictionary: wanxiang_pro
+  enable_user_dict: false
+  enable_completion: false
+  enable_sentence: false
