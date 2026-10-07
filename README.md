@@ -64,6 +64,15 @@ Rime 用户目录随操作系统和前端而异。常见位置是鼠须管的 `~
 | 先正常输入并上屏 `新词`，再输入 `` ` `` 加它的虎码编码 | 选择 `新词〔最近〕` 并上屏 | `新词` 被加入自造词库；之后输入该编码可见 `新词〔自造词〕` 候选 |
 | 在已有自造词的编码后输入 `/` | 选择 `〔删词〕` 候选 | 该词从 `custom_phrase.txt` 移除 |
 
+## 授权
+
+本项目按 **GNU General Public License v3.0**（GPL-3.0）发布，完整条款见 [`LICENSE`](LICENSE)。
+
+- 芝士虎整自身的方案配置、Lua 脚本与文档：Copyright (C) 2026 viui798，按 GPL-3.0 授权。
+- 随包包含的第三方组件按其原始条款授权，版权归各自作者：
+  - **虎整句 D89-r3**（组句引擎、相关 Lua 模块与语言模型 `models/sentence-fivegram-mobile.bin`）：GPL-3.0，条款见 [`docs/虎整句D89-r3-LICENSE.txt`](docs/虎整句D89-r3-LICENSE.txt)，来源与校验信息见 `docs/虎整句D89-r3-manifest.json`。
+  - **虎码与虎词词库**（`tiger*.dict.yaml`、`tigress*.dict.yaml`、`dicts/`、`tiger_dicts/`、`zuci/` 等）以及**万象拼音**相关资料（`wanxiang_*.yaml`、`wanxiang_algebra.yaml`）：版权归各自作者，使用与再分发请遵循其原始条款。
+
 ## 文档
 
 - [`芝士虎整说明.md`](芝士虎整说明.md)：按键、辅助功能、虎整句选项及维护细节。
