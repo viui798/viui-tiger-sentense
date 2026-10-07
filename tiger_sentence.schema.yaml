@@ -190,6 +190,10 @@ punctuator:
   digit_separators: ""  # v1.3：禁用数字分隔候选
   # 9.25：改用本包 symbols.yaml 标点表，与虎单/虎词/万象保持一致
   import_preset: symbols
+  # 方括号键的四个候选：中文方括号、花括号、ASCII 方括号、直角引号
+  half_shape:
+    '[': [ '【', '{', '[', '「' ]
+    ']': [ '】', '}', ']', '」' ]
 
 # ==================== 加词模块（`` ` `` + 编码造词） ====================
 # 用法：`` ` `` + 虎码编码 → 候选与平时输入一致 → 选中上屏，即写入用户词库
@@ -214,6 +218,7 @@ tiger_zaoci:
 recognizer:
   import_preset: default
   patterns:
+    inline_english: "^(\\[.*|\\]|.+\\[.*)$"  # 方括号待选/英文片段；中文编码后的混输段
     kf: "^;[a-z]?$"  # 快符
     shijian2: "^/(date|frq|orzh|cdate|fnl|wtxs|time|fsj|fuj|okao|week|fxq|olzh|fjq|lzvq|djs)$"  # 时间/日期
     punct: "^/(/[0-9A-Za-z]*|[0-9]{1,3}|[A-Za-z]+)$"  # 标点/符号菜单 + 统计指令

@@ -2,7 +2,7 @@
 --[[
 👉首先，把本脚本放在你的方案下的lua文件夹内
 
-🚩：如果你的脚本名称为 input_statistics ₂₀₂₅1208・A.lua，你需要把文件名改为 input_statistics.lua后再用
+🚩：如果你的脚本名称为 仙女0501.lua，你需要把文件名改为 input_statistics.lua后再用
 
 🚩：如果你第一次使用不早于 ₂₀₂₅1208・B 版本的本脚本，请把你原来lua文件夹下的 input_stats.lua删除
 
@@ -33,6 +33,7 @@
 //07 /qcjs	清除极速数据
 //08 /qcsz	清除生字/词
 //09 /qctj	清除所有统计数据
+//6 /scj	查看生涯段位
 //60 /pf	查看统计进度条皮肤（消息会显示切换皮肤的命令用法）
 ]]
 
@@ -48,35 +49,40 @@ local boggleThd_s = 3
 local codeLenOfAutoCommit = { 0 }
 -- 如果你想在平均码长后加以说明，请在这里自定义你的说明内容，可以使用 \n 换行
 local avgCodeLenDesc = ''
+-- 短款报告结尾是否显示随机名言：true = 显示，false = 不显示（改完需重新部署 rime）
+local showQuoteShort = true
+-- 名言折行宽度（显示列数）：越小折得越早，可自己调
+local quoteLineWidth = 24
 -- 脚本版本常量
-local SCRIPT_VERSION = '₂₀₂₆0718・A'
+local SCRIPT_VERSION = '✨ 仙女0501-优化版2 ✨'
 -- 如果脚本不能正确识别到你的设备类型，请在这里手动指定您的设备类型，仅符号📱(手机)和💻(电脑)有效
-local deviceType = '' -- 📱 or 💻
+local deviceType = '' -- 📱 or 💻；留空时自动识别平台
 -- 定义一个皮肤集合，以供选用，您可以往这里加入新自定义的皮肤〔idea from 落羽行歌〕
 local skinList = {
-	{ field = '▉', empty = '▁' }, -- 皮肤1：默认
-	{ field = '━', empty = '┄' }, -- 皮肤2
-	{ field = '●', empty = '○' }, -- 皮肤3
-	{ field = '■', empty = '□' }, -- 皮肤4
-	{ field = '▲', empty = '△' }, -- 皮肤5
-	{ field = '◆', empty = '◇' }, -- 皮肤6
-	{ field = '▶', empty = '▷' }, -- 皮肤7
-	{ field = '◀', empty = '◁' }, -- 皮肤8
-	{ field = '▼', empty = '▽' }, -- 皮肤9
-	{ field = '▶', empty = '▁' }, -- 皮肤10
-	{ field = '▉', empty = '┄' }, -- 皮肤11
-	{ field = '━', empty = '▁' }, -- 皮肤12
-	{ field = '●', empty = '▁' }, -- 皮肤13
-	{ field = '■', empty = '┄' }, -- 皮肤14
-	{ field = '▲', empty = '▁' }, -- 皮肤15
-	{ field = '◆', empty = '┄' }, -- 皮肤16
-	{ field = '▉', empty = '○' }, -- 皮肤17
-	{ field = '━', empty = '□' }, -- 皮肤18
-	{ field = '●', empty = '△' }, -- 皮肤19
-	{ field = '■', empty = '◇' }, -- 皮肤20
-	{ field = '★', empty = '☆' }, -- 皮肤21
-	{ field = '✭', empty = '✩' }, -- 皮肤22
-	{ field = '█', empty = '░' }, -- 皮肤23
+	{ field = '♥', empty = '♡' }, -- 皮肤1：爱心默认
+	{ field = '▉', empty = '▁' }, -- 皮肤2
+	{ field = '━', empty = '┄' }, -- 皮肤3
+	{ field = '●', empty = '○' }, -- 皮肤4
+	{ field = '■', empty = '□' }, -- 皮肤5
+	{ field = '▲', empty = '△' }, -- 皮肤6
+	{ field = '◆', empty = '◇' }, -- 皮肤7
+	{ field = '▶', empty = '▷' }, -- 皮肤8
+	{ field = '◀', empty = '◁' }, -- 皮肤9
+	{ field = '▼', empty = '▽' }, -- 皮肤10
+	{ field = '▶', empty = '▁' }, -- 皮肤11
+	{ field = '▉', empty = '┄' }, -- 皮肤12
+	{ field = '━', empty = '▁' }, -- 皮肤13
+	{ field = '●', empty = '▁' }, -- 皮肤14
+	{ field = '■', empty = '┄' }, -- 皮肤15
+	{ field = '▲', empty = '▁' }, -- 皮肤16
+	{ field = '◆', empty = '┄' }, -- 皮肤17
+	{ field = '▉', empty = '○' }, -- 皮肤18
+	{ field = '━', empty = '□' }, -- 皮肤19
+	{ field = '●', empty = '△' }, -- 皮肤20
+	{ field = '■', empty = '◇' }, -- 皮肤21
+	{ field = '★', empty = '☆' }, -- 皮肤22
+	{ field = '✭', empty = '✩' }, -- 皮肤23
+	{ field = '▓', empty = '░' }, -- 皮肤24
 }
 
 -- 支持的统计指令集合
@@ -105,8 +111,8 @@ local strTable = {}
 local quotes = {}
 local quoteCnt = 0
 -- 分隔线
-local splitorLen = 14
-local splitorChar = '─'
+local splitorLen = 10 -- ♡ 少点花，一行刚好
+local splitorChar = '🌸'
 -- local splitor = string.rep("─", splitorLen)
 local splitor = string.rep(splitorChar, splitorLen)
 -- 记录前一次的code字符
@@ -142,14 +148,189 @@ local input_stats = input_stats or {
 	daily_max = 0,
 	newWords = { startTime = 0, words = {} },
 	deviceType = deviceType,
-	progressBarSkinIdx_word = 21, -- 指定字词统计条的皮肤索引（从1开始）
-	progressBarSkinIdx_code = 21 -- 指定码长统计条的皮肤索引（从1开始）
+	progressBarSkinIdx_word = 1, -- ♡ 爱心进度条（皮肤1）
+	progressBarSkinIdx_code = 1 -- ♡ 爱心进度条（皮肤1）
 }
 
 local progressBarField_word = skinList[input_stats.progressBarSkinIdx_word].field
 local progressBarEmpty_word = skinList[input_stats.progressBarSkinIdx_word].empty
 local progressBarField_code = skinList[input_stats.progressBarSkinIdx_code].field
 local progressBarEmpty_code = skinList[input_stats.progressBarSkinIdx_code].empty
+
+-- ♡ 码道修行 — 20级称号体系
+-- EXP = 累计输入字数（career.total），直接对应
+local career_levels = {
+	-- Lv,  EXP起点,  称号
+	{ lv = 1,  exp = 0,        title = '🌱 初识键盘'   },
+	{ lv = 2,  exp = 100,      title = '🍃 摸键学徒'   },
+	{ lv = 3,  exp = 300,      title = '🌿 码字新人'   },
+	{ lv = 4,  exp = 600,      title = '🌾 指尖练习生' },
+	{ lv = 5,  exp = 1000,     title = '🌼 输入学徒'   },
+	{ lv = 6,  exp = 2000,     title = '🌸 码流行者'   },
+	{ lv = 7,  exp = 4000,     title = '🌺 飞键使'     },
+	{ lv = 8,  exp = 7000,     title = '🌻 连击者'     },
+	{ lv = 9,  exp = 12000,    title = '🌷 码阵构筑师' },
+	{ lv = 10, exp = 20000,    title = '🌹 熟练输入师' },
+	{ lv = 11, exp = 35000,    title = '⚔️ 码道武者'   },
+	{ lv = 12, exp = 55000,    title = '🗡️ 飞码剑士'   },
+	{ lv = 13, exp = 80000,    title = '🔥 码力掌控者' },
+	{ lv = 14, exp = 120000,   title = '🌪️ 疾风键客'   },
+	{ lv = 15, exp = 180000,   title = '✨ 码道宗师'   },
+	{ lv = 16, exp = 280000,   title = '🌌 星码使'     },
+	{ lv = 17, exp = 420000,   title = '🌠 破空键圣'   },
+	{ lv = 18, exp = 620000,   title = '👑 万码之王'   },
+	{ lv = 19, exp = 900000,   title = '🪽 羽化码仙'   },
+	{ lv = 20, exp = 1300000,  title = '🐉 键道真君'   },
+}
+
+-- 七境界（按累计字数）
+local career_realms = {
+	{ base = 10000000, name = '码仙境'  },
+	{ base = 5000000,  name = '码圣境'  },
+	{ base = 1000000,  name = '通玄境'  },
+	{ base = 200000,   name = '御码境'  },
+	{ base = 50000,    name = '飞键境'  },
+	{ base = 10000,    name = '熟键境'  },
+	{ base = 0,        name = '凡键境'  },
+}
+
+-- 返回: 称号, lv(1-20), 当前级内EXP, 升级所需EXP
+local function get_career_level(total_exp)
+	local n = #career_levels
+	for i = n, 1, -1 do
+		if total_exp >= career_levels[i].exp then
+			local lv        = career_levels[i].lv
+			local exp_start = career_levels[i].exp
+			local exp_end   = (i < n) and career_levels[i + 1].exp or (career_levels[n].exp + 500000)
+			local exp_cur   = total_exp - exp_start
+			local exp_max   = exp_end - exp_start
+			return career_levels[i].title, lv, exp_cur, exp_max
+		end
+	end
+	return career_levels[1].title, 1, total_exp, career_levels[2].exp
+end
+
+-- 返回境界名
+local function get_realm(total_exp)
+	for _, r in ipairs(career_realms) do
+		if total_exp >= r.base then return r.name end
+	end
+	return '凡键境'
+end
+
+-- 向后兼容
+local function get_career_rank(career_total)
+	local title = get_career_level(career_total)
+	return title
+end
+
+-- ♡ 今日状态（综合多维数据动态生成）
+-- 参数: avgSpd, errKeyRatio, ratioTable(词长), fastest.spd
+local function get_input_state(avgSpd, errKeyRatio, ratioTable, fastestSpd)
+	ratioTable  = ratioTable  or {}
+	fastestSpd  = fastestSpd  or 0
+	local longWordRatio = ratioTable[3] or 0  -- >2字词占比
+
+	-- 优先级从高到低，返回第一个命中的评语
+	-- 综合神级
+	if avgSpd >= 80 and errKeyRatio <= 5 then
+		return '👑 封神了，请收下我的膝盖'
+	end
+	-- 极速冲刺
+	if fastestSpd >= 100 then
+		return '🚀 速度突破天际'
+	end
+	-- 高速低误触
+	if avgSpd >= 60 and errKeyRatio <= 5 then
+		return '✨ 键气逼人'
+	end
+	-- 高速
+	if avgSpd >= 60 then
+		return '🔥 指尖冒烟中'
+	end
+	-- 长词达人（>2字词占比>40%）
+	if longWordRatio >= 40 and avgSpd >= 35 then
+		return '📚 打词达人'
+	end
+	-- 低误触稳健
+	if errKeyRatio <= 3 and avgSpd >= 25 then
+		return '🎯 稳如老码农'
+	end
+	-- 中速稳定
+	if avgSpd >= 40 and errKeyRatio <= 10 then
+		return '🌸 状态不错哦'
+	end
+	-- 手滑严重
+	if errKeyRatio >= 20 then
+		return '🫠 手今天不太听话'
+	end
+	-- 手滑
+	if errKeyRatio >= 12 then
+		return '🌀 手有点滑捏'
+	end
+	-- 中速
+	if avgSpd >= 30 then
+		return '💫 稳步前进中'
+	end
+	-- 慢热
+	if avgSpd >= 18 then
+		return '🌱 慢慢热身中'
+	end
+	-- 新手/低速
+	return '🐢 今天刚起步~'
+end
+
+-- ♡ 迅捷属性（基于均速）
+local function get_attr_speed(avgSpd)
+	if avgSpd >= 80 then return 'S+' end
+	if avgSpd >= 60 then return 'S'  end
+	if avgSpd >= 45 then return 'A+' end
+	if avgSpd >= 35 then return 'A'  end
+	if avgSpd >= 25 then return 'B+' end
+	if avgSpd >= 18 then return 'B'  end
+	return 'C'
+end
+
+-- ♡ 精准属性（基于误触率）
+local function get_attr_accuracy(errKeyRatio)
+	if errKeyRatio <= 1  then return 'S+' end
+	if errKeyRatio <= 3  then return 'S'  end
+	if errKeyRatio <= 6  then return 'A+' end
+	if errKeyRatio <= 10 then return 'A'  end
+	if errKeyRatio <= 15 then return 'B+' end
+	if errKeyRatio <= 22 then return 'B'  end
+	return 'C'
+end
+
+-- ♡ 博学属性（基于生字词数量）
+local function get_attr_learning(word_count)
+	if word_count >= 3000 then return 'S+' end
+	if word_count >= 1500 then return 'S'  end
+	if word_count >= 800  then return 'A+' end
+	if word_count >= 400  then return 'A'  end
+	if word_count >= 150  then return 'B+' end
+	if word_count >= 50   then return 'B'  end
+	return 'C'
+end
+
+-- ♡ EXP进度条（10格，可指定填充/空字符）
+local function exp_bar(exp_cur, exp_max, fill_char, empty_char)
+	fill_char  = fill_char  or '█'
+	empty_char = empty_char or '░'
+	local filled = math.floor(exp_cur / math.max(1, exp_max) * 10 + 0.5)
+	filled = math.max(0, math.min(10, filled))
+	return string.rep(fill_char, filled) .. string.rep(empty_char, 10 - filled)
+end
+
+-- ♡ 彩色进度条（词长/码长专用，带标签）
+-- bar_char: 方块颜色emoji，label: 标签文字，ratio: 百分比(0-100)
+local function color_bar(bar_char, label, ratio)
+	local n = math.floor(ratio / 10 + 0.5)
+	n = math.max(0, math.min(10, n))
+	local bar   = string.rep('█', n) .. string.rep('░', 10 - n)
+	local pct   = math.floor(ratio + 0.5) .. '%'
+	return bar .. label .. pct
+end
 
 local function trim(str)
 	if type(str) ~= "string" then
@@ -187,8 +368,8 @@ local function detect_platform()
 		end
 	end
 
-	-- 1.5 [9.25 修订] 安卓兜底：前端未上报 trime（小企鹅 / Fcitx5 等）时，
-	--     用安卓专有环境变量与用户目录特征判断，避免 deviceType 识别失败
+	-- Android 前端可能只向 librime 报告通用发行名（例如 fcitx-rime），
+	-- 结合 Android 环境变量或 Rime 用户目录识别设备平台。
 	if os.getenv("ANDROID_ROOT") or os.getenv("ANDROID_DATA") or os.getenv("EXTERNAL_STORAGE") then
 		return "android"
 	end
@@ -198,7 +379,9 @@ local function detect_platform()
 			local lower_dir = dir:lower()
 			if lower_dir:find("/storage/", 1, true)
 				or lower_dir:find("/sdcard", 1, true)
-				or lower_dir:find("/data/data/", 1, true) then
+				or lower_dir:find("/data/data/", 1, true)
+				or lower_dir:find("/data/user/", 1, true)
+				or lower_dir:find("/data/user_de/", 1, true) then
 				return "android"
 			end
 		end
@@ -299,35 +482,46 @@ local function getDeviceType()
 	end
 end
 
--- [9.25 修订] 前端软件名：把 distribution_code_name 显示成中文名，认不出就用原名
+-- 前端统一显示英文代号。Android 上的 Fcitx Rime 也返回 fcitx-rime。
 local SOFTWARE_DISPLAY = {
-	trime = '同文输入法',
-	hamster = '仓输入法',
-	hamster3 = '元书输入法',
-	squirrel = '鼠须管',
-	weasel = '小狼毫',
-	fcitx5 = '小企鹅输入法',
-	['fcitx5-android'] = '小企鹅输入法',
-	['fcitx5_android'] = '小企鹅输入法',
-	['fcitx5-android-x86'] = '小企鹅输入法',
-	['fcitx-rime'] = 'Fcitx Rime',
-	['ibus-rime'] = 'IBus Rime',
-	fcitx = 'Fcitx',
-	ibus = 'IBus',
-	rime = 'Rime',
+	trime = 'trime',
+	hamster = 'hamster',
+	hamster3 = 'hamster3',
+	squirrel = 'squirrel',
+	weasel = 'Weasel',
+	fcitx5 = 'fcitx-rime',
+	['fcitx5-android'] = 'fcitx-rime',
+	['fcitx5_android'] = 'fcitx-rime',
+	['fcitx5-android-x86'] = 'fcitx-rime',
+	['fcitx-rime'] = 'fcitx-rime',
+	['ibus-rime'] = 'ibus-rime',
+	fcitx = 'fcitx',
+	ibus = 'ibus',
+	rime = 'rime',
+	foxy = 'foxy',
 }
 local PLATFORM_DISPLAY = {
-	android = '安卓',
+	android = 'android',
 	ios = 'iOS',
-	mac = 'macOS',
-	windows = 'Windows',
-	linux = 'Linux',
+	mac = 'squirrel',
+	windows = 'Weasel',
+	linux = 'linux',
 }
 local function softwareDisplayName()
 	if type(software_name) == "string" and software_name ~= "" then
-		return SOFTWARE_DISPLAY[software_name:lower()] or software_name
+		local name = software_name:lower()
+		return SOFTWARE_DISPLAY[name] or software_name
 	end
-	return PLATFORM_DISPLAY[detect_platform()] or '未知前端'
+	return PLATFORM_DISPLAY[detect_platform()] or 'unknown'
+end
+local function softwareDisplayVersion()
+	if type(software_version) == "string" and software_version ~= "" then
+		return ' ' .. software_version
+	end
+	if type(software_version) == "number" then
+		return ' ' .. tostring(software_version)
+	end
+	return ''
 end
 
 -- 将指定的文档处理成行数组
@@ -372,33 +566,29 @@ local function tableTailSum(tb, n)
 	return sum
 end
 
--- 根据传入的百分比，生成一个进度条
+-- 根据传入的百分比和皮肤字符，生成一个进度条（统一实现）
+local function makeProgressBar(p, filled, empty)
+	local n = 0
+	if p >= 95.0 then n = 10
+	elseif p >= 85.0 then n = 9
+	elseif p >= 75.0 then n = 8
+	elseif p >= 65.0 then n = 7
+	elseif p >= 55.0 then n = 6
+	elseif p >= 45.0 then n = 5
+	elseif p >= 35.0 then n = 4
+	elseif p >= 25.0 then n = 3
+	elseif p >= 15.0 then n = 2
+	elseif p >= 5.0  then n = 1
+	end
+	return string.rep(filled, n) .. string.rep(empty, 10 - n)
+end
+
 local function progressBar_code(p)
-	if p >= 95.0 then return string.rep(progressBarField_code, 10) end
-	if p >= 85.0 then return string.rep(progressBarField_code, 9) .. string.rep(progressBarEmpty_code, 1) end
-	if p >= 75.0 then return string.rep(progressBarField_code, 8) .. string.rep(progressBarEmpty_code, 2) end
-	if p >= 65.0 then return string.rep(progressBarField_code, 7) .. string.rep(progressBarEmpty_code, 3) end
-	if p >= 55.0 then return string.rep(progressBarField_code, 6) .. string.rep(progressBarEmpty_code, 4) end
-	if p >= 45.0 then return string.rep(progressBarField_code, 5) .. string.rep(progressBarEmpty_code, 5) end
-	if p >= 35.0 then return string.rep(progressBarField_code, 4) .. string.rep(progressBarEmpty_code, 6) end
-	if p >= 25.0 then return string.rep(progressBarField_code, 3) .. string.rep(progressBarEmpty_code, 7) end
-	if p >= 15.0 then return string.rep(progressBarField_code, 2) .. string.rep(progressBarEmpty_code, 8) end
-	if p >= 5.0 then return string.rep(progressBarField_code, 1) .. string.rep(progressBarEmpty_code, 9) end
-	return string.rep(progressBarEmpty_code, 10)
+	return makeProgressBar(p, progressBarField_code, progressBarEmpty_code)
 end
 
 local function progressBar_word(p)
-	if p >= 95.0 then return string.rep(progressBarField_word, 10) end
-	if p >= 85.0 then return string.rep(progressBarField_word, 9) .. string.rep(progressBarEmpty_word, 1) end
-	if p >= 75.0 then return string.rep(progressBarField_word, 8) .. string.rep(progressBarEmpty_word, 2) end
-	if p >= 65.0 then return string.rep(progressBarField_word, 7) .. string.rep(progressBarEmpty_word, 3) end
-	if p >= 55.0 then return string.rep(progressBarField_word, 6) .. string.rep(progressBarEmpty_word, 4) end
-	if p >= 45.0 then return string.rep(progressBarField_word, 5) .. string.rep(progressBarEmpty_word, 5) end
-	if p >= 35.0 then return string.rep(progressBarField_word, 4) .. string.rep(progressBarEmpty_word, 6) end
-	if p >= 25.0 then return string.rep(progressBarField_word, 3) .. string.rep(progressBarEmpty_word, 7) end
-	if p >= 15.0 then return string.rep(progressBarField_word, 2) .. string.rep(progressBarEmpty_word, 8) end
-	if p >= 5.0 then return string.rep(progressBarField_word, 1) .. string.rep(progressBarEmpty_word, 9) end
-	return string.rep(progressBarEmpty_word, 10)
+	return makeProgressBar(p, progressBarField_word, progressBarEmpty_word)
 end
 
 -- 时间戳工具函数
@@ -564,16 +754,21 @@ local function update_stats(input_length, codeLen, codeLenWithoutSpace, avgAvail
 	input_stats.weekly.codeLengths[codeLen] = (input_stats.weekly.codeLengths[codeLen] or 0) + 1
 	input_stats.monthly.codeLengths[codeLen] = (input_stats.monthly.codeLengths[codeLen] or 0) + 1
 	input_stats.yearly.codeLengths[codeLen] = (input_stats.yearly.codeLengths[codeLen] or 0) + 1
+
+	-- 更新生涯累计字数（EXP）
+	if not input_stats.career then input_stats.career = { total = 0 } end
+	input_stats.career.total = (input_stats.career.total or 0) + input_length
 end
 
--- 表序列化工具
-table.serialize = function(tbl)
+-- 表序列化工具（本地函数，避免污染全局 table）
+local serialize_table
+serialize_table = function(tbl)
 	local lines = { "{" }
 	for k, v in pairs(tbl) do
 		local key = (type(k) == "string") and ("[\"" .. k .. "\"]") or ("[" .. k .. "]")
 		local val
 		if type(v) == "table" then
-			val = table.serialize(v)
+			val = serialize_table(v)
 		elseif type(v) == "string" then
 			val = '"' .. v .. '"'
 		else
@@ -590,31 +785,21 @@ local function save_stats(schema_id)
 	local path = rime_api.get_user_data_dir() .. "/lua/input_stats_" .. schema_id .. ".lua"
 	local file = io.open(path, "w")
 	if not file then return end
-	file:write("input_stats = " .. table.serialize(input_stats) .. "\n")
+	file:write("input_stats = " .. serialize_table(input_stats) .. "\n")
 	file:close()
 end
 
--- 将一段文字嵌入 splitor 中间
+-- 将一段文字嵌入 splitor 中间（♡ 前后花朵数相等）
 local function embedTextIntoSplitor(myText)
-	local myTextNew = myText
 	local tmpLen = utf8.len(myText)
-	local halfLen = 0
-	local halfLenFloor = 0
-
-	if splitorLen > tmpLen + 1 then
-		halfLen = 0.5 * (splitorLen - tmpLen)
-		halfLenFloor = math.floor(halfLen)
-		myTextNew = string.rep(splitorChar, halfLenFloor) ..
-		myText .. string.rep(splitorChar, splitorLen - tmpLen - halfLenFloor)
-	end
-
-	return myTextNew
+	local each = math.max(1, math.ceil((splitorLen - tmpLen) / 2))
+	return string.rep(splitorChar, each) .. myText .. string.rep(splitorChar, each)
 end
 
 -- 格式化皮肤列表〔from 落羽行歌〕
 local function formatSkinList()
 	local skinListText = {}
-	table.insert(skinListText, "※ 可用皮肤列表：")
+	table.insert(skinListText, "🎀 可用皮肤列表：")
 
 	local pfIdxa = 0
 	local pfIdxb = 0
@@ -637,145 +822,6 @@ local function formatSkinList()
 	return table.concat(skinListText, "\n"):gsub("\n+", "\n"):gsub("^%n", ""):gsub("%n$", "")
 end
 
--- 格式化统计头部信息〔from 落羽行歌〕
-local function format_statistics_header(stat_type, s, fastest, avgV, avgCodeLen, avgCodeLenDesc)
-	strTable[1] = embedTextIntoSplitor(string.format('🚩 %s 🚩', stat_type))
-	strTable[2] = os.date("%Y/%m/%d %H:%M:%S", os.time()) .. get_timezone()
-	strTable[4] = string.format('上屏 %d 次，输入 %d 字', s.count, s.length)
-	-- 显示击键信息 〔from Chopper〕
-	strTable[5] = string.format('极速 %.1f，击键%.1f，码长%.1f', fastest.spd, fastest.keyTouchSpd, fastest.avgCodeLen)
-	strTable[6] = string.format('均速 %.1f，击键%.1f，码长%.1f', avgV, avgV * avgCodeLen / 60, avgCodeLen)
-
-	local errKeyCnt = s.keyTouchCnt - s.totalCodeLenWithoutSpace
-	if errKeyCnt < 0 then errKeyCnt = 0 end
-	local errKeyRatio = 0
-	if s.keyTouchCnt > 0 then
-		errKeyRatio = 100 * errKeyCnt / s.keyTouchCnt
-	end
-	strTable[6] = strTable[6] .. string.format('\n误触按键 %d 次，误触率 %.0f%%', errKeyCnt, errKeyRatio)
-	
-	if 0 ~= reportStyle then
-		-- 如果不是短款，则加上用户自定义的相关描述
-		strTable[6] = strTable[6] .. '\n' .. avgCodeLenDesc
-	else
-		-- 如果是短款，不要头部信息
-		strTable[1] = ''
-		strTable[2] = ''
-	end
-end
-
--- 格式化字长统计（单字、2字、>2字）〔from 落羽行歌〕
-local function format_word_length_stats(ratioTable)
-	if 0 == reportStyle then
-		strTable[8] = ''
-		if ratioTable[1] > 0 then
-			strTable[8] = strTable[8] .. string.format('单字%.0f%%', ratioTable[1])
-		end
-		if ratioTable[2] > 0 then
-			if utf8.len(strTable[8]) > 0 then
-				strTable[8] = strTable[8] .. string.format('; 2字%.0f%%', ratioTable[2])
-			else
-				strTable[8] = string.format('; 2字%.0f%%', ratioTable[2])
-			end
-		end
-		if ratioTable[3] > 0 then
-			if utf8.len(strTable[8]) > 0 then
-				strTable[8] = strTable[8] .. string.format('; >2字%.0f%%', ratioTable[3])
-			else
-				strTable[8] = string.format('; 2字%.0f%%', ratioTable[3])
-			end
-		end
-		
-		strTable[9] = ''
-		strTable[10] = ''
-	else
-		if ratioTable[1] > 0 then
-			strTable[8] = string.format('%s单字%3.0f%%', progressBar_word(ratioTable[1]), ratioTable[1])
-		else
-			strTable[8] = ''
-		end
-		if ratioTable[2] > 0 then
-			strTable[9] = string.format('%s 2字%3.0f%%', progressBar_word(ratioTable[2]), ratioTable[2])
-		else
-			strTable[9] = ''
-		end
-		if ratioTable[3] > 0 then
-			strTable[10] = string.format('%s>2字%3.0f%%', progressBar_word(ratioTable[3]), ratioTable[3])
-		else
-			strTable[10] = ''
-		end
-	end
-end
-
--- 格式化码长统计 〔from 落羽行歌〕
-local function format_code_length_stats(codeTableFirstN)
-	if 0 == reportStyle then
-		strTable[12] = ''
-		if codeTableFirstN[1].ratio > 0 then
-			strTable[12] = string.format('%s码%.0f%%', codeTableFirstN[1].codeLen, codeTableFirstN[1].ratio)
-		end
-		if codeTableFirstN[2].ratio > 0 then
-			if utf8.len(strTable[12]) > 0 then
-				strTable[12] = strTable[12] .. string.format('; %s码%.0f%%', codeTableFirstN[2].codeLen, codeTableFirstN[2].ratio)
-			else
-				strTable[12] = string.format('%s码%.0f%%', codeTableFirstN[2].codeLen, codeTableFirstN[2].ratio)
-			end
-		end
-		if codeTableFirstN[3].ratio > 0 then
-			if utf8.len(strTable[12]) > 0 then
-				strTable[12] = strTable[12] .. string.format('; %s码%.0f%%', codeTableFirstN[3].codeLen, codeTableFirstN[3].ratio)
-			else
-				strTable[12] = string.format('%s码%.0f%%', codeTableFirstN[3].codeLen, codeTableFirstN[3].ratio)
-			end
-		end
-		if codeTableFirstN[4].ratio > 0 then
-			if utf8.len(strTable[12]) > 0 then
-				strTable[12] = strTable[12] .. string.format('; 其它%.0f%%', codeTableFirstN[4].ratio)
-			else
-				strTable[12] = string.format('其它%.0f%%', codeTableFirstN[4].ratio)
-			end
-		end
-		strTable[13] = ''
-		strTable[14] = ''
-		strTable[15] = ''
-	else
-		if codeTableFirstN[1].ratio > 0 then
-			local codeLenStr1 = codeTableFirstN[1].codeLen < 10 and ' ' .. codeTableFirstN[1].codeLen or codeTableFirstN[1].codeLen
-			strTable[12] = string.format('%s%s码%3.0f%%', progressBar_code(codeTableFirstN[1].ratio), codeLenStr1, codeTableFirstN[1].ratio)
-		else
-			strTable[12] = ''
-		end
-		if codeTableFirstN[2].ratio > 0 then
-			local codeLenStr2 = codeTableFirstN[2].codeLen < 10 and ' ' .. codeTableFirstN[2].codeLen or codeTableFirstN[2].codeLen
-			strTable[13] = string.format('%s%s码%3.0f%%', progressBar_code(codeTableFirstN[2].ratio), codeLenStr2, codeTableFirstN[2].ratio)
-		else
-			strTable[13] = ''
-		end
-		if codeTableFirstN[3].ratio > 0 then
-			local codeLenStr3 = codeTableFirstN[3].codeLen < 10 and ' ' .. codeTableFirstN[3].codeLen or codeTableFirstN[3].codeLen
-			strTable[14] = string.format('%s%s码%3.0f%%', progressBar_code(codeTableFirstN[3].ratio), codeLenStr3, codeTableFirstN[3].ratio)
-		else
-			strTable[14] = ''
-		end
-		if codeTableFirstN[4].ratio > 0 then
-			strTable[15] = string.format('%s其它%3.0f%%', progressBar_code(codeTableFirstN[4].ratio), codeTableFirstN[4].ratio)
-		else
-			strTable[15] = ''
-		end
-	end
-end
-
--- 格式化统计尾部（名人名言）〔from 落羽行歌〕
-local function format_statistics_footer()
-	if quoteCnt < 1 then
-		strTable[21] = ''
-	elseif 0 == reportStyle then
-		-- 如果是短款，不要尾部信息
-		strTable[21] = ''
-	else
-		strTable[21] = splitor .. '\n' .. quotes[math.floor(math.random() * quoteCnt) + 1]
-	end
-end
 
 -- 根据给定的样本，计算并返回统计指标
 local function statisticsCal(s)
@@ -844,113 +890,262 @@ local function statisticsCal(s)
 	return fastest, avgSpd, avgCodeLen, ratioTable, codeTableFirstN
 end
 
--- 显示函数（日统计）
-local function format_daily_summary()
-	local s = input_stats.daily
-	if s.count == 0 then return "※ 今天没有任何记录。" end
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+-- 短版：6~7行，适合发朋友圈/群聊
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+local function displayWidth(str)
+	local w = 0
+	for _, cp in utf8.codes(str) do
+		local n = 1
+		if (cp >= 0x0300 and cp <= 0x036F) or (cp >= 0xFE00 and cp <= 0xFE0F) or cp == 0x200D then
+			n = 0
+		elseif (cp >= 0x1100 and cp <= 0x115F) or (cp >= 0x2E80 and cp <= 0xA4CF)
+			or (cp >= 0xAC00 and cp <= 0xD7A3) or (cp >= 0xF900 and cp <= 0xFAFF)
+			or (cp >= 0xFE30 and cp <= 0xFE6F) or (cp >= 0xFF00 and cp <= 0xFF60)
+			or (cp >= 0xFFE0 and cp <= 0xFFE6) or (cp >= 0x1F300 and cp <= 0x1FAFF)
+			or (cp >= 0x20000 and cp <= 0x3FFFD) then
+			n = 2
+		end
+		w = w + n
+	end
+	return w
+end
+
+-- 按显示宽度把文本折成多行（每行不超过 maxCols 列）
+local function wrapByWidth(str, maxCols)
+	local positions = {}
+	for pos in utf8.codes(str) do positions[#positions + 1] = pos end
+	positions[#positions + 1] = #str + 1
+	local out, curStart, curW = {}, 1, 0
+	for i = 1, #positions - 1 do
+		local chStart = positions[i]
+		local chEnd = positions[i + 1] - 1
+		local cw = displayWidth(str:sub(chStart, chEnd))
+		if curW > 0 and curW + cw > maxCols then
+			table.insert(out, str:sub(curStart, chStart - 1))
+			curStart = chStart
+			curW = 0
+		end
+		curW = curW + cw
+	end
+	if curStart <= #str then table.insert(out, str:sub(curStart)) end
+	return out
+end
+
+local function format_short(s, label, empty_msg)
+	if s.count == 0 then return empty_msg end
 
 	local fastest, avgSpd, avgCodeLen, ratioTable, codeTableFirstN = statisticsCal(s)
 
-	-- 使用辅助函数格式化统计头部信息
-	format_statistics_header("日统计", s, fastest, avgSpd, avgCodeLen, avgCodeLenDesc)
-	-- 使用辅助函数格式化字长统计
-	format_word_length_stats(ratioTable)
-	-- 使用辅助函数格式化码长统计
-	format_code_length_stats(codeTableFirstN)
-	-- 使用辅助函数格式化统计尾部
-	format_statistics_footer()
+	local errKeyCnt   = math.max(0, s.keyTouchCnt - s.totalCodeLenWithoutSpace)
+	local errKeyRatio = s.keyTouchCnt > 0 and (100 * errKeyCnt / s.keyTouchCnt) or 0
 
-	return trim(table.concat(strTable, '\n'):gsub("\n+", "\n"):gsub("^%n", ""):gsub("%n$", ""))
+	local state = get_input_state(avgSpd, errKeyRatio, ratioTable, fastest.spd)
+
+	local career_total = (input_stats.career and input_stats.career.total) or 0
+	local rank_title, lv = get_career_level(career_total)
+	local rank_short = rank_title:match("%s(.+)$") or rank_title
+	local label_map = { ["日统计"] = "今日打字", ["周统计"] = "本周打字", ["月统计"] = "本月打字", ["年统计"] = "年度打字" }
+	local title_line = '🌷 ' .. (label_map[label] or label)
+
+	local lines = {
+		title_line,
+		string.format('📝 %d次·⌨️%d字', s.count, s.length),
+		string.format('⚡ %.1f  击键%.1f  码长%.1f', fastest.spd, fastest.keyTouchSpd, fastest.avgCodeLen),
+		string.format('💫 %.1f  击键%.1f  码长%.1f', avgSpd, avgSpd * avgCodeLen / 60, avgCodeLen),
+		string.format('🌀 误触%d次（%.0f%%）', errKeyCnt, errKeyRatio),
+	}
+
+	-- 词长分布（彩色进度条）
+	table.insert(lines, '📖 词长分布')
+	if ratioTable[1] > 0 then table.insert(lines, color_bar('🟩', '单字', ratioTable[1])) end
+	if ratioTable[2] > 0 then table.insert(lines, color_bar('🟩', '双字', ratioTable[2])) end
+	if ratioTable[3] > 0 then table.insert(lines, color_bar('🟩', '多字', ratioTable[3])) end
+
+	-- 码长分布（彩色进度条，不同颜色区分码长）
+	local code_colors = { '🟦', '🟨', '🟧', '🟪' }
+	table.insert(lines, '📚 编码分布')
+	for i = 1, 3 do
+		local ct = codeTableFirstN[i]
+		if ct.ratio > 0 then
+			table.insert(lines, color_bar(code_colors[i] or '🟦', ct.codeLen .. '码', ct.ratio))
+		end
+	end
+	if codeTableFirstN[4].ratio > 0 then
+		table.insert(lines, color_bar('🟪', '其它', codeTableFirstN[4].ratio))
+	end
+
+	table.insert(lines, state .. '  🎀' .. rank_short .. ' Lv.' .. lv)
+	table.insert(lines, getDeviceType() .. softwareDisplayName() .. softwareDisplayVersion() .. '・' .. schema_name)
+
+	-- 结尾随机名言（受 showQuoteShort 控制，按显示宽度折行）
+	if showQuoteShort and quoteCnt > 0 then
+		local q = quotes[math.floor(math.random() * quoteCnt) + 1]
+		if q and #q > 0 then
+			table.insert(lines, '━━━━━━━━━━━━')
+			for _, ln in ipairs(wrapByWidth('『' .. q .. '』', quoteLineWidth)) do
+				table.insert(lines, ln)
+			end
+		end
+	end
+
+	return table.concat(lines, '\n')
+end
+
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+-- 长版：完整专业复盘
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+local function format_long(s, label, empty_msg)
+	if s.count == 0 then return empty_msg end
+
+	local fastest, avgSpd, avgCodeLen, ratioTable, codeTableFirstN = statisticsCal(s)
+
+	local errKeyCnt   = math.max(0, s.keyTouchCnt - s.totalCodeLenWithoutSpace)
+	local errKeyRatio = s.keyTouchCnt > 0 and (100 * errKeyCnt / s.keyTouchCnt) or 0
+
+	local state = get_input_state(avgSpd, errKeyRatio, ratioTable, fastest.spd)
+	local career_total = (input_stats.career and input_stats.career.total) or 0
+	local rank_title, lv, exp_cur, exp_max = get_career_level(career_total)
+	local realm = get_realm(career_total)
+
+	-- 三属性
+	local attr_spd = get_attr_speed(avgSpd)
+	local attr_acc = get_attr_accuracy(errKeyRatio)
+	local word_count = 0
+	if input_stats.newWords and input_stats.newWords.words then
+		for _ in pairs(input_stats.newWords.words) do word_count = word_count + 1 end
+	end
+	local attr_learn = get_attr_learning(word_count)
+
+	local sep  = '━━━━━━━━━━━━'
+	local label_map = { ["日统计"] = "今日打字报告", ["周统计"] = "本周打字报告", ["月统计"] = "本月打字报告", ["年统计"] = "年度打字报告" }
+	local report_title = label_map[label] or label
+
+	local lines = {}
+	table.insert(lines, string.format('🌸 %s 🌸', report_title))
+	table.insert(lines, os.date("📅 %Y/%m/%d  %H:%M", os.time()))
+	table.insert(lines, string.format('📝 上屏%d次·⌨️输入%d字', s.count, s.length))
+	table.insert(lines, sep)
+
+	-- 速度
+	table.insert(lines, string.format('⚡ %.1f  击键%.1f  码长%.1f', fastest.spd, fastest.keyTouchSpd, fastest.avgCodeLen))
+	table.insert(lines, string.format('💫 %.1f  击键%.1f  码长%.1f', avgSpd, avgSpd * avgCodeLen / 60, avgCodeLen))
+	table.insert(lines, string.format('🌀 误触%d次（%.0f%%）', errKeyCnt, errKeyRatio))
+	table.insert(lines, sep)
+
+	-- 词长分布
+	table.insert(lines, '📖 词长分布')
+	if ratioTable[1] > 0 then table.insert(lines, color_bar('🟩', '单字', ratioTable[1])) end
+	if ratioTable[2] > 0 then table.insert(lines, color_bar('🟩', '双字', ratioTable[2])) end
+	if ratioTable[3] > 0 then table.insert(lines, color_bar('🟩', '多字', ratioTable[3])) end
+	table.insert(lines, sep)
+
+	-- 码长分布
+	local code_colors = { '🟦', '🟨', '🟧', '🟪' }
+	table.insert(lines, '📚 编码分布')
+	for i = 1, 3 do
+		local ct = codeTableFirstN[i]
+		if ct.ratio > 0 then
+			table.insert(lines, color_bar(code_colors[i], ct.codeLen .. '码', ct.ratio))
+		end
+	end
+	if codeTableFirstN[4].ratio > 0 then
+		table.insert(lines, color_bar('🟪', '其它', codeTableFirstN[4].ratio))
+	end
+	table.insert(lines, sep)
+
+	-- 码道修行
+	table.insert(lines, '🎮 码道修行')
+	table.insert(lines, string.format('境界：%s', realm))
+	table.insert(lines, string.format('%s  Lv.%d', rank_title, lv))
+	table.insert(lines, exp_bar(exp_cur, exp_max, '█', '░'))
+	table.insert(lines, string.format('%d / %d EXP', exp_cur, exp_max))
+	table.insert(lines, sep)
+
+	-- 三属性
+	table.insert(lines, '⚔️ 属性')
+	table.insert(lines, string.format('⚡迅捷：%s  🎯精准：%s  📚博学：%s', attr_spd, attr_acc, attr_learn))
+	table.insert(lines, sep)
+
+	-- 今日状态
+	table.insert(lines, '💬 今日状态  ' .. state)
+	table.insert(lines, sep)
+
+	-- 生涯累计
+	table.insert(lines, string.format('📖 累计输入  %d 字', career_total))
+	table.insert(lines, string.format('🌱 已掌握生词  %d 个', word_count))
+	table.insert(lines, sep)
+
+	table.insert(lines, string.format('%s %s%s × %s', getDeviceType(), softwareDisplayName(), softwareDisplayVersion(), schema_name))
+	table.insert(lines, '📜 脚本：咩₂₀₂₆0612')
+
+	if quoteCnt > 0 then
+		local q = quotes[math.floor(math.random() * quoteCnt) + 1]
+		if q and #q > 0 then
+			table.insert(lines, sep)
+			for _, ln in ipairs(wrapByWidth('『' .. q .. '』', quoteLineWidth)) do
+				table.insert(lines, ln)
+			end
+		end
+	end
+
+	return table.concat(lines, '\n')
+end
+
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+-- 通用入口：根据 reportStyle 分派
+-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+local function format_period_summary(s, label, empty_msg)
+	if reportStyle == 1 then
+		return format_long(s, label, empty_msg)
+	else
+		return format_short(s, label, empty_msg)
+	end
+end
+local function format_daily_summary()
+	return format_period_summary(input_stats.daily, "日统计", "🌱 今天还没开始打字哦，加油！")
 end
 
 -- 显示函数（周统计）
 local function format_weekly_summary()
-	local s = input_stats.weekly
-	if s.count == 0 then return "※ 本周没有任何记录。" end
-
-	local fastest, avgSpd, avgCodeLen, ratioTable, codeTableFirstN = statisticsCal(s)
-
-	-- 使用辅助函数格式化统计头部信息
-	format_statistics_header("周统计", s, fastest, avgSpd, avgCodeLen, avgCodeLenDesc)
-	-- 使用辅助函数格式化字长统计
-	format_word_length_stats(ratioTable)
-	-- 使用辅助函数格式化码长统计
-	format_code_length_stats(codeTableFirstN)
-	-- 使用辅助函数格式化统计尾部
-	format_statistics_footer()
-
-	return trim(table.concat(strTable, '\n'):gsub("\n+", "\n"):gsub("^%n", ""):gsub("%n$", ""))
+	return format_period_summary(input_stats.weekly, "周统计", "🌸 本周还没有记录，快来打字吧～")
 end
 
 -- 显示函数（月统计）
 local function format_monthly_summary()
-	local s = input_stats.monthly
-	if s.count == 0 then return "※ 本月没有任何记录。" end
-
-	local fastest, avgSpd, avgCodeLen, ratioTable, codeTableFirstN = statisticsCal(s)
-
-	-- 使用辅助函数格式化统计头部信息
-	format_statistics_header("月统计", s, fastest, avgSpd, avgCodeLen, avgCodeLenDesc)
-	-- 使用辅助函数格式化字长统计
-	format_word_length_stats(ratioTable)
-	-- 使用辅助函数格式化码长统计
-	format_code_length_stats(codeTableFirstN)
-	-- 使用辅助函数格式化统计尾部
-	format_statistics_footer()
-
-	return trim(table.concat(strTable, '\n'):gsub("\n+", "\n"):gsub("^%n", ""):gsub("%n$", ""))
+	return format_period_summary(input_stats.monthly, "月统计", "🌷 这个月还没有记录哦～")
 end
 
 -- 显示函数（年统计）
 local function format_yearly_summary()
-	local s = input_stats.yearly
-	if s.count == 0 then return "※ 本年没有任何记录。" end
-
-	local fastest, avgSpd, avgCodeLen, ratioTable, codeTableFirstN = statisticsCal(s)
-
-	-- 使用辅助函数格式化统计头部信息
-	format_statistics_header("年统计", s, fastest, avgSpd, avgCodeLen, avgCodeLenDesc)
-	-- 使用辅助函数格式化字长统计
-	format_word_length_stats(ratioTable)
-	-- 使用辅助函数格式化码长统计
-	format_code_length_stats(codeTableFirstN)
-	-- 使用辅助函数格式化统计尾部
-	format_statistics_footer()
-
-	return trim(table.concat(strTable, '\n'):gsub("\n+", "\n"):gsub("^%n", ""):gsub("%n$", ""))
+	return format_period_summary(input_stats.yearly, "年统计", "✨ 今年还没有记录，元气满满出发！")
 end
 
 -- 显示记录的生字/词
 local function format_shengzi()
-	if input_stats.newWords == nil then
-		return string.format("※ 未发现生字/词记录。")
-	end
-	if input_stats.newWords.words == nil then
-		return string.format("※ 未发现生字/词记录。")
+	if input_stats.newWords == nil or input_stats.newWords.words == nil then
+		return "🌱 暂时没有生字词记录哦，继续加油～"
 	end
 
-	local verStr = strTable[#strTable - 1]
 	local newWords = {}
 	for k, v in pairs(input_stats.newWords.words) do
 		table.insert(newWords, k)
 	end
 	local wordsCnt = #newWords
 	if wordsCnt < 1 then
-		return string.format("※ 未发现生字/词记录。")
+		return "🌱 暂时没有生字词记录哦，继续加油～"
 	end
 
 	local tmpTable = {}
-	tmpTable[1] = embedTextIntoSplitor('🚩 生字/词本 🚩')
+	tmpTable[1] = embedTextIntoSplitor('🌸 生字/词本 💕')
 	tmpTable[2] = ''
-	if input_stats.newWords.startTime > 0 then
+	if input_stats.newWords.startTime and input_stats.newWords.startTime > 0 then
 		tmpTable[2] = os.date("自 %Y/%m/%d %H:%M:%S 以来，", input_stats.newWords.startTime)
 	end
 	tmpTable[3] = string.format("共记录到生字/词 %d 个", wordsCnt)
-
 	tmpTable[4] = splitor
 	tmpTable[5] = table.concat(newWords, '，')
 	tmpTable[6] = splitor
-	tmpTable[7] = verStr
 
 	return trim(table.concat(tmpTable, '\n'):gsub("\n+", "\n"):gsub("^%n", ""):gsub("%n$", ""))
 end
@@ -1042,9 +1237,8 @@ local function translator(input, seg, env)
 					-- 如果前一编码的第1个字符与当前编码不相等，则可以肯定用户是操作了情况2
 					keyTouchCnt = keyTouchCnt + 1
 				else
-					-- 如果前一编码的第1个字符与当前编码相等，则无法判断用户的操作是情况1，还是情况2，这个根据客户要求做统一处理了
-					-- 暂时做 +0 处理
-					keyTouchCnt = keyTouchCnt + 0
+					-- 如果前一编码的第1个字符与当前编码相等，则无法判断是BackSpace还是esc后重输，暂不计数
+				-- keyTouchCnt 保持不变
 				end
 			end
 		end
@@ -1061,42 +1255,23 @@ local function translator(input, seg, env)
 	local summary = ""
 	local avgAvailable = 0
 	if avgSpdInfo.commitTime - avgSpdInfo.startTime >= 1 and avgSpdInfo.count > 0 then avgAvailable = 1 end
-	
+
 	if reportCommands[input] then
 		if avgAvailable == 1 then -- 如果此时已经有统计数据，则记录该统计数据
 			update_stats(0, 0, 0, 1)
 			-- 清除计时
 			avgSpdInfo.startTime = timeNow
 			avgSpdInfo.commitTime = timeNow
-		else
-			-- 单纯更新统计缓存
-			update_stats(0, 0, 0, 0)
 		end
-		
+
 		if #input > 1 then
 			if input:sub(-2,-2) == input:sub(-1,-1) then
-				reportStyle = 1
-				strTable[3] = '📈' .. string.rep(splitorChar, splitorLen - 1)
-				strTable[7] = '📊' .. string.rep(splitorChar, splitorLen - 1)
-				strTable[11] = '📊' .. string.rep(splitorChar, splitorLen - 1)
-				strTable[16] = splitor
-				strTable[17] = '◉ 方案：' .. schema_name
-				strTable[18] = '◉ 平台：' .. getDeviceType() .. softwareDisplayName() .. ' ' .. software_version
-				strTable[19] = splitor
-				strTable[20] = '脚本：🐐🪶' .. SCRIPT_VERSION
+				reportStyle = 1  -- 长版
 			else
-				reportStyle = 0
-				strTable[3] = ''
-				strTable[7] = splitor
-				strTable[11] = ''
-				strTable[16] = splitor
-				strTable[17] = getDeviceType()..softwareDisplayName()..'・'..schema_name
-				strTable[18] = ''
-				strTable[19] = ''
-				strTable[20] = ''
+				reportStyle = 0  -- 短版
 			end
 		end
-		
+
 		if ({ ['📱'] = true, ['💻'] = true })[input_stats.deviceType] then
 			if ({['//1'] = true, ['/rtj'] = true, ['//11'] = true, ['/rtjj'] = true})[input] then
 				summary = format_daily_summary()
@@ -1107,10 +1282,10 @@ local function translator(input, seg, env)
 			elseif ({['//4'] = true, ['/ntj'] = true, ['//44'] = true, ['/ntjj'] = true})[input] then
 				summary = format_yearly_summary()
 			else
-				summary = '未识别的统计指令'
+				summary = '🌸 没认出这个指令呢，再看看使用说明吧～'
 			end
 		else
-			summary = 'deviceType识别失败，请设置deviceType后重新部署'
+			summary = '🌷 设备类型识别失败，请手动设置 deviceType 后重新部署哦～'
 		end
 	elseif input == "//5" or input == "/sztj" then
 		if avgAvailable == 1 then -- 如果此时已经有统计数据，则记录该统计数据
@@ -1127,16 +1302,18 @@ local function translator(input, seg, env)
 		input_stats.monthly.fastest = { spd = 0, keyTouchSpd = 0, avgCodeLen = 0 }
 		input_stats.yearly.fastest = { spd = 0, keyTouchSpd = 0, avgCodeLen = 0 }
 		save_stats(env.engine.schema.schema_id)
-		summary = '※ 极速数据已清空。'
+		summary = '⚡ 极速记录已清空，重新冲鸭！🌸'
 	elseif input == "//08" or input == "/qcsz" then
 		input_stats.newWords = { startTime = 0, words = {} }
 		save_stats(env.engine.schema.schema_id)
-		summary = "※ 生字词已清空。"
+		summary = "🌱 生字词本已清空，重新记录吧～"
 	elseif input == "//09" or input == "/qctj" then
 		local int1 = input_stats.progressBarSkinIdx_code
 		local int2 = input_stats.progressBarSkinIdx_word
 		local deviceType = input_stats.deviceType
 		local logV = input_stats.logVer
+		-- ♡ 保留生涯数据不重置
+		local savedCareer = input_stats.career or { total = 0 }
 		keyTouchCnt = 0
 		lastCode = 0
 		input_stats = {
@@ -1148,8 +1325,9 @@ local function translator(input, seg, env)
 			daily_max = 0,
 			newWords = { startTime = 0, words = {} },
 			deviceType = deviceType,
-			progressBarSkinIdx_word = 21,
-			progressBarSkinIdx_code = 21
+			progressBarSkinIdx_word = 1,
+			progressBarSkinIdx_code = 1,
+			career = savedCareer
 		}
 		input_stats.progressBarSkinIdx_code = int1
 		input_stats.progressBarSkinIdx_word = int2
@@ -1158,7 +1336,23 @@ local function translator(input, seg, env)
 		avgSpdInfo.count = 0
 		avgSpdInfo.codeLen = 0
 
-		summary = "※ 所有统计数据已清空。"
+		summary = "🌸 统计数据已清空啦～ 生涯段位保留哦 💗"
+	elseif input == "//6" or input == "/scj" then -- ♡ 查看生涯段位
+		local career_total = (input_stats.career and input_stats.career.total) or 0
+		local rank_title, lv, exp_cur, exp_max = get_career_level(career_total)
+		local realm = get_realm(career_total)
+		local word_count = 0
+		if input_stats.newWords and input_stats.newWords.words then
+			for _ in pairs(input_stats.newWords.words) do word_count = word_count + 1 end
+		end
+		summary = string.format(
+			"🎮 码道修行\n境界：%s\n%s  Lv.%d\n%s\n%d / %d EXP\n📚博学：%s  累计生词 %d 个\n✨ 累计输入：%d 字",
+			realm, rank_title, lv,
+			exp_bar(exp_cur, exp_max, '█', '░'),
+			exp_cur, exp_max,
+			get_attr_learning(word_count), word_count,
+			career_total
+		)
 	elseif ({ ['//6'] = true, ['/pf'] = true })[input:sub(1, 3)] or ({ ['/pfw'] = true, ['/pfc'] = true, ['/hfw'] = true, ['/hfc'] = true })[input:sub(1, 4)] then
 		if (input == "//60") or (input == "/pf") then -- 展示皮肤列表
 			summary = formatSkinList()
@@ -1168,12 +1362,12 @@ local function translator(input, seg, env)
 				input_stats.progressBarSkinIdx_word = skinIndex
 				progressBarField_word = skinList[input_stats.progressBarSkinIdx_word].field
 				progressBarEmpty_word = skinList[input_stats.progressBarSkinIdx_word].empty
-				summary = string.format("※ 字词统计皮肤已切换至：//6%02d1 %s%s",
+				summary = string.format("🎀 字词皮肤已换成 //6%02d1 → %s%s  可爱吧～",
 					skinIndex, progressBarField_word, progressBarEmpty_word)
 
 				save_stats(env.engine.schema.schema_id)
 			else
-				summary = "※ 无效的皮肤编号〔" .. input:sub(4, 5) .. '〕'
+				summary = "🌸 没有这个皮肤编号哦：〔" .. input:sub(4, 5) .. '〕'
 			end
 		elseif input:match("^//6(%d%d)2$") then -- 设置码长统计皮肤
 			local skinIndex = tonumber(input:match("^//6(%d%d)2$"))
@@ -1181,12 +1375,12 @@ local function translator(input, seg, env)
 				input_stats.progressBarSkinIdx_code = skinIndex
 				progressBarField_code = skinList[input_stats.progressBarSkinIdx_code].field
 				progressBarEmpty_code = skinList[input_stats.progressBarSkinIdx_code].empty
-				summary = string.format("※ 码长皮肤已切换至：//6%02d2 %s%s",
+				summary = string.format("🎀 码长皮肤已换成 //6%02d2 → %s%s  喜欢吗～",
 					skinIndex, progressBarField_code, progressBarEmpty_code)
 
 				save_stats(env.engine.schema.schema_id)
 			else
-				summary = "※ 无效的皮肤编号〔" .. input:sub(4, 5) .. '〕'
+				summary = "🌸 没有这个皮肤编号哦：〔" .. input:sub(4, 5) .. '〕'
 			end
 		elseif input:match("^/[hp]fw[a-z][a-z]$") then -- 设置字词统计皮肤
 			local skinIndex = (string.byte(input:sub(5, 5)) - 97) * 10 + string.byte(input:sub(6, 6)) - 97
@@ -1194,25 +1388,25 @@ local function translator(input, seg, env)
 				input_stats.progressBarSkinIdx_word = skinIndex
 				progressBarField_word = skinList[input_stats.progressBarSkinIdx_word].field
 				progressBarEmpty_word = skinList[input_stats.progressBarSkinIdx_word].empty
-				summary = string.format("※ 字词统计皮肤已切换至：/[ph]fw%s %s%s",
+				summary = string.format("🎀 字词皮肤已换成 /[ph]fw%s → %s%s  可爱吧～",
 					input:sub(5, 6), progressBarField_word, progressBarEmpty_word)
 
 				save_stats(env.engine.schema.schema_id)
 			else
-				summary = "※ 无效的皮肤编号〔" .. input:sub(5, 6) .. '〕'
+				summary = "🌸 没有这个皮肤编号哦：〔" .. input:sub(5, 6) .. '〕'
 			end
-		elseif input:match("^/[hp]fc[a-z][a-z]$") then -- 设置字词统计皮肤
+		elseif input:match("^/[hp]fc[a-z][a-z]$") then -- 设置码长统计皮肤
 			local skinIndex = (string.byte(input:sub(5, 5)) - 97) * 10 + string.byte(input:sub(6, 6)) - 97
 			if skinIndex and skinIndex >= 1 and skinIndex <= #skinList then
 				input_stats.progressBarSkinIdx_code = skinIndex
 				progressBarField_code = skinList[input_stats.progressBarSkinIdx_code].field
 				progressBarEmpty_code = skinList[input_stats.progressBarSkinIdx_code].empty
-				summary = string.format("※ 码长皮肤已切换至：/[ph]fc%s %s%s",
+				summary = string.format("🎀 码长皮肤已换成 /[ph]fc%s → %s%s  喜欢吗～",
 					input:sub(5, 6), progressBarField_code, progressBarEmpty_code)
 
 				save_stats(env.engine.schema.schema_id)
 			else
-				summary = "※ 无效的皮肤编号〔" .. input:sub(5, 6) .. '〕'
+				summary = "🌸 没有这个皮肤编号哦：〔" .. input:sub(5, 6) .. '〕'
 			end
 		end
 	end
@@ -1234,7 +1428,6 @@ local function quoteLoad()
 	end
 end
 
-local cntsOfCommit = 0
 local function init(env)
 	schema_name = env.engine.schema.schema_name or '未知'
 	local ctx = env.engine.context
@@ -1302,13 +1495,12 @@ local function init(env)
 		-- 记录编码数量
 		avgSpdInfo.codeLen = avgSpdInfo.codeLen + codeLen
 
-		-- 如果卡壳了(但是间隔时间小于Xs)，记录这个字/词
+		-- 如果卡壳了(间隔时间大于门限)，记录这个字/词
 		if delt >= boggleThd_s then
-			if input_stats.newWords.startTime == nil then
-				input_stats.newWords.startTime = timeNow
-			elseif input_stats.newWords.startTime < 1 then
-				input_stats.newWords.startTime = timeNow
-			elseif #input_stats.newWords.words < 1 then
+			-- 只要 startTime 无效或词表为空，就重置 startTime
+			if not input_stats.newWords.startTime
+				or input_stats.newWords.startTime < 1
+				or #input_stats.newWords.words < 1 then
 				input_stats.newWords.startTime = timeNow
 			end
 
@@ -1319,13 +1511,7 @@ local function init(env)
 
 		-- 上屏统计
 		update_stats(input_length, codeLen, string.len(ctx.input), 0)
-		
-		-- 每上屏20次，更新一下log文档
-		cntsOfCommit = cntsOfCommit + 1
-		if cntsOfCommit > 20 then
-			save_stats(env.engine.schema.schema_id)
-			cntsOfCommit = 0
-		end
+		save_stats(env.engine.schema.schema_id)
 	end)
 end
 function finit(env)
