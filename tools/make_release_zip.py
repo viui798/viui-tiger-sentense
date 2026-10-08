@@ -108,7 +108,8 @@ def main():
     repo = git("rev-parse", "--show-toplevel").strip()
     os.chdir(repo)
 
-    ref_sha = git("rev-parse", ref).strip()
+    # 附注标签用 rev-parse 得到的是 tag 对象，这里统一取它指向的提交再比较
+    ref_sha = git("rev-parse", f"{ref}^{{commit}}").strip()
     head_sha = git("rev-parse", "HEAD").strip()
     if ref_sha != head_sha:
         print(f"⚠ {ref} 与 HEAD 不是同一个提交；文件内容将从工作区读取，请自行确认。")
