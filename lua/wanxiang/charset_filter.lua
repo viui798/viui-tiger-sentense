@@ -99,13 +99,10 @@ end
 function M.init(env)
     local cfg = env.engine and env.engine.schema and env.engine.schema.config
     
-    local dist = (rime_api and rime_api.get_distribution_code_name and rime_api.get_distribution_code_name() or ""):lower()
-    local charsetFile
-    if dist == "weasel" then
-        charsetFile = "lua/data/charset.reverse.bin"
-    else
-        charsetFile = wanxiang.get_filename_with_fallback("lua/data/charset.reverse.bin") or "lua/data/charset.reverse.bin"
-    end
+    -- ReverseDb resolves relative paths from the Rime user directory itself.
+    -- get_filename_with_fallback returns an absolute path on Android, which
+    -- ReverseDb then prefixes with the user directory a second time.
+    local charsetFile = "lua/data/charset.reverse.bin"
 
     env.charset_db = nil
     if ReverseDb then

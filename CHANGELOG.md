@@ -2,6 +2,10 @@
 
 本文件记录「芝士虎整」方案包的主要更新。虎整句方案版本见 `tiger_sentence.schema.yaml` 中 `schema.version`（当前 `1.5`，对应该方案的上游 `20261007-r3-d46fab4` 发布）。
 
+## v0.2.2（2026-10-08）
+
+- 修复 Android 前端（元书/同文等）上字符集过滤报错的问题：`lua/wanxiang/charset_filter.lua` 加载字集反查库 `lua/data/charset.reverse.bin` 时统一改用相对路径。旧版 librime 用字符串拼接用户目录，传入绝对路径会被二次拼接，导致 `ReverseDb` 打开失败；相对路径在新旧 librime 上都正确解析。Windows 小狼毫行为不变，macOS/Linux 上的字符集过滤行为也不变，拼音反查（`'` 触发的那套）不受影响。
+
 ## v0.2.1（2026-10-08）
 
 虎整句引擎升级到上游 `20261007-r3-d46fab4`，并保留全部整合功能。详细说明见 [`docs/更新说明-20261008-虎整句r3引擎升级.md`](docs/更新说明-20261008-虎整句r3引擎升级.md)。
