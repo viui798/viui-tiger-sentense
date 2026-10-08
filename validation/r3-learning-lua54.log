@@ -1,0 +1,11 @@
+{"exact_correction_learning":"passed","level":"off","selection":"tap","events":3}
+{"exact_correction_learning":"passed","level":"off","selection":"tab","events":3}
+{"exact_correction_learning":"passed","level":"weak","selection":"tap","events":5}
+{"exact_correction_learning":"passed","level":"weak","selection":"tab","events":5}
+{"exact_correction_learning":"passed","level":"medium","selection":"tap","events":6}
+{"exact_correction_learning":"passed","level":"medium","selection":"tab","events":6}
+{"exact_correction_learning":"passed","level":"strong","selection":"tap","events":7}
+{"exact_correction_learning":"passed","level":"strong","selection":"tab","events":7}
+{"r2_upgrade":"passed","selection":"tap","old_records":1,"new_records":2}
+{"r2_upgrade":"passed","selection":"tab","old_records":1,"new_records":2}
+{"status":"passed","learning_checks":23380,"real_frontend":false}

@@ -1,0 +1,90 @@
+{
+    "project":  "tiger-sentense-rime",
+    "version":  "20261007-r3-d46fab4",
+    "source_commit":  "d46fab43019a49fd44223985c249a34924ab47d1",
+    "source_tree_clean":  true,
+    "source_baseline_commit":  "e00858a16b602b7784521b81677949056ce3d1b5",
+    "local_snapshot_baseline_commit":  "626d05cbaa157115055b26485a12bfe4bcfae50f",
+    "snapshot_origin":  {
+                            "type":  "verified-r2-release-snapshot",
+                            "original_device":  "mec-fedora",
+                            "original_worktree":  "/home/yc/tiger-sentense-rime",
+                            "original_worktree_updated":  false,
+                            "original_git_ancestry_present":  false,
+                            "release_sha256":  "85bd3033e3b64ed2e7a25a4929015659809fedab3a1f3b7fde698cc864d6bd62"
+                        },
+    "source_repository":  "https://github.com/lvyww/tiger-sentense-rime",
+    "model":  {
+                  "path":  "models/sentence-fivegram-mobile.bin",
+                  "bytes":  405663171,
+                  "sha256":  "756f6c92cf43ad6e8e3087ce66b711ac6ad0fc41e6f3fb82b3766e35ecab8681"
+              },
+    "fixes":  [
+                  "Explicit exact candidates can learn precedence over corrected output candidates.",
+                  "Stable final exact/corrected merge before menu truncation; existing r2 fusion remains compatible.",
+                  "Corrected selections/history, cancellation, mismatched receipts and duplicate notifiers remain protected."
+              ],
+    "validation":  {
+                       "lua54_checks":  23380,
+                       "luajit_checks":  23380,
+                       "real_model_correction_matrix":  "off/weak/medium/strong x tap/Tab; 8 groups passed",
+                       "r2_upgrade_cases":  [
+                                                "tap",
+                                                "tab"
+                                            ],
+                       "r2_upgrade_records":  {
+                                                  "old_fusion_preserved":  1,
+                                                  "new_exact_correction":  2
+                                              },
+                       "fresh_strong_first_submission_records":  {
+                                                                     "fusion":  1,
+                                                                     "exact_correction":  2,
+                                                                     "total":  3
+                                                                 },
+                       "matrix_strong_total_records_after_three_manual_choices":  7,
+                       "old_source_negative_control":  "r2 main failed exactly at exact/corrected receipts persist once: weak/tap",
+                       "real_librime_cases":  20,
+                       "original_integration_cases":  18,
+                       "strong_correction_restart_cases":  [
+                                                               "tap",
+                                                               "tab"
+                                                           ],
+                       "strong_before":  [
+                                             "轮滑",
+                                             "热滑",
+                                             "拾滑",
+                                             "捡"
+                                         ],
+                       "strong_after_one_submit":  [
+                                                       "捡",
+                                                       "轮滑",
+                                                       "热滑",
+                                                       "拾滑"
+                                                   ],
+                       "strong_after_restart":  [
+                                                    "捡",
+                                                    "轮滑",
+                                                    "热滑",
+                                                    "拾滑"
+                                                ],
+                       "protected_boundaries":  [
+                                                    "cancel",
+                                                    "mismatched actual commit",
+                                                    "repeated notifier",
+                                                    "corrected selected",
+                                                    "selected correction_history",
+                                                    "selected path.correction_history",
+                                                    "disabled read/write and reenabled restore",
+                                                    "different raw",
+                                                    "final candidate limit",
+                                                    "early evidence and cache",
+                                                    "r2 fusion preserved"
+                                                ],
+                       "physical_frontend_installation_tested":  false
+                   },
+    "sync_patch":  {
+                       "bytes":  33259,
+                       "sha256":  "14ccd2d17259a194115dbc20cd71b1eae0d25a3a0334c2e83517066f34c8f910",
+                       "baseline_apply_verified":  true
+                   }
+}

@@ -1,0 +1,544 @@
+diff --git a/README.md b/README.md
+index 6e869f7..4c8243c 100644
+--- a/README.md
++++ b/README.md
+@@ -65,9 +65,13 @@
+ 纠错首选或搜索未完成时不自动提前上屏；空格、点选、标点和Tab手动确认仍可使用。
+ 显式选重码段和已确认前缀不会被重新纠正；切档只刷新未确认候选，不能撤回已提交文字。
+ 希望整段都等待确认时，可同时关闭“提前上屏”。所选候选含纠错路径（包括已确认前缀的纠错历史）时不写入自学习。
+-菜单中出现其它纠错候选，不会阻止两个精确候选之间的融合偏好学习。例如 `ujkf` 点选或Tab确认“捡”后，
+-“捡”可排到“拾滑”前；“轮滑”“热滑”等改码候选仍按纠错规则排序，不会写进该精确候选对的偏好。
+-普通片段学习也不使用带纠错来源的比较基线。
++菜单中出现其它纠错候选，不会阻止正码候选的学习。例如强档 `ujkf` 点选或Tab确认“捡”后，
++“捡”可以排到“轮滑”“热滑”和“拾滑”前，重启后保留。正码相对纠错输出的偏好独立保存，
++按原始输入、学习模式和两个输出文本隔离；不会把“轮滑”等改码候选写入正码词条或普通片段奖励。
++已有 `fusion-v1` 精确候选偏好继续生效。普通片段学习仍不使用带纠错来源的比较基线。
++新偏好保持正码内部与纠错内部的相对顺序；必要时先带过同链的正码前缀。只点选正码并成功提交才学习，
++选择带纠错来源或纠错历史的候选不会反向写入本类偏好。关闭自学习同时停止读取与写入，重新启用后恢复。
++最终菜单因本类偏好改序时，本轮不借用原首选的自动提前上屏证据。详见 [正码与纠错偏好](docs/EXACT_CORRECTION_LEARNING.md)。
+ 
+ 需要当前五阶模型；缺失或读取失败时退回无模型输入。更新时请整体替换 `lua/` 和schema，
+ 保留自己的配置、词库及学习数据。桌面回归不等于所有手机前端验收，也不保证任意长句的时延。
+diff --git a/docs/EXACT_CORRECTION_LEARNING.md b/docs/EXACT_CORRECTION_LEARNING.md
+new file mode 100644
+index 0000000..dc92962
+--- /dev/null
++++ b/docs/EXACT_CORRECTION_LEARNING.md
+@@ -0,0 +1,29 @@
++# 正码超过纠错候选的显式偏好
++
++r3 新增独立的最终菜单偏好。真实模型、强档、原始输入 ujkf 初始菜单中“轮滑”“热滑”来自改码，“拾滑”“捡”来自正码。明确点击“捡”，或用 Tab 选中后成功提交一次，下一次相同输入可由“捡”首选；退出并重开后保留。已有 r2 的“捡 > 拾滑”记录也保留，只需补充前面两个纠错输出的比较。
++
++## 记录与应用边界
++
++- 只由成功提交的无纠错来源、无纠错历史的正码选择触发，Direct、Composed 均适用。
++- 仅记录当时实际显示在该选择前面的纠错候选；取消、提交文字不匹配、重复提交通知、正常接受已学首选均不新增。
++- 新模式为 exact-correction-v1|<现有学习模式>；code 为 ~c 加现有 Lua 哈希，输入字节为 raw\0E\0exact_text\0C\0corrected_text，text 为 E、context 为空。沿用 LevelDb 的五字段记录，无数据库迁移。
++- 原始输入、模式、正码文本和纠错文本共同隔离偏好。纠错强度和同一输出的纠错路径不进入键，因此切换档位仍有效；换成另一原始输入不受影响。
++- 此记录只用于最终候选归并，不参与正码码表、片段奖励、Beam 搜索或模型分数。现有普通学习与 fusion-v1 记录格式及作用保持。
++- 两条候选链分别保持内部相对顺序。当前纠错项若被后面的正码偏好阻挡，先输出必要的正码前缀；没有偏好时顺序原样。重排在最终菜单条数截断前执行。
++- 真正发生此类重排时标记学习影响并清除本轮自动上屏证据，避免沿用旧首选的成熟判断。
++- 关闭自学习同时停止应用和新增；记录保留，重新启用后恢复。选择纠错项不会创建相反偏好，也不会把纠错文本写成正码词条。
++
++C++ 与 Lua 沿用各自历史哈希算法，本功能语义一致，不承诺跨后端直接互换数据库。
++
++## 回归入口
++
++完整包中包含可运行的生产测试，均在测试自己的临时目录或内存数据库执行，不初始化真实用户目录：
++
++    lua tools/test_sentence_learning.lua . .
++    luajit tools/test_sentence_learning.lua . .
++    g++ -std=c++17 -O2 tools/rime_learning_probe.cpp -lrime -ldl -o /tmp/rime-learning-probe
++    python3 tools/test_rime_learning_integration.py --exe /tmp/rime-learning-probe --plugin /usr/lib64/rime-plugins/librime-lua.so --model models/sentence-fivegram-mobile.bin
++    python3 tools/test_rime_learning_integration.py --exe /tmp/rime-learning-probe --plugin /usr/lib64/rime-plugins/librime-lua.so --model models/sentence-fivegram-mobile.bin --case fusion --correction strong --selection tap
++    python3 tools/test_rime_learning_integration.py --exe /tmp/rime-learning-probe --plugin /usr/lib64/rime-plugins/librime-lua.so --model models/sentence-fivegram-mobile.bin --case fusion --correction strong --selection tab
++
++按本机 librime Lua 插件位置调整 --plugin。Lua 测试覆盖四档点击/Tab、重复通知、取消、错提交、纠错来源/历史拒绝、关学习再开、不同原码隔离、r2 升级及重载；CAPI 探针覆盖真实菜单索引、提交、持久化和引擎重启。
+diff --git a/lua/tiger_sentence.lua b/lua/tiger_sentence.lua
+index 92f6ba7..7851201 100644
+--- a/lua/tiger_sentence.lua
++++ b/lua/tiger_sentence.lua
+@@ -2790,7 +2790,17 @@ function correction.publish(cache, exact, locked, required)
+     correction.last_work = {one=cache.work.used[1], two=cache.work.used[2],
+         limit=cache.work.limit, incomplete=cache.incomplete, from=cache.from,
+         reused_through=cache.reused_through, complete_through=cache.complete_through}
+-    return correction.result(exact, cache.candidates, candidate_limit, cache.incomplete)
++    return correction.result(exact, cache.candidates, candidate_limit, cache.incomplete, function(result)
++        local changed
++        result, changed = learning.apply_exact_correction_ordering(
++            learning_index, learning_mode, cache.raw, result, correction.affected)
++        if changed then
++            result.learning_affected, result.exact_correction_affected = true, true
++            -- The display preference is not fresh model evidence for auto-commit.
++            result.early_commit_evidence = {}
++        end
++        return result
++    end)
+ end
+ 
+ function correction.finish(raw, exact, exact_states, locked, required, full)
+@@ -3610,7 +3620,7 @@ local function try_early_commit(env)
+         -- that would immediately be discarded. The following evidence upgrade
+         -- reuses its exact lattice and correction quota; it does not re-search.
+         local current = decode(full_raw, false, state.committed_text, active_lock(state))
+-        if current.correction_incomplete or
++        if current.correction_incomplete or current.exact_correction_affected or
+             (current[1] and (current[1].correction_count or 0) > 0) then
+             reset_early_evidence(state)
+             state.empty_code_pending = nil
+@@ -3624,7 +3634,8 @@ local function try_early_commit(env)
+         end
+     end
+     local decoded = decode(full_raw, true, state.committed_text, active_lock(state))
+-    if decoded.correction_incomplete or (decoded[1] and (decoded[1].correction_count or 0) > 0) then
++    if decoded.correction_incomplete or decoded.exact_correction_affected or
++        (decoded[1] and (decoded[1].correction_count or 0) > 0) then
+         reset_early_evidence(state)
+         state.empty_code_pending = nil
+         save_transient_state(context, state, env)
+@@ -3784,12 +3795,15 @@ local function learning_stage(env, state, selected, raw, submitted_first)
+     if not live or live.mode == "" or not selected then return end
+     if correction.affected(selected) then live.pending, live.baseline = {}, nil; return end
+ 
+-    -- Cross-source learning is pairwise and never mutates either source's
+-    -- internal ordering. Selecting a lower Direct candidate over an earlier
+-    -- Composed candidate records only Direct > Composed (and vice versa).
++    -- Keep final exact/corrected preferences separate from Direct/Composed
++    -- fusion. Only candidates visibly ahead of this explicit choice compete;
++    -- both mechanisms preserve the internal order of their source chains.
+     for _, ahead in ipairs(selected._fusion_ahead or {}) do
+         local event
+-        if not correction.affected(ahead) and learning.candidate_is_direct(selected) and
++        if correction.affected(ahead) then
++            event = learning.exact_correction_event(live.mode, raw, selected.text, ahead.text,
++                selected.path and selected.path.raw_length or #raw)
++        elseif learning.candidate_is_direct(selected) and
+             learning.candidate_is_composed_only(ahead) then
+             event = learning.fusion_event(live.mode, raw, selected.text, ahead.text, true,
+                 selected.path and selected.path.raw_length or #raw)
+@@ -3841,9 +3855,10 @@ learning_submit = function(env, selected, actual, expected)
+     local events, remaining = {}, {}
+     if selected and actual ~= "" and actual == expected and live.mode ~= "" then
+         local fusion_mode = learning.fusion_mode(live.mode)
++        local exact_correction_mode = learning.exact_correction_mode(live.mode)
+         for _, e in ipairs(live.pending) do
+             if e.raw_end > selected.path.raw_length then remaining[#remaining + 1] = e
+-            elseif e.mode == fusion_mode then events[#events + 1] = e
++            elseif e.mode == fusion_mode or e.mode == exact_correction_mode then events[#events + 1] = e
+             elseif e.mode == live.mode and e.text_start >= #selected.text - #expected and
+                 selected.text:sub(e.text_start + 1, e.text_end) == e.text then events[#events + 1] = e end
+         end
+diff --git a/lua/tiger_sentence_correction.lua b/lua/tiger_sentence_correction.lua
+index b0afc86..327c59f 100644
+--- a/lua/tiger_sentence_correction.lua
++++ b/lua/tiger_sentence_correction.lua
+@@ -42,8 +42,8 @@ function M.reserve(edits,characters,work)
+     end
+     return true
+ end
+-function M.result(exact,ranked,limit,incomplete)
+-    local result=M.merge(exact,ranked,limit)
++function M.result(exact,ranked,limit,incomplete,reorder)
++    local result=M.merge(exact,ranked,limit,reorder)
+     result.correction_incomplete=incomplete or false
+     return result
+ end
+@@ -209,7 +209,7 @@ function M.corrected_raw(raw, path)
+     return table.concat(pieces)
+ end
+ 
+-function M.merge(exact, corrected, limit)
++function M.merge(exact, corrected, limit, reorder)
+     local seen = {}
+     for _, item in ipairs(exact._confidence_candidates or exact) do seen[item.text] = true end
+     for _, item in ipairs(exact) do seen[item.text] = true end
+@@ -240,6 +240,7 @@ function M.merge(exact, corrected, limit)
+         result[#result + 1] = exact[i]
+     end
+     while unique[ci] do result[#result + 1] = unique[ci]; ci = ci + 1 end
++    if reorder then result = reorder(result) end
+     while #result > limit do result[#result] = nil end
+     return result
+ end
+diff --git a/lua/tiger_sentence_learning.lua b/lua/tiger_sentence_learning.lua
+index ecff24b..5bfb596 100644
+--- a/lua/tiger_sentence_learning.lua
++++ b/lua/tiger_sentence_learning.lua
+@@ -348,6 +348,65 @@ function M.fusion_event(mode, raw, direct, composed, direct_wins, raw_end)
+     }
+ end
+ 
++-- Final-menu preferences are isolated from lexical/fragment rewards and the
++-- Direct/Composed fusion namespace. Only an exact submitted choice creates E.
++function M.exact_correction_mode(mode)
++    return mode == "" and "" or ("exact-correction-v1|" .. mode)
++end
++
++function M.exact_correction_pair_code(raw, exact, corrected)
++    return "~c" .. M.hash((raw or "") .. "\0E\0" .. (exact or "") .. "\0C\0" .. (corrected or ""))
++end
++
++function M.exact_correction_score(index, mode, raw, exact, corrected)
++    if not index or mode == "" then return 0 end
++    return M.score(index, M.exact_correction_mode(mode),
++        M.exact_correction_pair_code(raw, exact, corrected), "E", "")
++end
++
++function M.exact_correction_event(mode, raw, exact, corrected, raw_end)
++    if mode == "" then return nil end
++    return {
++        time=os.time(), mode=M.exact_correction_mode(mode),
++        code=M.exact_correction_pair_code(raw, exact, corrected), text="E", context="",
++        raw_start=0, raw_end=math.max(0, raw_end or #raw), text_start=0, text_end=1
++    }
++end
++
++function M.apply_exact_correction_ordering(index, mode, raw, candidates, affected)
++    if not index or mode == "" or #candidates < 2 then return candidates, false end
++    local exact, corrected, position = {}, {}, {}
++    for i, item in ipairs(candidates) do
++        local list = affected(item) and corrected or exact
++        list[#list + 1] = item
++        position[item] = i
++    end
++    if #exact == 0 or #corrected == 0 then return candidates, false end
++    -- Keep both source chains stable. A preference for a later exact candidate
++    -- carries only the necessary exact prefix past the current corrected head.
++    local merged, ei, ci = {}, 1, 1
++    while ei <= #exact and ci <= #corrected do
++        local blocked = false
++        for i = ei, #exact do
++            if M.exact_correction_score(index, mode, raw, exact[i].text, corrected[ci].text) > 0 then
++                blocked = true; break
++            end
++        end
++        if blocked or position[exact[ei]] < position[corrected[ci]] then
++            merged[#merged + 1] = exact[ei]; ei = ei + 1
++        else
++            merged[#merged + 1] = corrected[ci]; ci = ci + 1
++        end
++    end
++    while ei <= #exact do merged[#merged + 1] = exact[ei]; ei = ei + 1 end
++    while ci <= #corrected do merged[#merged + 1] = corrected[ci]; ci = ci + 1 end
++    local changed = false
++    for i, item in ipairs(merged) do if candidates[i] ~= item then changed = true; break end end
++    if not changed then return candidates, false end
++    for i, item in ipairs(merged) do candidates[i] = item end
++    return candidates, true
++end
++
+ function M.reward(index, mode, raw, text, finish, previous)
+     local best, potential, start = previous.learning_score or 0, 0, previous
+     local early_bonus = previous.learning_early_commit_bonus or 0
+diff --git a/tools/rime_learning_probe.cpp b/tools/rime_learning_probe.cpp
+index b6806ce..38cfb21 100644
+--- a/tools/rime_learning_probe.cpp
++++ b/tools/rime_learning_probe.cpp
+@@ -29,6 +29,17 @@ static int position(const std::string& text) {
+     api->free_context(&ctx);
+     return index;
+ }
++static std::string menu_prefix() {
++    RIME_STRUCT(RimeContext, ctx);
++    check(api->get_context(session, &ctx), "missing menu snapshot");
++    std::string text;
++    for (int i = 0; i < ctx.menu.num_candidates && i < 4; ++i) {
++        if (i) text += " / ";
++        text += ctx.menu.candidates[i].text;
++    }
++    api->free_context(&ctx);
++    return text;
++}
+ static void type() {
+     for (char c : raw_code)
+         check(api->process_key(session, c, 0), "code key rejected");
+@@ -68,14 +79,14 @@ int main(int argc, char** argv) {
+         api->setup(&traits); api->initialize(&traits);
+         if (api->start_maintenance(True)) api->join_maintenance_thread();
+         start(); type();
++        if (correction_level != "off") std::cout << "before: " << menu_prefix() << std::endl;
+         check(position(baseline) >= 0 && position(target) > position(baseline), "unexpected model baseline");
+         if (correction_level == "off") check(first() == baseline, "unexpected first model baseline");
+         if (correction_level != "off")
+             check(fusion && position("轮滑") >= 0 && position("轮滑") < position(target),
+                 "corrected candidate must precede the exact target");
+         auto learned = [&] {
+-            return correction_level == "off" ? first() == target :
+-                position(target) >= 0 && position(baseline) > position(target);
++            return first() == target && position(baseline) > position(target);
+         };
+         if (selection.find("buffer") != std::string::npos) {
+             api->set_option(session, "tiger_sentence_early_commit", True);
+@@ -108,6 +119,7 @@ int main(int argc, char** argv) {
+ 
+         type();
+         check(learned(), "one manual correction did not promote real-model candidate");
++        if (correction_level != "off") std::cout << "after_one_submit: " << menu_prefix() << std::endl;
+         std::cout << test_case << " " << argv[4] << " level=" << correction_level
+             << " first=" << first() << " target_index=" << position(target)
+             << " baseline_index=" << position(baseline) << std::endl;
+@@ -130,6 +142,7 @@ int main(int argc, char** argv) {
+         api->finalize(); api->initialize(&traits);
+         start(); type();
+         check(learned(), "learning did not survive engine restart");
++        if (correction_level != "off") std::cout << "after_restart: " << menu_prefix() << std::endl;
+         api->destroy_session(session); session = 0; api->finalize();
+         std::cout << "real Rime learning and restart passed\n";
+         return 0;
+diff --git a/tools/test_rime_learning_integration.py b/tools/test_rime_learning_integration.py
+index 3b85275..e6704e3 100644
+--- a/tools/test_rime_learning_integration.py
++++ b/tools/test_rime_learning_integration.py
+@@ -1,8 +1,32 @@
+ """Real librime/librime-lua learning with production data in owned user dirs."""
+ import argparse
++from contextlib import contextmanager
+ from pathlib import Path
++import shutil
+ import subprocess
+-from run_regressions import isolated_sources, temporary_tree
++import tempfile
++
++try:
++    from run_regressions import isolated_sources, temporary_tree
++except ModuleNotFoundError as error:
++    if error.name != 'run_regressions':
++        raise
++    # Release archives contain the production layout, without the full source
++    # repository's regression runner. Keep this integration probe usable there.
++    @contextmanager
++    def temporary_tree():
++        with tempfile.TemporaryDirectory(prefix='tiger-rime-learning-') as directory:
++            yield Path(directory)
++
++    def isolated_sources(root):
++        source = Path(__file__).resolve().parents[1]
++        for pattern in ('*.yaml', '*.txt', 'rime.lua'):
++            for path in source.glob(pattern):
++                shutil.copy2(path, root / path.name)
++        shutil.copytree(source / 'lua', root / 'lua')
++        (root / 'models').mkdir()
++        shutil.copy2(source / 'models/tiger_sentence.lexical.bin',
++                     root / 'models/tiger_sentence.lexical.bin')
+ 
+ 
+ def main():
+diff --git a/tools/test_sentence_learning.lua b/tools/test_sentence_learning.lua
+index 48be434..9f65666 100644
+--- a/tools/test_sentence_learning.lua
++++ b/tools/test_sentence_learning.lua
+@@ -112,6 +112,40 @@ merge={{text="A",source_mask=2},{text="B",source_mask=1,direct_rank=1},{text="C"
+ sentence.apply_fusion_ordering_for_test("ii",merge)
+ check(merge[1].text=="B" and merge[2].text=="C" and merge[3].text=="A",
+     "Direct C over Composed A promotes only Direct prefix B,C")
++local correction=sentence.correction
++local exact_event=learning.exact_correction_event(fusion_mode,"ujkf","捡","轮滑",4)
++local exact_index=learning.build({exact_event},now)
++check(exact_event.mode=="exact-correction-v1|"..fusion_mode and exact_event.text=="E" and
++    exact_event.context=="" and exact_event.code=="~c"..learning.hash("ujkf\0E\0捡\0C\0轮滑"),
++    "exact/corrected preferences have a separate portable pair identity")
++check(learning.exact_correction_score(exact_index,fusion_mode,"ujkf","捡","轮滑")==9 and
++    learning.exact_correction_score(exact_index,fusion_mode,"yjkf","捡","轮滑")==0 and
++    learning.exact_correction_score(exact_index,"other","ujkf","捡","轮滑")==0 and
++    learning.exact_correction_score(exact_index,fusion_mode,"ujkf","拾滑","轮滑")==0,
++    "exact/corrected preference is raw, mode and output-pair scoped")
++check(learning.score(exact_index,fusion_mode,"ujkf","捡","")==0 and
++    learning.fusion_score(exact_index,fusion_mode,"ujkf","捡","拾滑")==0,
++    "exact/corrected records cannot become lexical or fusion rewards")
++local c1={text="热滑",score=20,correction_count=1}
++local c2={text="轮滑",score=18,correction_count=1}
++local e1={text="拾滑",score=1,source_mask=2}
++local e2={text="捡",score=0,source_mask=1}
++local base={c1,c2,e1,e2};base._confidence_candidates={e1,e2}
++local evidence={prefixes={"unchanged"}};base.early_commit_evidence=evidence
++local ordered,changed=learning.apply_exact_correction_ordering(exact_index,fusion_mode,"ujkf",base,correction.affected)
++check(changed and ordered[1]==c1 and ordered[2]==e1 and ordered[3]==e2 and ordered[4]==c2,
++    "only the necessary exact prefix passes the blocked corrected head")
++check(ordered._confidence_candidates[1]==e1 and ordered.early_commit_evidence==evidence and
++    e1.score==1 and e2.score==0 and c2.score==18,"stable helper leaves scores and evidence metadata untouched")
++local unchanged={c1,c2,e1,e2}
++local same,moved=learning.apply_exact_correction_ordering(exact_index,"","ujkf",unchanged,correction.affected)
++check(same==unchanged and not moved and same[1]==c1,"disabled learning keeps final order")
++same,moved=learning.apply_exact_correction_ordering(exact_index,fusion_mode,"different",unchanged,correction.affected)
++check(same==unchanged and not moved and same[1]==c1,"unrelated raw leaves order byte-for-byte equivalent")
++local limited=correction.merge({e2},{c2},1,function(values)
++    return learning.apply_exact_correction_ordering(exact_index,fusion_mode,"ujkf",values,correction.affected)
++end)
++check(#limited==1 and limited[1]==e2,"learned exact candidate is reordered before the final menu limit")
+ sentence.set_learning_for_test(nil,"")
+ check(sentence.decode("abcd")[1].text=="交否","disable restores base Composed ranking")
+ 
+@@ -375,7 +409,7 @@ if arg[2] then
+     for _, level in ipairs({"off", "weak", "medium", "strong"}) do
+         for _, action in ipairs({"tap", "tab"}) do
+             local name="fusion-correction-"..level.."-"..action
+-            local e,c,p,_,submitted=host(name,false,level)
++            local e,c,p,_,submitted,cfg=host(name,false,level)
+             local initial_writes=writes
+             local function input()
+                 for ch in ("ujkf"):gmatch(".") do p(ch) end
+@@ -408,40 +442,147 @@ if arg[2] then
+                 choose(input(),"轮滑")
+                 check(writes==initial_writes,"selecting a corrected candidate must not learn")
+             end
++            c.transform=true;choose(input(),"捡");c.transform=false
++            check(writes==initial_writes,"mismatched actual commit must discard all new pair events")
++            for _,path_history in ipairs({false,true}) do
++                menu=input()
++                local _,candidate=find(menu,"捡")
++                local holder=path_history and candidate.path or candidate
++                holder.correction_history=true
++                choose(menu,"捡")
++                holder.correction_history=nil
++                check(writes==initial_writes,"selected correction history must reject the whole learning submission")
++            end
++            -- Compare every submitted receipt with the actual displayed prefix.
++            -- Different correction strengths expose different corrected items.
++            local function expected_pairs(menu,text)
++                local expected={}
++                local n,chosen=find(menu,text)
++                for i=1,n-1 do
++                    local ahead=menu[i]
++                    local ev
++                    if sentence.correction.affected(ahead) then
++                        ev=learning.exact_correction_event(e._tiger_learning.mode,"ujkf",text,ahead.text,4)
++                    elseif learning.candidate_is_direct(chosen) and learning.candidate_is_composed_only(ahead) then
++                        ev=learning.fusion_event(e._tiger_learning.mode,"ujkf",text,ahead.text,true,4)
++                    elseif learning.candidate_is_composed_only(chosen) and learning.candidate_is_direct(ahead) then
++                        ev=learning.fusion_event(e._tiger_learning.mode,"ujkf",ahead.text,text,false,4)
++                    end
++                    if ev then expected[#expected+1]=ev end
++                end
++                return expected
++            end
++            local expected_total=0
++            local function confirm_pairs(menu,text)
++                local expected=expected_pairs(menu,text)
++                local before=expected_total
++                choose(menu,text)
++                expected_total=expected_total+#expected
++                local events=e._tiger_learning.store.events
++                check(writes==initial_writes+expected_total and #events==expected_total,
++                    "exact/corrected receipts persist once: "..level.."/"..action)
++                for i,ev in ipairs(expected) do
++                    local saved=events[before+i]
++                    check(saved.mode==ev.mode and saved.code==ev.code and saved.text==ev.text and saved.context=="",
++                        "only the displayed exact/corrected or exact fusion pair may persist")
++                end
++            end
+             c.repeat_notification=true
+-            choose(input(),"捡")
++            confirm_pairs(input(),"捡")
+             c.repeat_notification=false
+             local store=e._tiger_learning.store
+-            local expected=learning.fusion_event(e._tiger_learning.mode,"ujkf","捡","拾滑",true,4)
+-            check(writes==initial_writes+1 and #store.events==1,
+-                "exact pair must learn once despite earlier correction: "..level.."/"..action)
+-            check(store.events[1].mode==expected.mode and store.events[1].code==expected.code and
+-                store.events[1].text=="D","corrected candidates must not enter the learned pair")
+             menu=input()
+-            check(find(menu,"捡")<find(menu,"拾滑"),"learned exact ordering must survive correction merge")
++            check(menu[1].text=="捡" and find(menu,"捡")<find(menu,"拾滑"),
++                "exact choice must become first above correction and retain r2 fusion")
++            if level~="off" then
++                check(menu.learning_affected and menu.exact_correction_affected and
++                    next(menu.early_commit_evidence)==nil,"final reordering clears automatic-commit evidence")
++                local cached=sentence.decode("ujkf",true)
++                check(cached[1].text=="捡" and cached.exact_correction_affected and
++                    next(cached.early_commit_evidence)==nil,"cache hit and evidence upgrade retain learned final order")
++            end
+             choose(menu,"捡")
+-            check(writes==initial_writes+1,"corrected items ahead must not reinforce learned exact top")
+-            choose(input(),"拾滑")
+-            check(writes==initial_writes+2 and #store.events==2 and store.events[2].text=="C",
+-                "reverse exact choice must remain independent")
++            check(writes==initial_writes+expected_total,"learned first choice must not self-reinforce")
++            cfg.enabled=false
+             menu=input()
+-            check(find(menu,"拾滑")<find(menu,"捡"),"reverse exact preference must reorder")
++            check(menu[1].text~="捡" and find(menu,"拾滑")<find(menu,"捡"),
++                "disabled learning removes both final and r2 fusion preferences")
+             choose(menu,"捡")
+-            check(writes==initial_writes+3 and #store.events==3,"later independent exact correction must persist")
++            check(writes==initial_writes+expected_total,"disabled learning also rejects new records")
++            cfg.enabled=true
++            menu=input();check(menu[1].text=="捡","reenabling learning restores stored final preference")
++            confirm_pairs(menu,"拾滑")
++            menu=input()
++            check(menu[1].text=="拾滑" and find(menu,"拾滑")<find(menu,"捡"),
++                "Composed exact selection can also pass correction without breaking the exact chain")
++            confirm_pairs(menu,"捡")
+             sentence.processor_component.fini(e)
+             sentence.set_model_enabled(false)
+             package.loaded["tiger_sentence_learning"]=nil
+             sentence=dofile(override or repo.."/lua/tiger_sentence.lua")
+             learning=sentence.learning
+             sentence.set_model_enabled(true);sentence.ensure_lexicon(nil)
+-            e,c,p,_,submitted=host(name,false,level)
++            e,c,p,_,submitted,cfg=host(name,false,level)
+             menu=input()
+-            check(e._tiger_learning.store~=store and #e._tiger_learning.store.events==3,
++            check(e._tiger_learning.store~=store and #e._tiger_learning.store.events==expected_total,
+                 "fresh host must reopen the persisted records")
+-            check(find(menu,"捡")<find(menu,"拾滑"),"reopened store must preserve exact relative ordering")
++            check(menu[1].text=="捡" and find(menu,"捡")<find(menu,"拾滑"),
++                "reopened store preserves first place over corrected and exact candidates")
+             p("Escape");sentence.processor_component.fini(e)
+-            print(string.format('{"correction_learning":"passed","level":"%s","selection":"%s","events":3}',level,action))
++            print(string.format('{"exact_correction_learning":"passed","level":"%s","selection":"%s","events":%d}',level,action,expected_total))
++        end
++    end
++    -- Upgrade a real r2 journal: no E preference exists initially. New learning
++    -- adds exactly the two corrected comparisons, preserving the old D record.
++    for _,action in ipairs({"tap","tab"}) do
++        local name="r2-upgrade-"..action
++        local e,c,p,_,submitted,cfg=host(name,false,"strong")
++        local function input(raw)
++            raw=raw or "ujkf"
++            for ch in raw:gmatch(".") do p(ch) end
++            return sentence.decode(raw)
++        end
++        input();p("Escape")
++        local store=e._tiger_learning.store
++        local mode=e._tiger_learning.mode
++        local old=learning.fusion_event(mode,"ujkf","捡","拾滑",true,4)
++        check(learning.confirm(store,{old}),"r2 upgrade fixture persists an actual old-format fusion record")
++        local menu=input()
++        check(menu[1].text=="轮滑" and menu[2].text=="热滑" and menu[3].text=="捡" and menu[4].text=="拾滑",
++            "r2 upgrade fixture must reproduce corrected items above the learned exact first")
++        p("Escape")
++        local other_before=input("yjkf")
++        local raw_texts={};for i,item in ipairs(other_before) do raw_texts[i]=item.text end
++        p("Escape");menu=input()
++        local start=writes
++        c.repeat_notification=true
++        if action=="tap" then c:highlight(2);c:confirm_current_selection()
++        else p("Tab");p("Tab");p("space") end
++        c.repeat_notification=false
++        check(writes==start+2 and #store.events==3 and store.events[1]==old,
++            "r2 upgrade appends only two new exact/corrected records")
++        for i,text in ipairs({"轮滑","热滑"}) do
++            check(store.events[i+1].mode==learning.exact_correction_mode(mode) and
++                store.events[i+1].code==learning.exact_correction_pair_code("ujkf","捡",text) and
++                store.events[i+1].text=="E","upgrade must preserve original raw and output pair identity")
+         end
++        menu=input();check(menu[1].text=="捡","upgraded r2 preference reaches first place")
++        c:highlight(0);c:confirm_current_selection()
++        check(writes==start+2,"upgraded first candidate does not reinforce")
++        local other_after=input("yjkf")
++        check(#other_after==#raw_texts,"other raw candidate count remains unchanged")
++        for i,text in ipairs(raw_texts) do check(other_after[i].text==text,"real different raw order is isolated") end
++        p("Escape")
++        sentence.processor_component.fini(e);sentence.set_model_enabled(false)
++        package.loaded["tiger_sentence_learning"]=nil
++        sentence=dofile(override or repo.."/lua/tiger_sentence.lua");learning=sentence.learning
++        sentence.set_model_enabled(true);sentence.ensure_lexicon(nil)
++        e,c,p=host(name,false,"strong")
++        menu=input()
++        check(menu[1].text=="捡" and e._tiger_learning.store~=store and #e._tiger_learning.store.events==3,
++            "r2 upgrade survives reopening the persisted journal")
++        p("Escape");sentence.processor_component.fini(e)
++        print(string.format('{"r2_upgrade":"passed","selection":"%s","old_records":1,"new_records":2}',action))
+     end
+ end
+ print(string.format('{"status":"passed","learning_checks":%d,"real_frontend":false}',checks))

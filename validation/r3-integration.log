@@ -1,0 +1,48 @@
+composed tap level=off first=虎娘 target_index=0 baseline_index=1
+real Rime learning and restart passed
+composed tab level=off first=虎娘 target_index=0 baseline_index=1
+real Rime learning and restart passed
+composed tab-comma level=off first=虎娘 target_index=0 baseline_index=1
+real Rime learning and restart passed
+composed tab-period level=off first=虎娘 target_index=0 baseline_index=1
+real Rime learning and restart passed
+composed tab-continue level=off first=虎娘 target_index=0 baseline_index=1
+real Rime learning and restart passed
+composed tab-continue-comma level=off first=虎娘 target_index=0 baseline_index=1
+real Rime learning and restart passed
+composed tab-continue-period level=off first=虎娘 target_index=0 baseline_index=1
+real Rime learning and restart passed
+composed tab-buffer-continue-comma level=off first=虎娘 target_index=0 baseline_index=1
+real Rime learning and restart passed
+composed tab-buffer-continue-period level=off first=虎娘 target_index=0 baseline_index=1
+real Rime learning and restart passed
+fusion tap level=off first=捡 target_index=0 baseline_index=1
+real Rime learning and restart passed
+fusion tab level=off first=捡 target_index=0 baseline_index=1
+real Rime learning and restart passed
+fusion tab-comma level=off first=捡 target_index=0 baseline_index=1
+real Rime learning and restart passed
+fusion tab-period level=off first=捡 target_index=0 baseline_index=1
+real Rime learning and restart passed
+fusion tab-continue level=off first=捡 target_index=0 baseline_index=1
+real Rime learning and restart passed
+fusion tab-continue-comma level=off first=捡 target_index=0 baseline_index=1
+real Rime learning and restart passed
+fusion tab-continue-period level=off first=捡 target_index=0 baseline_index=1
+real Rime learning and restart passed
+fusion tab-buffer-continue-comma level=off first=捡 target_index=0 baseline_index=1
+real Rime learning and restart passed
+fusion tab-buffer-continue-period level=off first=捡 target_index=0 baseline_index=1
+real Rime learning and restart passed
+ORIGINAL_18_CASES_PASSED
+before: 轮滑 / 热滑 / 拾滑 / 捡
+after_one_submit: 捡 / 轮滑 / 热滑 / 拾滑
+fusion tap level=strong first=捡 target_index=0 baseline_index=3
+after_restart: 捡 / 轮滑 / 热滑 / 拾滑
+real Rime learning and restart passed
+before: 轮滑 / 热滑 / 拾滑 / 捡
+after_one_submit: 捡 / 轮滑 / 热滑 / 拾滑
+fusion tab level=strong first=捡 target_index=0 baseline_index=3
+after_restart: 捡 / 轮滑 / 热滑 / 拾滑
+real Rime learning and restart passed
+STRONG_FIRST_PLACE_AND_RESTART_PASSED

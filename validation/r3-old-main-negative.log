@@ -1,0 +1,9 @@
+luajit: tools/test_sentence_learning.lua:27: exact/corrected receipts persist once: weak/tap
+stack traceback:
+	[C]: in function 'assert'
+	tools/test_sentence_learning.lua:27: in function 'check'
+	tools/test_sentence_learning.lua:482: in function 'confirm_pairs'
+	tools/test_sentence_learning.lua:491: in main chunk
+	[C]: at 0xb2135e460280
+{"exact_correction_learning":"passed","level":"off","selection":"tap","events":3}
+{"exact_correction_learning":"passed","level":"off","selection":"tab","events":3}

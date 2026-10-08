@@ -1,0 +1,261 @@
+{
+  "commit": "d46fab43019a49fd44223985c249a34924ab47d1",
+  "local_snapshot_baseline_commit": "626d05cbaa157115055b26485a12bfe4bcfae50f",
+  "source_baseline_commit": "e00858a16b602b7784521b81677949056ce3d1b5",
+  "snapshot_origin": {
+    "type": "verified-r2-release-snapshot",
+    "original_device": "mec-fedora",
+    "original_worktree": "/home/yc/tiger-sentense-rime",
+    "original_worktree_updated": false,
+    "original_git_ancestry_present": false,
+    "release_sha256": "85bd3033e3b64ed2e7a25a4929015659809fedab3a1f3b7fde698cc864d6bd62"
+  },
+  "files": {
+    "IOS_TEST_README.md": {
+      "bytes": 3634,
+      "sha256": "7eb7a8bfc1499f56e5a99766c4ce6542d291d009a2dafb1baad8991c431902cb"
+    },
+    "LICENSE": {
+      "bytes": 35149,
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+    },
+    "README.md": {
+      "bytes": 17095,
+      "sha256": "090e2f3c5b69755ef141f38455ccaadfcab7dc47b93edbce3fbe20c4cbd19478"
+    },
+    "RIME_CORRECTNESS.md": {
+      "bytes": 15425,
+      "sha256": "38c26b312a9d7e2ae9ef00d7a1b170e397ea36f644378188a5dd44ab83ed8f14"
+    },
+    "SOURCE_BASELINE.md": {
+      "bytes": 565,
+      "sha256": "512d64d93748bd54d7e41d35a3413d653a76f1c1598cb3f529977f3174bf7e6c"
+    },
+    "default-model.json": {
+      "bytes": 604,
+      "sha256": "b6e432cd8dd2fa6b5a6dd6dee3d341604604a726f5d44e8f29b06ccb971b6224"
+    },
+    "default.custom.yaml": {
+      "bytes": 51,
+      "sha256": "8f87e9ee428972a8b8401717a9ddb609bca345873b9bd4d89665359e2c940bd1"
+    },
+    "docs/ALLOCATION_PERFORMANCE.md": {
+      "bytes": 3346,
+      "sha256": "ea02a5e092dd4b622a26011f3e08a3f011b329a2fbf57d642bc4abfb352f7afd"
+    },
+    "docs/BACKSPACE_PERFORMANCE.md": {
+      "bytes": 5744,
+      "sha256": "a3abba00416fc4e3cdeeb1814ab9503e0212b0131492a55c5797c0e855a5367c"
+    },
+    "docs/CORRECTION_EMPTY_COMMIT.md": {
+      "bytes": 2719,
+      "sha256": "854a0d92891f0b891f1b098a025812627c445b479977e401c495c19333f1295f"
+    },
+    "docs/CORRECTION_LEVELS.md": {
+      "bytes": 3084,
+      "sha256": "5be5b581a29c61b7de002f85062cadf83943fac05ad17447bf616602744ab518"
+    },
+    "docs/D89_PRUNING.md": {
+      "bytes": 3448,
+      "sha256": "c5e1b64dd4ebacc5cd53598155d60b0d6dab2400860c459e77cbf5797c0bc6f2"
+    },
+    "docs/EARLY_EVIDENCE_GATE.md": {
+      "bytes": 3484,
+      "sha256": "4f259e70093b34d3521d96d040df4c5d79bb81dac8cd36ba825517f365e25ee4"
+    },
+    "docs/EXACT_CORRECTION_LEARNING.md": {
+      "bytes": 3232,
+      "sha256": "e828df507af88fec944d07f42ff665f455eba9256032ff75b436f17a99f4e9f8"
+    },
+    "docs/IOS_MEMORY.md": {
+      "bytes": 8034,
+      "sha256": "0e7cf0f130d7fa0d489dc4a5dc7edfba6af83b091c8ef0556737bea74518385b"
+    },
+    "docs/KEY_CORRECTION_PERFORMANCE.md": {
+      "bytes": 3768,
+      "sha256": "e54a4352990cc1127fbf9de95d8e5cb85b6cb5cb17434843ad353d98018e809e"
+    },
+    "docs/LEXICAL_PRIOR_ATTRIBUTION.md": {
+      "bytes": 1679,
+      "sha256": "fdb7f9cf85026cc9c83e4aaf57df912d47fe26dcc817bb54e4e5b569403597e2"
+    },
+    "docs/LEXICAL_PRIOR_MANIFEST.json": {
+      "bytes": 787,
+      "sha256": "f1eeb74a3fee4e5f5d2f04b13d02e4104d7e85e4f438c918364fe6cae6750056"
+    },
+    "docs/PERSONALIZED_EARLY_COMMIT.md": {
+      "bytes": 1465,
+      "sha256": "0410720bc8c90c613e92c839661552005610d782f4d3111ffdbca4418264f36f"
+    },
+    "docs/RANKING_PRIORS.md": {
+      "bytes": 5561,
+      "sha256": "3b48040e61e9e2f956482adfddb7bba81271326c7bef0a91063cff147a2066b9"
+    },
+    "docs/REVIEW_OPTIMIZATIONS.md": {
+      "bytes": 6518,
+      "sha256": "f92ed103e99ecb22a2a6be2b978be0de153759260df091314dda5a333f63dfe4"
+    },
+    "docs/RIME_CORRECTNESS.md": {
+      "bytes": 4396,
+      "sha256": "9cb2a20f890e59f7359946461ec595f8004f9c5457e816827f97040a6bd8ecc3"
+    },
+    "docs/TCSKNM03.md": {
+      "bytes": 3163,
+      "sha256": "fba6865897bf1fe6cd5da7cfc646af8730514828613bb8c81c7f28e042155c04"
+    },
+    "lua/tiger_sentence.lua": {
+      "bytes": 205952,
+      "sha256": "351b7a313082c06181cb4f4cb2f6b4836694090198a17348307d0a7200c7f6e8"
+    },
+    "lua/tiger_sentence_cache.lua": {
+      "bytes": 1436,
+      "sha256": "8ebd209588fb62d0bf888e752b95d8588ecbcdef2af40f8b009865fc3c41da7c"
+    },
+    "lua/tiger_sentence_correction.lua": {
+      "bytes": 10135,
+      "sha256": "add2c2191ec7f2fa44a4c6cdeee3c9cb8f1fb871db86ae3c384f478fffbe115d"
+    },
+    "lua/tiger_sentence_fivegram.lua": {
+      "bytes": 15977,
+      "sha256": "a32c818ad81078351feace6f0a53a9851c41394fce9ef0d734f2d8bfa03763c2"
+    },
+    "lua/tiger_sentence_learning.lua": {
+      "bytes": 25900,
+      "sha256": "c70d22a5010b14c23f20a3e3da203b95942e25475c2a069bd1e930d8d4c7f325"
+    },
+    "lua/tiger_sentence_lexical.lua": {
+      "bytes": 5319,
+      "sha256": "d49f45f0ee0033fd2466269d967b4784f508da220ec62215806e227ea590fe8d"
+    },
+    "lua/tiger_sentence_ngram.lua": {
+      "bytes": 1675,
+      "sha256": "f740c5b53237cef704daab71f5fe3231035899e37071112aaf064741d5db9edc"
+    },
+    "rime.lua": {
+      "bytes": 279,
+      "sha256": "419df2e184b58ee557138b0026bd7bedc4b9c502013b5b44bac9a045e1dfb04f"
+    },
+    "symbols.yaml": {
+      "bytes": 1540,
+      "sha256": "9b45c4a2f179d42585d5cc1439bfbcb5a585520f0de3ce83232180990e5cc9b1"
+    },
+    "tiger_sentence.char_ranks.txt": {
+      "bytes": 80771,
+      "sha256": "bd64e4bf333b2096a9a61fd5ece868e37912057bd1a812d75b2d5ccb4c994dcf"
+    },
+    "tiger_sentence.codes.txt": {
+      "bytes": 130935,
+      "sha256": "1d3e9b0ce0e4a603be3f220c71acecad846f020e87a52723ecb3814f6b53ac0e"
+    },
+    "tiger_sentence.full_code_whitelist.txt": {
+      "bytes": 727,
+      "sha256": "05d257457898146262f7dbf264103c70a8cf2ee92d188b770ad13232b293f566"
+    },
+    "tiger_sentence.schema.yaml": {
+      "bytes": 4003,
+      "sha256": "03fd5f1afad6e0dc7c53a55aa604541b1c9cd1d43640d25fa554db0f79044d70"
+    },
+    "tiger_sentence.supplement.txt": {
+      "bytes": 294,
+      "sha256": "538f7d60ae378235628a86e7ef20d24396453488fde950a88e52fdb6f558a5ac"
+    },
+    "tiger_sentence_ascii.schema.yaml": {
+      "bytes": 216,
+      "sha256": "3212d367f0cb407c0451999476d9fd7bdc9e9256f5d1ea4d650b5d11ad23564d"
+    },
+    "tools/RIME_PERFORMANCE.md": {
+      "bytes": 5843,
+      "sha256": "2f993fdfc616af284a3b11aee239ce0878f24a901b37fe3cb26342c3d38c4b49"
+    },
+    "tools/rime_learning_probe.cpp": {
+      "bytes": 7845,
+      "sha256": "f6487d4b04e0496348d2725a7aa0c4c3256bfe47c4e6d5279d959b64ed393d7e"
+    },
+    "tools/test_rime_learning_integration.py": {
+      "bytes": 3125,
+      "sha256": "46092edd3e5fcb0f6da61fb5223355d39105dd03f18299e585f7495fb7f635ac"
+    },
+    "tools/test_sentence_learning.lua": {
+      "bytes": 36634,
+      "sha256": "df7ab03aba31be2080c8c44024ee68f606581a95735002dfe2e186b14e124418"
+    },
+    "安装与更新说明.txt": {
+      "bytes": 3265,
+      "sha256": "61711dd2c60399684bebaa3f9f58542729f5bf70a643c1e8e20d0cb9b2a72efa"
+    }
+  },
+  "changed_source_files": [
+    "README.md",
+    "docs/EXACT_CORRECTION_LEARNING.md",
+    "lua/tiger_sentence.lua",
+    "lua/tiger_sentence_correction.lua",
+    "lua/tiger_sentence_learning.lua",
+    "tools/rime_learning_probe.cpp",
+    "tools/test_rime_learning_integration.py",
+    "tools/test_sentence_learning.lua"
+  ],
+  "source_tree_clean": true,
+  "sync_patch": {
+    "bytes": 33259,
+    "sha256": "14ccd2d17259a194115dbc20cd71b1eae0d25a3a0334c2e83517066f34c8f910",
+    "baseline_apply_verified": true
+  },
+  "validation": {
+    "lua54_checks": 23380,
+    "luajit_checks": 23380,
+    "real_model_correction_matrix": "off/weak/medium/strong x tap/Tab; 8 groups passed",
+    "r2_upgrade_cases": [
+      "tap",
+      "tab"
+    ],
+    "r2_upgrade_records": {
+      "old_fusion_preserved": 1,
+      "new_exact_correction": 2
+    },
+    "fresh_strong_first_submission_records": {
+      "fusion": 1,
+      "exact_correction": 2,
+      "total": 3
+    },
+    "matrix_strong_total_records_after_three_manual_choices": 7,
+    "old_source_negative_control": "r2 main failed exactly at exact/corrected receipts persist once: weak/tap",
+    "real_librime_cases": 20,
+    "original_integration_cases": 18,
+    "strong_correction_restart_cases": [
+      "tap",
+      "tab"
+    ],
+    "strong_before": [
+      "轮滑",
+      "热滑",
+      "拾滑",
+      "捡"
+    ],
+    "strong_after_one_submit": [
+      "捡",
+      "轮滑",
+      "热滑",
+      "拾滑"
+    ],
+    "strong_after_restart": [
+      "捡",
+      "轮滑",
+      "热滑",
+      "拾滑"
+    ],
+    "protected_boundaries": [
+      "cancel",
+      "mismatched actual commit",
+      "repeated notifier",
+      "corrected selected",
+      "selected correction_history",
+      "selected path.correction_history",
+      "disabled read/write and reenabled restore",
+      "different raw",
+      "final candidate limit",
+      "early evidence and cache",
+      "r2 fusion preserved"
+    ],
+    "physical_frontend_installation_tested": false
+  }
+}

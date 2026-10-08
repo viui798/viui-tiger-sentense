@@ -1,9 +1,15 @@
 # 更新日志
 
-本文件记录「芝士虎整」方案包的主要更新。虎整句方案版本见 `tiger_sentence.schema.yaml` 中 `schema.version`（当前 `1.5-d89-r3`）。
+本文件记录「芝士虎整」方案包的主要更新。虎整句方案版本见 `tiger_sentence.schema.yaml` 中 `schema.version`（当前 `1.5`，对应该方案的上游 `20261007-r3-d46fab4` 发布）。
 
-## 未发布（main）
+## v0.3.0（2026-10-08）
 
+虎整句引擎升级到上游 `20261007-r3-d46fab4`，并保留全部整合功能。详细说明见 [`docs/更新说明-20261008-虎整句r3引擎升级.md`](docs/更新说明-20261008-虎整句r3引擎升级.md)。
+
+- **引擎**：`lua/tiger_sentence.lua` 以上游新版为底回填整合（33 处、+649/−19 行）；`tiger_sentence_correction.lua`、`tiger_sentence_learning.lua` 与上游逐字节一致。新增「正码可学习超过纠错候选」的最终菜单偏好（`exact-correction-v1`），发生此类重排时不再沿用旧首选的自动上屏证据；同时恢复提交去重并收窄学习早退条件。
+- **整合功能保留**：中英混输、自造词桥接、拼音反查、快符、拆字、emoji、Unicode 提示与编码显示、简繁四档、计算器、时间日期、输入统计、击键计数、符号菜单与相关快捷键全部照旧。
+- **对齐上游**：方案名/版本改为 `虎整句` / `1.5`；Tab 处理改为上游方式（`key_binder` 增加 Tab/Shift+Tab 绑定，并把快符与整句处理器调整到 `key_binder` 之前）。
+- **资料**：并入上游随包技术文档、测试与校验资料（`RELEASE.json`、`SOURCE_BASELINE.md`、`sync/`、`tools/`、`validation/`、`docs/`）；新增 [`docs/整合版与上游原版深度对比.md`](docs/整合版与上游原版深度对比.md)。
 - 新增根目录 [`LICENSE`](LICENSE)（GPL-3.0），并在 README 增加「授权」一节，说明芝士虎整自身部分与随包第三方组件的授权归属。
 
 ## v0.2.0（2026-10-07）
