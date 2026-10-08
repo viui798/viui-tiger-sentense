@@ -4498,6 +4498,18 @@ local function processor(key_event, env)
         return 2
     end
     if repr == "space" then
+        -- 混输英文段（`[` 之后、`]` 之前）里的空格属于英文原文，只把它送进组合串，
+        -- 不提交候选；英文段用 `]` 闭合之后，空格才上屏。
+        if inline_english_open(context) then
+            if #live_input(context) >= max_raw_length then return 1 end
+            state.tab_pending = false
+            state.empty_code_pending = nil
+            reset_early_evidence(state)
+            learned.pending, learned.baseline = {}, nil
+            context:push_input(" ")
+            save_transient_state(context, state, env)
+            return 1
+        end
         if context:has_menu() then
             if not mixed_mode then
                 local selected, _, raw = learning_selection(env, state)
