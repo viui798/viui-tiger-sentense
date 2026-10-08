@@ -8,8 +8,8 @@
 #       虎整句-Rime-20260925）。
 schema:
   schema_id: tiger_sentence
-  name: 虎整句 D89-r3
-  version: "1.5-d89-r3"
+  name: 虎整句
+  version: "1.5"
   author:
     - TigerClaw
   description: |
@@ -93,9 +93,12 @@ engine:
     - lua_processor@*key_counter  # 击键计数（输入战报 4.2）
     - lua_processor@tiger_sentence_ascii  # v1.3 内部 ASCII 切换（替代 ascii_composer）
     - recognizer
-    - key_binder
     - lua_processor@*tiger_kf  # 快符（立即上屏；init 在载入时连通知器）
     - lua_processor@tiger_sentence_processor
+    # 20261008：整句处理器排在 key_binder 之前（与上游原版一致）。Tab 先由 Lua
+    #   的 cycle_candidate_highlight 移动高亮并置位 tab_pending（Tab 学习/调频），
+    #   key_binder 里的 Tab→Down 只在该段无可用菜单时兜底；快符仍排在整句之前。
+    - key_binder
     - speller
     - punctuator
     - selector
@@ -170,9 +173,11 @@ tiger_sentence:
 
 key_binder:
   bindings:
-    # 10.2：Tab/Shift+Tab 交给引擎自带处理（本机 librime 不响应 key_binder 注入式 send，
-    #       注入的 Down/Up 不驱动 navigator；改由引擎 context:highlight() 直接移高亮，
-    #       同时置位 tab_pending 以启用 Tab 学习/调频与段落锁定）
+    # 20261008：Tab/Shift+Tab 改用上游原版的 key_binder 兜底绑定。正常路径仍由
+    #   整句处理器先接管（移动高亮 + tab_pending，启用 Tab 学习/调频与段落锁定）；
+    #   当该段没有可用菜单时，这里再发送 Down/Up 交给标准 navigator。
+    - { when: has_menu, accept: Tab, send: Down }
+    - { when: has_menu, accept: Shift+Tab, send: Up }
     - { when: paging, accept: minus, send: Page_Up }
     - { when: has_menu, accept: equal, send: Page_Down }
     - { accept: "Control+o", toggle: s2t, when: composing }  # 10.2 简繁切换（简 ↔ 通繁）

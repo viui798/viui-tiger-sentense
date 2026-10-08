@@ -2983,7 +2983,17 @@ function correction.publish(cache, exact, locked, required)
     correction.last_work = {one=cache.work.used[1], two=cache.work.used[2],
         limit=cache.work.limit, incomplete=cache.incomplete, from=cache.from,
         reused_through=cache.reused_through, complete_through=cache.complete_through}
-    return correction.result(exact, cache.candidates, candidate_limit, cache.incomplete)
+    return correction.result(exact, cache.candidates, candidate_limit, cache.incomplete, function(result)
+        local changed
+        result, changed = learning.apply_exact_correction_ordering(
+            learning_index, learning_mode, cache.raw, result, correction.affected)
+        if changed then
+            result.learning_affected, result.exact_correction_affected = true, true
+            -- The display preference is not fresh model evidence for auto-commit.
+            result.early_commit_evidence = {}
+        end
+        return result
+    end)
 end
 
 function correction.finish(raw, exact, exact_states, locked, required, full)
@@ -3828,7 +3838,7 @@ local function try_early_commit(env)
         -- that would immediately be discarded. The following evidence upgrade
         -- reuses its exact lattice and correction quota; it does not re-search.
         local current = decode(full_raw, false, state.committed_text, active_lock(state))
-        if current.correction_incomplete or
+        if current.correction_incomplete or current.exact_correction_affected or
             (current[1] and (current[1].correction_count or 0) > 0) then
             reset_early_evidence(state)
             state.empty_code_pending = nil
@@ -3842,7 +3852,8 @@ local function try_early_commit(env)
         end
     end
     local decoded = decode(full_raw, true, state.committed_text, active_lock(state))
-    if decoded.correction_incomplete or (decoded[1] and (decoded[1].correction_count or 0) > 0) then
+    if decoded.correction_incomplete or decoded.exact_correction_affected or
+        (decoded[1] and (decoded[1].correction_count or 0) > 0) then
         reset_early_evidence(state)
         state.empty_code_pending = nil
         save_transient_state(context, state, env)
@@ -4000,29 +4011,45 @@ end
 local function learning_stage(env, state, selected, raw, submitted_first)
     local live = env._tiger_learning
     if not live or live.mode == "" or not selected then return end
-    local affected = correction.affected(selected) or correction.affected(submitted_first) or
-        correction.affected(live.baseline)
-    for _, ahead in ipairs(selected._fusion_ahead or {}) do affected = affected or correction.affected(ahead) end
-    if affected then live.pending, live.baseline = {}, nil; return end
+    if correction.affected(selected) then live.pending, live.baseline = {}, nil; return end
 
-    -- Cross-source learning is pairwise and never mutates either source's
-    -- internal ordering. Selecting a lower Direct candidate over an earlier
-    -- Composed candidate records only Direct > Composed (and vice versa).
+    -- Keep final exact/corrected preferences separate from Direct/Composed
+    -- fusion. Only candidates visibly ahead of this explicit choice compete;
+    -- both mechanisms preserve the internal order of their source chains.
     for _, ahead in ipairs(selected._fusion_ahead or {}) do
         local event
-        if learning.candidate_is_direct(selected) and learning.candidate_is_composed_only(ahead) then
+        if correction.affected(ahead) then
+            event = learning.exact_correction_event(live.mode, raw, selected.text, ahead.text,
+                selected.path and selected.path.raw_length or #raw)
+        elseif learning.candidate_is_direct(selected) and
+            learning.candidate_is_composed_only(ahead) then
             event = learning.fusion_event(live.mode, raw, selected.text, ahead.text, true,
                 selected.path and selected.path.raw_length or #raw)
-        elseif learning.candidate_is_composed_only(selected) and learning.candidate_is_direct(ahead) then
+        elseif not correction.affected(ahead) and learning.candidate_is_composed_only(selected) and
+            learning.candidate_is_direct(ahead) then
             event = learning.fusion_event(live.mode, raw, ahead.text, selected.text, false,
                 selected.path and selected.path.raw_length or #raw)
         end
-        if event and #live.pending < 256 then live.pending[#live.pending + 1] = event end
+        if event and #live.pending < 256 then
+            -- A processor key can stage the same choice again in the commit
+            -- notifier. Deduplicate only this pending submission; other pairs
+            -- and later confirmed corrections remain independent evidence.
+            local duplicate = false
+            for _, pending in ipairs(live.pending) do
+                if pending.mode == event.mode and pending.code == event.code and
+                    pending.text == event.text and pending.raw_end == event.raw_end then
+                    duplicate = true; break
+                end
+            end
+            if not duplicate then live.pending[#live.pending + 1] = event end
+        end
     end
 
     local baseline = state.tab_pending and live.baseline or
         (not state.tab_pending and submitted_first)
-    if baseline and learning.candidate_is_composed_only(baseline) and learning.candidate_is_composed_only(selected) then
+    -- A corrected baseline blocks fragment learning, not valid exact fusion pairs.
+    if baseline and not correction.affected(baseline) and learning.candidate_is_composed_only(baseline) and
+        learning.candidate_is_composed_only(selected) then
         local lock = active_lock(state)
         local floor = math.max(#state.committed_raw, lock and #lock.raw or 0)
         local events = learning.diff(raw, baseline, selected, floor, live.mode)
@@ -4046,9 +4073,10 @@ learning_submit = function(env, selected, actual, expected)
     local events, remaining = {}, {}
     if selected and actual ~= "" and actual == expected and live.mode ~= "" then
         local fusion_mode = learning.fusion_mode(live.mode)
+        local exact_correction_mode = learning.exact_correction_mode(live.mode)
         for _, e in ipairs(live.pending) do
             if e.raw_end > selected.path.raw_length then remaining[#remaining + 1] = e
-            elseif e.mode == fusion_mode then events[#events + 1] = e
+            elseif e.mode == fusion_mode or e.mode == exact_correction_mode then events[#events + 1] = e
             elseif e.mode == live.mode and e.text_start >= #selected.text - #expected and
                 selected.text:sub(e.text_start + 1, e.text_end) == e.text then events[#events + 1] = e end
         end

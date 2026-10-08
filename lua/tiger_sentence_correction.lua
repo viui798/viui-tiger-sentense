@@ -1,7 +1,8 @@
 -- Optional same-row substitution channel with bounded module-local caches.
 local M = { enabled = false, penalty = 8, search_penalty = 8, margin = 2, cache = {} }
--- Internal experiment profiles, never persisted as user settings. Reference
--- retains the old search/menu for cache-only parity and accuracy comparisons.
+-- A is the production D89 search policy. B/C and reference remain test-only.
+-- Gap limits are per-error search cutoffs, not the user strength penalties.
+-- Missing gap fields retain the count-only policy for independent comparisons.
 M.profiles = {
     A={seeds=8,one=16,two=8,steps=4096,delta_one=8,delta_two=9},
     B={seeds=4,one=8,two=4,steps=2048},
@@ -41,8 +42,8 @@ function M.reserve(edits,characters,work)
     end
     return true
 end
-function M.result(exact,ranked,limit,incomplete)
-    local result=M.merge(exact,ranked,limit)
+function M.result(exact,ranked,limit,incomplete,reorder)
+    local result=M.merge(exact,ranked,limit,reorder)
     result.correction_incomplete=incomplete or false
     return result
 end
@@ -159,7 +160,9 @@ function M.current(bucket, exact, position)
         table.sort(items, better)
         local limit=budget==1 and profile.one or profile.two
         if position>24 then limit=profile.long or math.max(1,math.floor(limit/2)) end
-        local delta = budget == 1 and profile.delta_one or profile.delta_two
+        -- A nil limit disables only this error group's score-gap filter.
+        local delta = profile.delta_one
+        if budget == 2 then delta = profile.delta_two end
         local cutoff = items[1] and delta and (items[1].score - delta) or -math.huge
         local kept = 0
         for i = 1, math.min(#items, limit) do
@@ -206,7 +209,7 @@ function M.corrected_raw(raw, path)
     return table.concat(pieces)
 end
 
-function M.merge(exact, corrected, limit)
+function M.merge(exact, corrected, limit, reorder)
     local seen = {}
     for _, item in ipairs(exact._confidence_candidates or exact) do seen[item.text] = true end
     for _, item in ipairs(exact) do seen[item.text] = true end
@@ -237,6 +240,7 @@ function M.merge(exact, corrected, limit)
         result[#result + 1] = exact[i]
     end
     while unique[ci] do result[#result + 1] = unique[ci]; ci = ci + 1 end
+    if reorder then result = reorder(result) end
     while #result > limit do result[#result] = nil end
     return result
 end
