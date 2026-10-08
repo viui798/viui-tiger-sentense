@@ -19,6 +19,8 @@
 
 Rime 用户目录随操作系统和前端而异。常见位置是鼠须管的 `~/Library/Rime`，以及小狼毫的 `%APPDATA%\Rime`；请以所用前端设置中显示的用户目录为准。更新方案时保留用户目录里的个人配置、`custom_phrase.txt`、虎整句选项与学习数据。
 
+**手机 / Android 前端**：若部署时因 `wanxiang_pro` 词库过大而失败（弹出 `Error loading prism for dictionary 'wanxiang_pro'`），可用 [`手机精简版/`](手机精简版/安装说明.md) 里的精简词库——把该目录的 `wanxiang_pro.dict.yaml` 覆盖到用户目录根、`dicts/zi.common.dict.yaml` 放进 `dicts/`，编译产物会从 table 96MB + prism 30.6MB 降到约 380KB + 4.7MB。该目录是附加内容，**桌面端不受影响**（Rime 不读取子目录）。
+
 ## 使用
 
 ### 虎码输入与方案切换

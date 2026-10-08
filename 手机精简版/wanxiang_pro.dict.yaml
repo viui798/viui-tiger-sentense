@@ -1,0 +1,23 @@
+# Rime dictionary — 芝士虎整 手机精简版
+# encoding: utf-8
+#
+# 用途：Android / 手机前端部署时，原版 wanxiang_pro 词库过大（源文件约 96MB，
+#       编译产物 table 约 96MB + prism 约 30MB），容易因内存不足或超时导致
+#       build/wanxiang_pro.prism.bin 未生成，前端弹出
+#       “Error loading prism for dictionary 'wanxiang_pro'”。
+#       用本文件 + 同目录 dicts/zi.common.dict.yaml 覆盖，编译产物降到约 5MB。
+#
+# 保留：常用字反查（4704 个常用汉字）、多音词组、错音兼容
+# 失去：生僻字反查、大词库联想（jichu/shici/lianxiang 等）
+# 桌面端不受影响：本目录不会被 Rime 读取，桌面端继续用根目录的原版文件。
+
+---
+name: wanxiang_pro
+version: "LTS-phone"
+sort: by_weight
+use_preset_vocabulary: false
+import_tables:
+  - dicts/zi.common         # 常用字表：权重最高的 5000 条，覆盖 4704 个汉字（76KB）
+  - dicts/duoyin.pro        # 兼容词库，收录多场景多种读音的词组（224KB）
+  - dicts/cuoyin.pro        # 错音错字兼容（8KB）
+...
