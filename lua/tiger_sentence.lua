@@ -4659,6 +4659,34 @@ end
 do
     local english_prefix_index
 
+    -- 英文→中文释义（随包 lua/data/english_chinese.txt，取自万象），
+    -- 用于给 `[` 混输的英文词典候选补上中文注释；同样惰性加载。
+    local english_translations
+
+    function M.inline_english_translation(word)
+        if type(word) ~= "string" or word == "" then return nil end
+        if english_translations == nil then
+            english_translations = {}
+            local content = read_data_file("lua/data/english_chinese.txt")
+            if content then
+                for line in content:gmatch("[^\r\n]+") do
+                    local key, rest = line:match("^([^\t]+)\t(.+)$")
+                    if key and rest then
+                        local parts = {}
+                        for part in rest:gmatch("[^\t]+") do
+                            parts[#parts + 1] = part
+                            if #parts >= 3 then break end
+                        end
+                        if #parts > 0 then
+                            english_translations[key:lower()] = table.concat(parts, "；")
+                        end
+                    end
+                end
+            end
+        end
+        return english_translations[word:lower()]
+    end
+
     function M.inline_english_words(prefix, limit)
         if type(prefix) ~= "string" or prefix == "" or not prefix:match("^[A-Za-z]+$") then
             return {}
@@ -4817,7 +4845,8 @@ local function translator(input, seg, env)
                         if (text ~= "" or buffered ~= "") and not seen_text[text] then
                             seen_text[text] = true
                             local cand = Candidate(buffered ~= "" and "sentence_buffered" or "sentence_english",
-                                seg.start, seg._end, text, "英文词典")
+                                seg.start, seg._end, text,
+                                M.inline_english_translation(word) or "英文词典")
                             cand.preedit = buffered .. input
                             if buffered ~= "" then cand.quality = 1000 end
                             suggestion_candidates[#suggestion_candidates + 1] = cand

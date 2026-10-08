@@ -2,6 +2,10 @@
 
 本文件记录「芝士虎整」方案包的主要更新。虎整句方案版本见 `tiger_sentence.schema.yaml` 中 `schema.version`（当前 `1.5`，对应该方案的上游 `20261007-r3-d46fab4` 发布）。
 
+## 未发布（main）
+
+- 虎整句中英混输的英文词典联想候选，注释由固定的「英文词典」改为**该单词的中文释义**：新增随包词表 `lua/data/english_chinese.txt`（71,269 条，取自万象），`lua/tiger_sentence.lua` 惰性加载并按单词小写查表；词库里查不到的词仍显示「英文词典」。例：`[hell` → `hello 你好`、`hell 地狱`、`help 帮助`。
+
 ## v0.2.2（2026-10-08）
 
 - 修复 Android 前端（元书/同文等）上字符集过滤报错的问题：`lua/wanxiang/charset_filter.lua` 加载字集反查库 `lua/data/charset.reverse.bin` 时统一改用相对路径。旧版 librime 用字符串拼接用户目录，传入绝对路径会被二次拼接，导致 `ReverseDb` 打开失败；相对路径在新旧 librime 上都正确解析。Windows 小狼毫行为不变，macOS/Linux 上的字符集过滤行为也不变，拼音反查（`'` 触发的那套）不受影响。
