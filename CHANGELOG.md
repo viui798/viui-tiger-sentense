@@ -1,6 +1,16 @@
 # 更新日志
 
-本文件记录「芝士虎整」方案包的主要更新。虎整句方案版本见 `tiger_sentence.schema.yaml` 中 `schema.version`（当前 `1.5`，对应该方案的上游 `20261007-r3-d46fab4` 发布）。
+本文件记录「芝士虎整」方案包的主要更新。虎整句方案版本见 `tiger_sentence.schema.yaml` 中 `schema.version`（当前 `1.6.20261009`，对应该方案的上游 `20261009-4eaf42e` 发布）。
+
+## v0.2.4（2026-10-09）
+
+虎整句引擎升级到上游 `20261009-4eaf42e`（schema 版本 `1.6.20261009`）。详细说明见 [`docs/更新说明-20261009-虎整句引擎升级.md`](docs/更新说明-20261009-虎整句引擎升级.md)。
+
+- **打分调整**：取消单字主码按码长累计的奖励（`canonical_code_reward` 2.0 → 0）；新增 `whole_single_reward_eligible`——整个输入一次匹配一个单字时保留 +5 奖励，但只有前 N 高频且不在白名单的字才要求用最优码，范围外及白名单单字允许使用码表已有的非最优码。
+- **学习记录改存文本文件**：由 LevelDB（`tiger_sentence_learning_<hash>.userdb`）改为 UTF-8 文本 `自学习-tiger_sentence.txt`，新增模块 `lua/tiger_sentence_learning_text.lua`；LevelDB 仅用于跨进程锁，学习模式串改为中文键。**旧 LevelDB 学习记录不迁移**（上游既有规则）。
+- `lua/tiger_sentence_learning.lua` 新增 `plan_levels`、`confidence_score`、`projected_score`、`runtime_index`；`reinforce_existing` 增加 `supplemental` 参数。
+- 中英混输、自造词桥接、拼音反查、快符、简繁、输入统计等整合功能全部保留（三方合并为完美并集：整合的 690 行一行不差，无冲突）。
+- 并入上游新增的 `docs/`、`tools/`、`validation/` 资料。
 
 ## v0.2.3（2026-10-08）
 
