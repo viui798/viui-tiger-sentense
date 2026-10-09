@@ -1,0 +1,154 @@
+OK  plain-text data files loaded (13556 codes, 20000 ranks, 119 whitelist)
+OK  retained lookahead aligns competing paths by emitted text elements
+OK  lazy path isolation, display and evidence match full-text/full-decode oracles
+OK  implicit non-first ranks are limited to one whole-input edge
+OK  implicit non-first ranks do not block empty-code auto commit
+OK  optimal whole-input single-character reward is +5.0 and ranking-only
+initializing decoder + first full decode...
+model=none ready in 0.000s error=no sentence fivegram model found top=件我𬤊摞的是我(14.000000)
+OK  supplemental corpus keeps base confidence pure and contributes bounded early confidence
+OK  grow ot                                   是(2.000000)
+OK  same ot                                   是(2.000000)
+OK  early full ot                             是(2.000000)
+OK  grow ueot                                 的是(4.000000)
+OK  same ueot                                 的是(4.000000)
+OK  early full ueot                           的是(4.000000)
+OK  grow ueottu                               的是我(6.000000)
+OK  same ueottu                               的是我(6.000000)
+OK  early full ueottu                         的是我(6.000000)
+OK  grow jqtusotu                             件我训我(8.000000)
+OK  same jqtusotu                             件我训我(8.000000)
+OK  early full jqtusotu                       件我训我(8.000000)
+OK  grow ueot;                                揸我们(6.000000)
+OK  same ueot;                                揸我们(6.000000)
+OK  early full ueot;                          揸我们(6.000000)
+OK  grow ueot'                                
+OK  same ueot'                                
+OK  early full ueot'                          
+OK  grow ueot2                                揸我们(6.000000)
+OK  same ueot2                                揸我们(6.000000)
+OK  early full ueot2                          揸我们(6.000000)
+OK  grow ueot12                               
+OK  same ueot12                               
+OK  early full ueot12                         
+OK  grow jqtusotuqiueottu                     件我𬤊摞的是我(14.000000) | 佃手是摞的是我(14.000000)
+OK  same jqtusotuqiueottu                     件我𬤊摞的是我(14.000000) | 佃手是摞的是我(14.000000)
+OK  early full jqtusotuqiueottu               件我𬤊摞的是我(14.000000) | 佃手是摞的是我(14.000000)
+OK  40-key truncated confidence retains flagged BaseShare evidence for strong policy
+OK  back jqtusotuqiueottu                     件我𬤊摞的是我(14.000000) | 佃手是摞的是我(14.000000)
+OK  back jqtusotuqiueott                      件我𬤊摞揸袭(12.000000) | 佃手是摞揸袭(12.000000)
+OK  back jqtusotuqiueot                       件我𬤊摞的是(12.000000) | 佃手是摞的是(12.000000)
+OK  back jqtusotuqiueo                        件我𬤊摞揸(10.000000) | 佃手是摞揸(10.000000)
+OK  back jqtusotuqiue                         件我𬤊摞的(10.000000) | 佃手是摞的(10.000000)
+OK  back jqtusotuqiu                          件我𬤊看维(10.000000) | 佃手是看维(10.000000)
+OK  back jqtusotuqi                           件我𬤊摞(8.000000) | 佃手是摞(8.000000)
+OK  back jqtusotuq                            件我𬤊看(8.000000) | 佃手是看(8.000000)
+OK  back jqtusotu                             件我训我(8.000000)
+OK  back jqtusot                              件我𬤊(6.000000) | 佃手是(6.000000)
+OK  back jqtuso                               件我训(6.000000)
+OK  back jqtus                                佃手(4.000000) | 佃龵(3.979206)
+OK  back jqtu                                 件我(4.000000)
+OK  back jqt                                  佃(7.000000)
+OK  back jq                                   件(7.000000)
+OK  back j                                    人(7.000000) | 什么(3.979206)
+OK  one-key u                                 的(7.000000) | 工作(3.979206)
+OK  one-key to ue                             的(2.000000)
+OK  ue back to u                              的(7.000000) | 工作(3.979206)
+OK  u to ueot                                 的是(4.000000)
+OK  early-commit raw boundary 的是 -> ueot
+OK  conditioned early evidence                的是(4.000000)
+OK  early-commit evidence is conditioned on committed text
+OK  prefix evidence keys share and closed boundaries match Windows
+OK  shared-stem contradictions compare whole Unicode characters
+OK  comparison-only gaps retain identity while low-confidence gaps reset maturity
+OK  strong empty-code accept refuses truncated candidate pools
+OK  empty-code uniqueness query excludes output text, not code paths
+OK  idle punctuation is delegated to the symbols.yaml preset
+OK  Tab highlights candidates cyclically without selecting them
+OK  empty-code auto commit retains the newly typed code
+OK  empty-code auto commit preserves context and restores input atomically
+OK  legacy committed properties migrate to the combined property
+OK  idle digits commit and the following period becomes a decimal point
+OK  full-shape digits arm the half-width decimal point
+OK  numpad digits and decimal key mirror the main row
+OK  letters after idle digits start a normal composition
+OK  empty-code auto commit obeys the early-commit switch
+OK  automatic-commit continuation uses first ranks only
+OK  empty-code continuation retains duplicate single characters
+OK  empty-code auto commit honors min_retained_raw_length
+OK  disabled early commit leaves the composition unchanged
+OK  model-free equal scores do not fake high confidence
+OK  probabilistic early commit restores input atomically
+OK  probabilistic early commit can remain in preedit until final submission
+OK  backspace invalidates early-commit evidence
+OK  manual candidate navigation suspends early commit
+OK  new composition clears stale navigation state
+OK  raw input is capped at 128 characters
+OK  raw input cap applies to the live tail only
+OK  duplicate single characters compete only while the switch is on
+OK  no-model fallback keeps direct code entries first
+OK  automatic commit always follows the final displayed top
+SKIP Windows early-commit regressions (no real model)
+OK  append selector                           揸我们(6.000000)
+OK  backspace selector                        的是(4.000000)
+OK  retype after selector                     的是我(6.000000)
+OK  composition performance counters are available
+last-key jqtusotuqiueottu  incremental=0.43ms  full=0.09ms
+OK  high_freq_limit changes rebuild the index immediately
+OK  Tab locks text/boundaries across separate environments and consumes committed raw
+OK  foreign code table imports via plain-text files
+OK  locked lattice cache matches fresh decode on append, delete, edit and changed lock
+all incremental checks matched full decode
+{"status":"passed","cases":19,"checks":89,"caret_and_lazy_menu":true,"real_frontend":false}
+{"status":"passed","cases":10,"checks":49,"independent_evidence":true,"model_faults_injected":true,"real_model":false}
+{"status":"passed","learning_checks":23084,"real_frontend":false}
+{"adaptive_learning_checks":788,"real_text_file_io":true,"rime_lock_mocked":true,"frontend_tested":false}
+{"status":"passed","review_checks":33736,"production_model":false}
+{"status":"skipped","test":"binary-reader","reason":"Lua 5.3+ APIs unavailable"}
+SKIP paged model memory fixture: binary APIs unavailable
+{"status":"passed","memory_checks":1851,"production_model":false}
+{"status":"passed","lexical_checks":21,"entries":50000,"bytes":150032,"model_features":false}
+{"status":"passed","whole_single_reward_checks":114,"canonical_code_reward":0,"whole_reward":5}
+{"status":"passed","allocation_checks":24,"real_frontend":false}
+{"reuse_checks":894,"completed_oracle_comparisons":320,"prefix_resumes":157,"recovered_generations":5,"real_model":false}
+{"evidence_gate_checks":43,"synthetic_cases":17,"real_model":false}
+{"empty_commit_correction_checks":161,"cases":22,"real_model":false}
+{"correction_level_checks":33,"real_model":false}
+{"gap_unit_checks":21,"default_d89":true}
+OK high_freq_limit: 424 checks; schema-less decoding preserves active index
+{"status":"passed","backspace_checks":2443,"synchronous_fake_host":true,"model_loaded":false}
+{"checks":94,"real_model":false}
+{"negative_control": "primary-reward-disabled", "status": "detected"}
+{"negative_control": "unrestricted-whole-reward", "status": "detected"}
+{"negative_control": "whole-reward-confidence", "status": "detected"}
+{"negative_control": "partial-ranking-work", "status": "detected"}
+{"negative_control": "fusion-pair-cache", "status": "detected"}
+{"negative_control": "memory-schema-less", "status": "detected"}
+{"negative_control": "internal-limit", "status": "detected"}
+{"negative_control": "schema-default", "status": "detected"}
+{"negative_control": "caret-insert", "status": "detected"}
+{"negative_control": "lazy-menu", "status": "detected"}
+{"negative_control": "caret-delete", "status": "detected"}
+{"negative_control": "display-confidence", "status": "detected"}
+{"negative_control": "ranking-prior-confidence", "status": "detected"}
+{"negative_control": "ancestor-truncation", "status": "detected"}
+{"negative_control": "model-retry", "status": "detected"}
+{"negative_control": "long-code-boundary", "status": "detected"}
+{"negative_control": "learning-inhibition-parity", "status": "detected"}
+{"negative_control": "correction-empty-code-disabled", "status": "detected"}
+{"negative_control": "correction-empty-code-stale", "status": "detected"}
+{"negative_control": "evidence-before-correction-gate", "status": "detected"}
+{"negative_control": "evidence-incomplete-gate", "status": "detected"}
+{"negative_control": "correction-prefix-view", "status": "detected"}
+{"negative_control": "correction-incomplete-prefix", "status": "detected"}
+{"negative_control": "tail-backspace-reset", "status": "detected"}
+{"negative_control": "selector-tail-reuse", "status": "detected"}
+{"negative_control": "learned-tail-reuse", "status": "detected"}
+{"negative_control": "text-only-replay", "status": "detected"}
+{"negative_control": "correction-d89-default", "status": "detected"}
+{"negative_control": "correction-gap-cutoff", "status": "detected"}
+{"negative_control": "correction-gap-optional", "status": "detected"}
+{"negative_control": "correction-strength-cost", "status": "detected"}
+{"negative_control": "memory-learning-cap", "status": "detected"}
+{"negative_control": "learning-window", "status": "detected"}
+{"negative_control": "observed-zero", "status": "skipped", "reason": "binary API unavailable"}

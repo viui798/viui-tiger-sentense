@@ -1,261 +1,394 @@
 {
-  "commit": "d46fab43019a49fd44223985c249a34924ab47d1",
-  "local_snapshot_baseline_commit": "626d05cbaa157115055b26485a12bfe4bcfae50f",
-  "source_baseline_commit": "e00858a16b602b7784521b81677949056ce3d1b5",
-  "snapshot_origin": {
-    "type": "verified-r2-release-snapshot",
-    "original_device": "mec-fedora",
-    "original_worktree": "/home/yc/tiger-sentense-rime",
-    "original_worktree_updated": false,
-    "original_git_ancestry_present": false,
-    "release_sha256": "85bd3033e3b64ed2e7a25a4929015659809fedab3a1f3b7fde698cc864d6bd62"
+  ".github/workflows/test.yml": {
+    "bytes": 7206,
+    "sha256": "05532848f5de1ad293ca14161ad8669131c8721205834deb539eb42a1a2763ad"
   },
-  "files": {
-    "IOS_TEST_README.md": {
-      "bytes": 3634,
-      "sha256": "7eb7a8bfc1499f56e5a99766c4ce6542d291d009a2dafb1baad8991c431902cb"
-    },
-    "LICENSE": {
-      "bytes": 35149,
-      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
-    },
-    "README.md": {
-      "bytes": 17095,
-      "sha256": "090e2f3c5b69755ef141f38455ccaadfcab7dc47b93edbce3fbe20c4cbd19478"
-    },
-    "RIME_CORRECTNESS.md": {
-      "bytes": 15425,
-      "sha256": "38c26b312a9d7e2ae9ef00d7a1b170e397ea36f644378188a5dd44ab83ed8f14"
-    },
-    "SOURCE_BASELINE.md": {
-      "bytes": 565,
-      "sha256": "512d64d93748bd54d7e41d35a3413d653a76f1c1598cb3f529977f3174bf7e6c"
-    },
-    "default-model.json": {
-      "bytes": 604,
-      "sha256": "b6e432cd8dd2fa6b5a6dd6dee3d341604604a726f5d44e8f29b06ccb971b6224"
-    },
-    "default.custom.yaml": {
-      "bytes": 51,
-      "sha256": "8f87e9ee428972a8b8401717a9ddb609bca345873b9bd4d89665359e2c940bd1"
-    },
-    "docs/ALLOCATION_PERFORMANCE.md": {
-      "bytes": 3346,
-      "sha256": "ea02a5e092dd4b622a26011f3e08a3f011b329a2fbf57d642bc4abfb352f7afd"
-    },
-    "docs/BACKSPACE_PERFORMANCE.md": {
-      "bytes": 5744,
-      "sha256": "a3abba00416fc4e3cdeeb1814ab9503e0212b0131492a55c5797c0e855a5367c"
-    },
-    "docs/CORRECTION_EMPTY_COMMIT.md": {
-      "bytes": 2719,
-      "sha256": "854a0d92891f0b891f1b098a025812627c445b479977e401c495c19333f1295f"
-    },
-    "docs/CORRECTION_LEVELS.md": {
-      "bytes": 3084,
-      "sha256": "5be5b581a29c61b7de002f85062cadf83943fac05ad17447bf616602744ab518"
-    },
-    "docs/D89_PRUNING.md": {
-      "bytes": 3448,
-      "sha256": "c5e1b64dd4ebacc5cd53598155d60b0d6dab2400860c459e77cbf5797c0bc6f2"
-    },
-    "docs/EARLY_EVIDENCE_GATE.md": {
-      "bytes": 3484,
-      "sha256": "4f259e70093b34d3521d96d040df4c5d79bb81dac8cd36ba825517f365e25ee4"
-    },
-    "docs/EXACT_CORRECTION_LEARNING.md": {
-      "bytes": 3232,
-      "sha256": "e828df507af88fec944d07f42ff665f455eba9256032ff75b436f17a99f4e9f8"
-    },
-    "docs/IOS_MEMORY.md": {
-      "bytes": 8034,
-      "sha256": "0e7cf0f130d7fa0d489dc4a5dc7edfba6af83b091c8ef0556737bea74518385b"
-    },
-    "docs/KEY_CORRECTION_PERFORMANCE.md": {
-      "bytes": 3768,
-      "sha256": "e54a4352990cc1127fbf9de95d8e5cb85b6cb5cb17434843ad353d98018e809e"
-    },
-    "docs/LEXICAL_PRIOR_ATTRIBUTION.md": {
-      "bytes": 1679,
-      "sha256": "fdb7f9cf85026cc9c83e4aaf57df912d47fe26dcc817bb54e4e5b569403597e2"
-    },
-    "docs/LEXICAL_PRIOR_MANIFEST.json": {
-      "bytes": 787,
-      "sha256": "f1eeb74a3fee4e5f5d2f04b13d02e4104d7e85e4f438c918364fe6cae6750056"
-    },
-    "docs/PERSONALIZED_EARLY_COMMIT.md": {
-      "bytes": 1465,
-      "sha256": "0410720bc8c90c613e92c839661552005610d782f4d3111ffdbca4418264f36f"
-    },
-    "docs/RANKING_PRIORS.md": {
-      "bytes": 5561,
-      "sha256": "3b48040e61e9e2f956482adfddb7bba81271326c7bef0a91063cff147a2066b9"
-    },
-    "docs/REVIEW_OPTIMIZATIONS.md": {
-      "bytes": 6518,
-      "sha256": "f92ed103e99ecb22a2a6be2b978be0de153759260df091314dda5a333f63dfe4"
-    },
-    "docs/RIME_CORRECTNESS.md": {
-      "bytes": 4396,
-      "sha256": "9cb2a20f890e59f7359946461ec595f8004f9c5457e816827f97040a6bd8ecc3"
-    },
-    "docs/TCSKNM03.md": {
-      "bytes": 3163,
-      "sha256": "fba6865897bf1fe6cd5da7cfc646af8730514828613bb8c81c7f28e042155c04"
-    },
-    "lua/tiger_sentence.lua": {
-      "bytes": 205952,
-      "sha256": "351b7a313082c06181cb4f4cb2f6b4836694090198a17348307d0a7200c7f6e8"
-    },
-    "lua/tiger_sentence_cache.lua": {
-      "bytes": 1436,
-      "sha256": "8ebd209588fb62d0bf888e752b95d8588ecbcdef2af40f8b009865fc3c41da7c"
-    },
-    "lua/tiger_sentence_correction.lua": {
-      "bytes": 10135,
-      "sha256": "add2c2191ec7f2fa44a4c6cdeee3c9cb8f1fb871db86ae3c384f478fffbe115d"
-    },
-    "lua/tiger_sentence_fivegram.lua": {
-      "bytes": 15977,
-      "sha256": "a32c818ad81078351feace6f0a53a9851c41394fce9ef0d734f2d8bfa03763c2"
-    },
-    "lua/tiger_sentence_learning.lua": {
-      "bytes": 25900,
-      "sha256": "c70d22a5010b14c23f20a3e3da203b95942e25475c2a069bd1e930d8d4c7f325"
-    },
-    "lua/tiger_sentence_lexical.lua": {
-      "bytes": 5319,
-      "sha256": "d49f45f0ee0033fd2466269d967b4784f508da220ec62215806e227ea590fe8d"
-    },
-    "lua/tiger_sentence_ngram.lua": {
-      "bytes": 1675,
-      "sha256": "f740c5b53237cef704daab71f5fe3231035899e37071112aaf064741d5db9edc"
-    },
-    "rime.lua": {
-      "bytes": 279,
-      "sha256": "419df2e184b58ee557138b0026bd7bedc4b9c502013b5b44bac9a045e1dfb04f"
-    },
-    "symbols.yaml": {
-      "bytes": 1540,
-      "sha256": "9b45c4a2f179d42585d5cc1439bfbcb5a585520f0de3ce83232180990e5cc9b1"
-    },
-    "tiger_sentence.char_ranks.txt": {
-      "bytes": 80771,
-      "sha256": "bd64e4bf333b2096a9a61fd5ece868e37912057bd1a812d75b2d5ccb4c994dcf"
-    },
-    "tiger_sentence.codes.txt": {
-      "bytes": 130935,
-      "sha256": "1d3e9b0ce0e4a603be3f220c71acecad846f020e87a52723ecb3814f6b53ac0e"
-    },
-    "tiger_sentence.full_code_whitelist.txt": {
-      "bytes": 727,
-      "sha256": "05d257457898146262f7dbf264103c70a8cf2ee92d188b770ad13232b293f566"
-    },
-    "tiger_sentence.schema.yaml": {
-      "bytes": 4003,
-      "sha256": "03fd5f1afad6e0dc7c53a55aa604541b1c9cd1d43640d25fa554db0f79044d70"
-    },
-    "tiger_sentence.supplement.txt": {
-      "bytes": 294,
-      "sha256": "538f7d60ae378235628a86e7ef20d24396453488fde950a88e52fdb6f558a5ac"
-    },
-    "tiger_sentence_ascii.schema.yaml": {
-      "bytes": 216,
-      "sha256": "3212d367f0cb407c0451999476d9fd7bdc9e9256f5d1ea4d650b5d11ad23564d"
-    },
-    "tools/RIME_PERFORMANCE.md": {
-      "bytes": 5843,
-      "sha256": "2f993fdfc616af284a3b11aee239ce0878f24a901b37fe3cb26342c3d38c4b49"
-    },
-    "tools/rime_learning_probe.cpp": {
-      "bytes": 7845,
-      "sha256": "f6487d4b04e0496348d2725a7aa0c4c3256bfe47c4e6d5279d959b64ed393d7e"
-    },
-    "tools/test_rime_learning_integration.py": {
-      "bytes": 3125,
-      "sha256": "46092edd3e5fcb0f6da61fb5223355d39105dd03f18299e585f7495fb7f635ac"
-    },
-    "tools/test_sentence_learning.lua": {
-      "bytes": 36634,
-      "sha256": "df7ab03aba31be2080c8c44024ee68f606581a95735002dfe2e186b14e124418"
-    },
-    "安装与更新说明.txt": {
-      "bytes": 3265,
-      "sha256": "61711dd2c60399684bebaa3f9f58542729f5bf70a643c1e8e20d0cb9b2a72efa"
-    }
+  ".gitignore": {
+    "bytes": 405,
+    "sha256": "e8e493abb2bce4c58497e0848421d76b8a62c3e70a5a3ddd8bc231a3b49cb042"
   },
-  "changed_source_files": [
-    "README.md",
-    "docs/EXACT_CORRECTION_LEARNING.md",
-    "lua/tiger_sentence.lua",
-    "lua/tiger_sentence_correction.lua",
-    "lua/tiger_sentence_learning.lua",
-    "tools/rime_learning_probe.cpp",
-    "tools/test_rime_learning_integration.py",
-    "tools/test_sentence_learning.lua"
-  ],
-  "source_tree_clean": true,
-  "sync_patch": {
-    "bytes": 33259,
-    "sha256": "14ccd2d17259a194115dbc20cd71b1eae0d25a3a0334c2e83517066f34c8f910",
-    "baseline_apply_verified": true
+  "IOS_TEST_README.md": {
+    "bytes": 3634,
+    "sha256": "7eb7a8bfc1499f56e5a99766c4ce6542d291d009a2dafb1baad8991c431902cb"
   },
-  "validation": {
-    "lua54_checks": 23380,
-    "luajit_checks": 23380,
-    "real_model_correction_matrix": "off/weak/medium/strong x tap/Tab; 8 groups passed",
-    "r2_upgrade_cases": [
-      "tap",
-      "tab"
-    ],
-    "r2_upgrade_records": {
-      "old_fusion_preserved": 1,
-      "new_exact_correction": 2
-    },
-    "fresh_strong_first_submission_records": {
-      "fusion": 1,
-      "exact_correction": 2,
-      "total": 3
-    },
-    "matrix_strong_total_records_after_three_manual_choices": 7,
-    "old_source_negative_control": "r2 main failed exactly at exact/corrected receipts persist once: weak/tap",
-    "real_librime_cases": 20,
-    "original_integration_cases": 18,
-    "strong_correction_restart_cases": [
-      "tap",
-      "tab"
-    ],
-    "strong_before": [
-      "轮滑",
-      "热滑",
-      "拾滑",
-      "捡"
-    ],
-    "strong_after_one_submit": [
-      "捡",
-      "轮滑",
-      "热滑",
-      "拾滑"
-    ],
-    "strong_after_restart": [
-      "捡",
-      "轮滑",
-      "热滑",
-      "拾滑"
-    ],
-    "protected_boundaries": [
-      "cancel",
-      "mismatched actual commit",
-      "repeated notifier",
-      "corrected selected",
-      "selected correction_history",
-      "selected path.correction_history",
-      "disabled read/write and reenabled restore",
-      "different raw",
-      "final candidate limit",
-      "early evidence and cache",
-      "r2 fusion preserved"
-    ],
-    "physical_frontend_installation_tested": false
+  "LICENSE": {
+    "bytes": 35149,
+    "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+  },
+  "README.md": {
+    "bytes": 17144,
+    "sha256": "fad91036190835489996ade9a894e889912ac2f712057abd6ed436a11262c83a"
+  },
+  "RIME_CORRECTNESS.md": {
+    "bytes": 15425,
+    "sha256": "38c26b312a9d7e2ae9ef00d7a1b170e397ea36f644378188a5dd44ab83ed8f14"
+  },
+  "default-model.json": {
+    "bytes": 604,
+    "sha256": "b6e432cd8dd2fa6b5a6dd6dee3d341604604a726f5d44e8f29b06ccb971b6224"
+  },
+  "default.custom.yaml": {
+    "bytes": 51,
+    "sha256": "8f87e9ee428972a8b8401717a9ddb609bca345873b9bd4d89665359e2c940bd1"
+  },
+  "docs/ADAPTIVE_LEARNING.md": {
+    "bytes": 5150,
+    "sha256": "bc9d671fb3a9277a389120dbad333de4d82fc2f6a0fb25cc6860b85fd7e7f355"
+  },
+  "docs/ADAPTIVE_LEARNING_VALIDATION.md": {
+    "bytes": 2412,
+    "sha256": "2736d439b04dcc15b00d842f2d935d4e9ad85981109b9311152c42ec1f50cc10"
+  },
+  "docs/ALLOCATION_PERFORMANCE.md": {
+    "bytes": 3346,
+    "sha256": "ea02a5e092dd4b622a26011f3e08a3f011b329a2fbf57d642bc4abfb352f7afd"
+  },
+  "docs/BACKSPACE_PERFORMANCE.md": {
+    "bytes": 5744,
+    "sha256": "a3abba00416fc4e3cdeeb1814ab9503e0212b0131492a55c5797c0e855a5367c"
+  },
+  "docs/CORRECTION_EMPTY_COMMIT.md": {
+    "bytes": 2719,
+    "sha256": "854a0d92891f0b891f1b098a025812627c445b479977e401c495c19333f1295f"
+  },
+  "docs/CORRECTION_LEVELS.md": {
+    "bytes": 3084,
+    "sha256": "5be5b581a29c61b7de002f85062cadf83943fac05ad17447bf616602744ab518"
+  },
+  "docs/D89_PRUNING.md": {
+    "bytes": 3448,
+    "sha256": "c5e1b64dd4ebacc5cd53598155d60b0d6dab2400860c459e77cbf5797c0bc6f2"
+  },
+  "docs/EARLY_EVIDENCE_GATE.md": {
+    "bytes": 3484,
+    "sha256": "4f259e70093b34d3521d96d040df4c5d79bb81dac8cd36ba825517f365e25ee4"
+  },
+  "docs/EXACT_CORRECTION_LEARNING.md": {
+    "bytes": 3467,
+    "sha256": "d35f01673af721c4637836936aaadd4a6a7ea0c1fa0745dd677360822263b1bc"
+  },
+  "docs/IOS_MEMORY.md": {
+    "bytes": 8034,
+    "sha256": "0e7cf0f130d7fa0d489dc4a5dc7edfba6af83b091c8ef0556737bea74518385b"
+  },
+  "docs/KEY_CORRECTION_PERFORMANCE.md": {
+    "bytes": 3768,
+    "sha256": "e54a4352990cc1127fbf9de95d8e5cb85b6cb5cb17434843ad353d98018e809e"
+  },
+  "docs/LEXICAL_PRIOR_ATTRIBUTION.md": {
+    "bytes": 1679,
+    "sha256": "fdb7f9cf85026cc9c83e4aaf57df912d47fe26dcc817bb54e4e5b569403597e2"
+  },
+  "docs/LEXICAL_PRIOR_MANIFEST.json": {
+    "bytes": 787,
+    "sha256": "f1eeb74a3fee4e5f5d2f04b13d02e4104d7e85e4f438c918364fe6cae6750056"
+  },
+  "docs/NONOPTIMAL_CODE_SCORING.md": {
+    "bytes": 1716,
+    "sha256": "dfee25654e5b0796530a0dc013cf64d66bcc2b50b9c4004c6be73de4de60d118"
+  },
+  "docs/PERSONALIZED_EARLY_COMMIT.md": {
+    "bytes": 1465,
+    "sha256": "0410720bc8c90c613e92c839661552005610d782f4d3111ffdbca4418264f36f"
+  },
+  "docs/RANKING_PRIORS.md": {
+    "bytes": 5561,
+    "sha256": "3b48040e61e9e2f956482adfddb7bba81271326c7bef0a91063cff147a2066b9"
+  },
+  "docs/REVIEW_OPTIMIZATIONS.md": {
+    "bytes": 6518,
+    "sha256": "f92ed103e99ecb22a2a6be2b978be0de153759260df091314dda5a333f63dfe4"
+  },
+  "docs/RIME_CORRECTNESS.md": {
+    "bytes": 4396,
+    "sha256": "9cb2a20f890e59f7359946461ec595f8004f9c5457e816827f97040a6bd8ecc3"
+  },
+  "docs/TCSKNM03.md": {
+    "bytes": 3163,
+    "sha256": "fba6865897bf1fe6cd5da7cfc646af8730514828613bb8c81c7f28e042155c04"
+  },
+  "lua/tiger_sentence.lua": {
+    "bytes": 207048,
+    "sha256": "6fa8769dc844024e203d90de90ea8697a01dcf41fe26b115a58d7d7db5566f18"
+  },
+  "lua/tiger_sentence_cache.lua": {
+    "bytes": 1436,
+    "sha256": "8ebd209588fb62d0bf888e752b95d8588ecbcdef2af40f8b009865fc3c41da7c"
+  },
+  "lua/tiger_sentence_correction.lua": {
+    "bytes": 10135,
+    "sha256": "add2c2191ec7f2fa44a4c6cdeee3c9cb8f1fb871db86ae3c384f478fffbe115d"
+  },
+  "lua/tiger_sentence_fivegram.lua": {
+    "bytes": 15977,
+    "sha256": "a32c818ad81078351feace6f0a53a9851c41394fce9ef0d734f2d8bfa03763c2"
+  },
+  "lua/tiger_sentence_learning.lua": {
+    "bytes": 30016,
+    "sha256": "99e880faceb30837596524c65e229cf7a890795f7553a20d5d488b073363d098"
+  },
+  "lua/tiger_sentence_learning_text.lua": {
+    "bytes": 5451,
+    "sha256": "423443dc8ce76f00fcb1bb2ee7da014f1674d16bcdeaf9341ae9f967df5dcb9c"
+  },
+  "lua/tiger_sentence_lexical.lua": {
+    "bytes": 5319,
+    "sha256": "d49f45f0ee0033fd2466269d967b4784f508da220ec62215806e227ea590fe8d"
+  },
+  "lua/tiger_sentence_ngram.lua": {
+    "bytes": 1675,
+    "sha256": "f740c5b53237cef704daab71f5fe3231035899e37071112aaf064741d5db9edc"
+  },
+  "models/tiger_sentence.lexical.bin": {
+    "bytes": 150032,
+    "sha256": "8dbc884b6cb719d07e4cef153c8048db19a11f8224f75a4ed87853e688a27393"
+  },
+  "rime.lua": {
+    "bytes": 279,
+    "sha256": "419df2e184b58ee557138b0026bd7bedc4b9c502013b5b44bac9a045e1dfb04f"
+  },
+  "symbols.yaml": {
+    "bytes": 1540,
+    "sha256": "9b45c4a2f179d42585d5cc1439bfbcb5a585520f0de3ce83232180990e5cc9b1"
+  },
+  "tiger_sentence.char_ranks.txt": {
+    "bytes": 80771,
+    "sha256": "bd64e4bf333b2096a9a61fd5ece868e37912057bd1a812d75b2d5ccb4c994dcf"
+  },
+  "tiger_sentence.codes.txt": {
+    "bytes": 130935,
+    "sha256": "1d3e9b0ce0e4a603be3f220c71acecad846f020e87a52723ecb3814f6b53ac0e"
+  },
+  "tiger_sentence.full_code_whitelist.txt": {
+    "bytes": 727,
+    "sha256": "05d257457898146262f7dbf264103c70a8cf2ee92d188b770ad13232b293f566"
+  },
+  "tiger_sentence.schema.yaml": {
+    "bytes": 4012,
+    "sha256": "9ef9ee6e7510e99b4cb5e14f9661dfe781b1ef22a8df7aeb73c6b03e89b80bd9"
+  },
+  "tiger_sentence.supplement.txt": {
+    "bytes": 294,
+    "sha256": "538f7d60ae378235628a86e7ef20d24396453488fde950a88e52fdb6f558a5ac"
+  },
+  "tiger_sentence_ascii.schema.yaml": {
+    "bytes": 216,
+    "sha256": "3212d367f0cb407c0451999476d9fd7bdc9e9256f5d1ea4d650b5d11ad23564d"
+  },
+  "tools/RIME_PERFORMANCE.md": {
+    "bytes": 5843,
+    "sha256": "2f993fdfc616af284a3b11aee239ce0878f24a901b37fe3cb26342c3d38c4b49"
+  },
+  "tools/bench_allocations.py": {
+    "bytes": 5297,
+    "sha256": "cb661e235dab5020ed39e82d42606654c0aa44dea0189bb8940551012b471946"
+  },
+  "tools/bench_key_correction.lua": {
+    "bytes": 1839,
+    "sha256": "31f1d659b11d116c4899a752d72cf0b0ef3605782e128b5cc974d325e0c5e0c8"
+  },
+  "tools/bench_memory.lua": {
+    "bytes": 3691,
+    "sha256": "23689f30031b9bfad19434290ff671eaa2590fb5a377dfafa2a1e9ee9ff550ad"
+  },
+  "tools/bench_memory_learning.lua": {
+    "bytes": 1205,
+    "sha256": "c4fce944280dca62cf69235a48ca7dde6abacabf8465885bb25626544985d274"
+  },
+  "tools/bench_review_learning.lua": {
+    "bytes": 2084,
+    "sha256": "adb95c0df6f7f330a013dd0b7ab71620704bd16626242c81c8a5bdd8eb562e9e"
+  },
+  "tools/bench_rime_learning.lua": {
+    "bytes": 2163,
+    "sha256": "a5e767531c8ecd4cca36923c23ec250627d7ad8622ae2abf21f49bd2cfce9e55"
+  },
+  "tools/bench_tiger_sentence_lua.lua": {
+    "bytes": 8964,
+    "sha256": "c9ff95e79ff089835680e9d55a750906097d1b624c9aa8b12f357e4e0b750fc7"
+  },
+  "tools/build_lexical_prior.py": {
+    "bytes": 6632,
+    "sha256": "77e19f532f22cf6b5a384f114c57a59d6e0d5d7d6a018cffc4987813bd2a3fb0"
+  },
+  "tools/build_tcs_knm03.cpp": {
+    "bytes": 23675,
+    "sha256": "42d4f1f97cdf807eaeff3dd7ca55aeb99281fbed7fc8d05d3dd11971bd7d183e"
+  },
+  "tools/compare_contrast_dumps.py": {
+    "bytes": 3125,
+    "sha256": "6f27ad27887335e1246a875ecd24b47768790b9ea08ef7dedd66c526c7e985e8"
+  },
+  "tools/compare_revisions.py": {
+    "bytes": 7905,
+    "sha256": "d4f9b6217f57e321a62955e2a8dbaf6a1bc03e12cc0ab256c2b0719d97824448"
+  },
+  "tools/evaluate_contrast_sets.lua": {
+    "bytes": 11348,
+    "sha256": "2555d14b1b7deebd53a43681099b0e4b8238c5b0a6399197ee48c23e13b9308c"
+  },
+  "tools/evaluate_phrase_edges.lua": {
+    "bytes": 3499,
+    "sha256": "bd041324953e0ef09af6c40ad3627ec9abf3b2ae95a8b60f6c1b2157ab7fa2e4"
+  },
+  "tools/lua_memory_runner.c": {
+    "bytes": 2322,
+    "sha256": "693f18addaed314a7ae892700729aaa4b24db880e71d18b9c5e99d325ed54dd0"
+  },
+  "tools/model_fixture.lua": {
+    "bytes": 5530,
+    "sha256": "039acdf870d38bac8b5fe5afb754749a69676d93ade76c7dac5900d638da149d"
+  },
+  "tools/probe_key_correction_perf.lua": {
+    "bytes": 1532,
+    "sha256": "6bfb22c94629781b55bb931c07ff004e8e876d6c4fd5b605b3535f3f1646f9a0"
+  },
+  "tools/rime_api_probe.cpp": {
+    "bytes": 5207,
+    "sha256": "4893796ae46030102302ba1ac6cb25cf792bbbcbff32ede784f691890acfeecd"
+  },
+  "tools/rime_correction_levels_probe.cpp": {
+    "bytes": 5832,
+    "sha256": "60a42107aab9bbdae6b750f8c5db5532a68a656fdc432f75022e6d9b7e0b9565"
+  },
+  "tools/rime_integration_test.py": {
+    "bytes": 3199,
+    "sha256": "43e26fa52b90702fdd59ba3c2e5bc8933d5573a7978d34992a498bb5fb079646"
+  },
+  "tools/rime_learning_probe.cpp": {
+    "bytes": 7845,
+    "sha256": "f6487d4b04e0496348d2725a7aa0c4c3256bfe47c4e6d5279d959b64ed393d7e"
+  },
+  "tools/rime_options_probe.cpp": {
+    "bytes": 3849,
+    "sha256": "90dba9c2fd5b89d67d3a2f2768763ce3faf5c7d024722be7001793cbfb10881a"
+  },
+  "tools/rime_preedit_probe.cpp": {
+    "bytes": 17429,
+    "sha256": "78d6d8be6a749e0e9955d50024a24567273341cbf218487d3dd8757d1c5472f0"
+  },
+  "tools/run_regressions.py": {
+    "bytes": 15818,
+    "sha256": "4da18c83211cdb08bb08520210165c164049d1880a93a9f2766d58515c22ea54"
+  },
+  "tools/run_rime_host_tests.sh": {
+    "bytes": 2751,
+    "sha256": "5cb40101fce46a251d951af02368185556362f058b9fe9cbf31e0e300c863f6b"
+  },
+  "tools/snapshot_decoder.lua": {
+    "bytes": 8084,
+    "sha256": "bde2ed6ea0e10c235284d364601de8ef13d8f26a866857a18176d33fbd579227"
+  },
+  "tools/test_adaptive_learning.lua": {
+    "bytes": 7142,
+    "sha256": "6a7dde33d5872d4547747f13faf871a6f3d6548ea61a102be33aa8b823638d10"
+  },
+  "tools/test_allocation.lua": {
+    "bytes": 4463,
+    "sha256": "bd6d3b23004f4efdc6dac4125905445c16b86134f12ac251460f78555618b3ee"
+  },
+  "tools/test_backspace.lua": {
+    "bytes": 15338,
+    "sha256": "a8e28179bb6f9182653585cf9c5ff7fccc63c47347dbcffb41be6c56572fd15a"
+  },
+  "tools/test_correction_levels.lua": {
+    "bytes": 3384,
+    "sha256": "828e6854ce619c8c0666a9b3d189321628beebd90b38804155c033a1f6e148c3"
+  },
+  "tools/test_early_evidence_gate.lua": {
+    "bytes": 7295,
+    "sha256": "f43c322ec82f4ce77b6b16649c574e65cc6213f07af496ae0c336eba576a8e0b"
+  },
+  "tools/test_empty_commit_correction_off.lua": {
+    "bytes": 5587,
+    "sha256": "fddc712f95b0a45e7d5e076636299af840dbf18f8f6a19ba684ca91e7bfeda63"
+  },
+  "tools/test_fivegram_cache.lua": {
+    "bytes": 1946,
+    "sha256": "ee854bcf75a59002568ff6a6022e90c21337fbc85e4d4ed45aecbc8ef8408a33"
+  },
+  "tools/test_high_freq_limit.lua": {
+    "bytes": 8052,
+    "sha256": "b25fc2a5995719a2fa22b679be50f6df7ca5284ee1c50d942eb1d1d440097eb0"
+  },
+  "tools/test_key_correction.lua": {
+    "bytes": 6863,
+    "sha256": "14cd896f0c2b41efed33c0544d2fdb3b7cc1a31953d5a844df9a88ee25abf746"
+  },
+  "tools/test_key_correction_gap.lua": {
+    "bytes": 4045,
+    "sha256": "633d5558f3878dc3c3fb9969f0e0cfccef1954f840c1ec540f017f0d9186047e"
+  },
+  "tools/test_key_correction_perf.lua": {
+    "bytes": 4034,
+    "sha256": "c21d0ef4d40aee099d61e1c56ead11718a050647f043e9e013d40adbf6b91b7b"
+  },
+  "tools/test_key_correction_random.lua": {
+    "bytes": 2333,
+    "sha256": "6ced22328c7462d48f09df36b7fa825e91219ec9f81933122e285b478392381f"
+  },
+  "tools/test_key_correction_reuse.lua": {
+    "bytes": 6732,
+    "sha256": "27370198d02a170c1a9bf567f254c10047408703fd90f7be6004df820ee5f0d6"
+  },
+  "tools/test_key_correction_snapshot.lua": {
+    "bytes": 1930,
+    "sha256": "58667271ebee5303ec4bb018251d7a0b580bfa2bd607dff12e3441370419078a"
+  },
+  "tools/test_lexical_prior.lua": {
+    "bytes": 9034,
+    "sha256": "4878f37cbcf2603a67e3fda0086b4b3479a393702f8691a779a5c86da350389f"
+  },
+  "tools/test_memory.lua": {
+    "bytes": 5353,
+    "sha256": "b9e1a311814ab2cf3adb1eed222babd34d4e6237fd609a30d939178c29d23988"
+  },
+  "tools/test_ngram_reader.lua": {
+    "bytes": 3265,
+    "sha256": "01edd3218e7e3342e0282bcb6e599e88fe4519a9039e660f2330c62afb48b142"
+  },
+  "tools/test_review_regressions.lua": {
+    "bytes": 11118,
+    "sha256": "de2e1f05094ad7c8bbff287d945edd087f4b64f7134401c891237f284867db0f"
+  },
+  "tools/test_rime_contract.lua": {
+    "bytes": 8409,
+    "sha256": "7c36cc4bf1a9f246d2f6621beb018411ee04c135b869df6aab27d7d99f6b06be"
+  },
+  "tools/test_rime_correction_levels_integration.py": {
+    "bytes": 4290,
+    "sha256": "2a4290970ddd3f8415825ec7971456455b74ed840d37c21e2d5d0e30fddadf22"
+  },
+  "tools/test_rime_learning_integration.py": {
+    "bytes": 3613,
+    "sha256": "bfac3210c7086f72a6f4d21d46982ce69b6106706e4abd4ad0e925fc025b2d21"
+  },
+  "tools/test_rime_options_integration.py": {
+    "bytes": 3400,
+    "sha256": "4962807ccd37939f9a2d581fcff3a95f25c5a180a967d59075263bb8d576ac9d"
+  },
+  "tools/test_rime_preedit_integration.py": {
+    "bytes": 4423,
+    "sha256": "6abf67e489b82906dd4945046d52021367d08f035cc466afdcdb800c0bcbaa39"
+  },
+  "tools/test_sentence_learning.lua": {
+    "bytes": 39882,
+    "sha256": "c163383d6c51b0d98a76a186ab7b2a35f3fc368f8390e78399605be3f24d312f"
+  },
+  "tools/test_sentence_safety.lua": {
+    "bytes": 9966,
+    "sha256": "73688943a90cca072f90bbb1156687b3779073a77e5238dc2a5861e32abe9254"
+  },
+  "tools/test_tcs_knm03.py": {
+    "bytes": 2585,
+    "sha256": "479275fecd1d9e4baf4bdc48137c7f031f982b7d9428cf847172ed99bb964bb1"
+  },
+  "tools/test_tiger_sentence_incremental.lua": {
+    "bytes": 50398,
+    "sha256": "6331f65c214acdc25378cafabce2232493f72d9708df5aa7f65260b3432061f9"
+  },
+  "tools/test_whole_single_reward.lua": {
+    "bytes": 3761,
+    "sha256": "0bbe1c3e2c4f974d943883ab46dd7a9e9dbcfdd1f56c12321f2ae1e3ea9c353e"
   }
 }

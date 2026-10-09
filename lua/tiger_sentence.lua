@@ -416,6 +416,10 @@ local function build_lexicon_index(entries, character_ranks, high_freq_limit, wh
                     r = rank,
                     user = is_user,
                     optimal_single = optimal_input[text] == code,
+                    -- Only the configured common, non-whitelisted characters
+                    -- must use their shortest spelling for the whole-input bonus.
+                    whole_single_reward_eligible = optimal_input[text] == code or
+                        not (common and common[text] and whitelist[text] ~= true),
                     -- A sentence cannot use one-key character edges.  Keep a
                     -- second marker for the strongest legal per-character
                     -- spelling (rank-1 preferred, then shortest).  This is
@@ -647,8 +651,9 @@ end
 
 function supplement.build(entries, path)
     local nodes = { { transitions = {}, failure = 1, reward = 0.0 } }
-    local count = 0
+    local count, known = 0, {}
     for text, weight in pairs(entries or {}) do
+        if text ~= "" then known[text] = true end
         local reward = reward_for_weight(weight)
         if text ~= "" and reward > 0.0 then
             local state = 1
@@ -668,7 +673,7 @@ function supplement.build(entries, path)
     end
 
     if count == 0 then
-        return empty_matcher(path, nil)
+        local empty = empty_matcher(path, nil); empty.known = known; return empty
     end
 
     local queue = {}
@@ -697,7 +702,7 @@ function supplement.build(entries, path)
             queue[#queue + 1] = child
         end
     end
-    return { nodes = nodes, path = path, count = count, error = nil }
+    return { nodes = nodes, path = path, count = count, error = nil, known = known }
 end
 
 function supplement.load_file(path)
@@ -797,7 +802,7 @@ local ranking_prior = {
     -- Shape and lexical evidence are excluded from confidence mass.  The word
     -- filter also reranks only Top-5, so neither heuristic can manufacture
     -- early-commit confidence or introduce a candidate that the LM missed.
-    canonical_code_reward = 2.0,
+    canonical_code_reward = 0.0,
     lexical_prior_weight = 0.1,
     lexical_candidate_limit = 5,
     -- A full four-key spelling is strong enough to protect an otherwise
@@ -2006,7 +2011,8 @@ local function expand_range(raw, states, from_pos, length, minimum_consumed_end)
                                             end
                                             local whole_input_single_character_reward_added = 0.0
                                             if whole_input_edge and selected_rank == 0 and
-                                                candidate.optimal_single and candidate_is_single(candidate) then
+                                                candidate.whole_single_reward_eligible and
+                                                candidate_is_single(candidate) then
                                                 whole_input_single_character_reward_added =
                                                     whole_input_single_character_reward
                                                 score = score + whole_input_single_character_reward_added
@@ -4053,7 +4059,8 @@ local function learning_stage(env, state, selected, raw, submitted_first)
         local lock = active_lock(state)
         local floor = math.max(#state.committed_raw, lock and #lock.raw or 0)
         local events = learning.diff(raw, baseline, selected, floor, live.mode)
-        local reinforced = learning.reinforce_existing(live.store and live.store.index, raw, baseline, selected, floor, live.mode)
+        local reinforced = learning.reinforce_existing(live.store and live.store.index, raw, baseline, selected, floor, live.mode,
+            function(text) return (supplement_matcher.known or {})[text] == true end)
         for _, e in ipairs(reinforced) do
             local duplicate = false
             for _, old in ipairs(events) do
@@ -4061,6 +4068,7 @@ local function learning_stage(env, state, selected, raw, submitted_first)
             end
             if not duplicate then events[#events + 1] = e end
         end
+        learning.plan_levels(live.store and live.store.index, events, raw, baseline, selected)
         for _, e in ipairs(events) do if #live.pending < 256 then live.pending[#live.pending + 1] = e end end
     end
     live.baseline = nil
@@ -4093,12 +4101,12 @@ local function prepare_learning(env, attach)
         local ok, value = pcall(function() return schema.config:get_bool("tiger_sentence/tab_learning") end)
         if ok and value == false then enabled = false end
     end
-    local mode = enabled and ("sentence-v2|rules=" .. (lexicon_state.learning_rules or "") ..
-        "|optimal=" .. tostring(lexicon_state.high_freq_limit) .. "|dup=" .. (active_allow_duplicate_single and "1" or "0")) or ""
+    local mode = enabled and ("整句|规则版本=" .. (lexicon_state.learning_rules or "") ..
+        "|最优码限制=" .. tostring(lexicon_state.high_freq_limit) .. "|单字重码=" .. (active_allow_duplicate_single and "1" or "0")) or ""
     local schema_id = schema and schema.schema_id or "tiger_sentence"
     if env._tiger_learning_schema_id ~= schema_id then
         env._tiger_learning_schema_id = schema_id
-        env._tiger_learning_name = "tiger_sentence_learning_" .. learning.hash(schema_id)
+        env._tiger_learning_name = "自学习-" .. schema_id:gsub('[%%/\\:%z%*%?"<>|%c]', function(c) return string.format("%%%02X", c:byte()) end)
     end
     local name = env._tiger_learning_name
     local live = env._tiger_learning
@@ -4986,6 +4994,7 @@ M.lexicon_probe = function(code)
             t = candidates[index].t,
             r = candidates[index].r,
             optimal_single = candidates[index].optimal_single or false,
+            whole_single_reward_eligible = candidates[index].whole_single_reward_eligible or false,
             primary_single = candidates[index].primary_single or false
         }
     end
@@ -5084,6 +5093,8 @@ M.set_decoder_parameters_for_test = function(values)
     rank_penalty = bounded("rank_penalty", rank_penalty, 0, 10, false)
     emitted_character_reward = bounded(
         "emitted_character_reward", emitted_character_reward, -10, 10, false)
+    whole_input_single_character_reward = bounded(
+        "whole_input_single_character_reward", whole_input_single_character_reward, 0, 20, false)
     ranking_prior.canonical_code_reward = bounded(
         "canonical_code_reward", ranking_prior.canonical_code_reward, 0, 10, false)
     ranking_prior.lexical_prior_weight = bounded(
@@ -5106,6 +5117,7 @@ M.decoder_parameters = function()
         long_input_beam_width = long_input_beam_width,
         rank_penalty = rank_penalty,
         emitted_character_reward = emitted_character_reward,
+        whole_input_single_character_reward = whole_input_single_character_reward,
         canonical_code_reward = ranking_prior.canonical_code_reward,
         lexical_prior_weight = ranking_prior.lexical_prior_weight,
         isolation_threshold = isolation_threshold,

@@ -1,52 +1,20 @@
-虎整句 Rime 完整包 20261007-r3
-源码提交与完整校验信息见 RELEASE.json。
-项目地址：https://github.com/lvyww/tiger-sentense-rime
+虎整句 Rime 2026-10-09 更新说明
 
-本版在经验证的 e00858a r2 发布源码上，以独立本地快照开发。
-原 mec-fedora 工作目录当时离线，未在该目录提交或推送；本包包含运行源码，
-本地快照身份见 SOURCE_BASELINE.md，同步补丁与步骤见 sync/。
+本包适用于支持 librime-lua 的标准 Rime 前端。纯 Lua 方案与模型文件无架构区别，不需要分别选择 x64/ARM64 包。
 
-本包包含完整方案、Lua 模块、码表和默认五阶模型，可直接用于支持
-librime-lua 与 LevelDB 的 Rime 前端。无需另行下载语言模型。
-整包主要体积来自内置五阶模型（解压后约 405.66 MB）。
+本次改动：
+1. 取消单字主码按码长累计的奖励。
+2. 整个输入无显式选重、一次匹配一个单字时保留 +5。只有前 N 高频且不在白名单的字才要求最优码；范围外及白名单单字允许码表已有非最优码。
+3. 合并已发布的正码超过纠错候选学习修复，同时保留主线可读自学习、最多跳三级和补充语料强化。
 
-本版修复
-正码可学习超过纠错候选：强档 ujkf 初始为“轮滑、热滑、拾滑、捡”，
-点击或 Tab 确认“捡”一次后为“捡、轮滑、热滑、拾滑”，重启后保留。
-原 r2 精确候选融合偏好兼容；若已有“捡 > 拾滑”，只补前面两个纠错输出的偏好。
-新记录按原始输入、模式和两个输出隔离，不污染正码词条、普通片段或模型概率。
-选择带纠错来源/历史的候选仍不学习；取消或错提交不写，重复通知不会重复记账。
-关闭自学习同时停止应用与写入，重新启用后恢复已有记录。
-保留纠错关闭／弱／中／强、默认 D89 剪枝与现有模型资源。
-发生新偏好重排的一轮不借用旧首选的自动上屏证据。
+安装和更新：
+- 从本包目录复制 lua/、schema、码表等文件到 Rime 用户目录，模型和词先验放在 models/。详细注册项见 README.md。
+- 整体更新 lua/，包括 tiger_sentence_learning_text.lua；已有 rime.lua 请合并四个注册项。
+- 保留自己的自定义设置、码表、白名单、补充语料、tiger_sentence.options.yaml 和自学习文件。N 继续取 high_freq_limit 当前值，首次默认1500。
+- 在 default.custom.yaml 中加入 tiger_sentence 后重新部署。schema 版本为 1.6.20261009。
+- 主线学习文件为 UTF-8 的 自学习-tiger_sentence.txt；旧版 LevelDb 学习记录按主线既有规则不迁移。
 
-部署／更新
-1. 解压后打开 Rime 前端的“用户文件夹”，先备份自己的配置。
-2. 将 lua/、models/、两个 tiger_sentence schema、symbols.yaml 和
-   tiger_sentence.*.txt 复制进去。更新本方案的同名 Lua 文件时，
-   保留 lua/ 里其他方案的文件、个人补充语料和自己修改的码表。
-3. 已有 rime.lua 时合并本包四项 Lua 注册；没有时直接复制本包文件。
-   已有 default.custom.yaml 时把 tiger_sentence 加入 schema_list；
-   本包的 default.custom.yaml 仅作示例，不直接覆盖其他方案列表。
-4. 在前端执行“重新部署”，切换到“虎整句”。如旧模块仍被加载，
-   退出并重新启动 Rime 前端。
+完整包含配套五阶模型、词先验和全部源码。源码包不重复包含405MB五阶模型；default-model.json 与 RELEASE.json 记录同一模型身份。
+许可证为 GPL-3.0；词先验来源和许可见 docs/LEXICAL_PRIOR_ATTRIBUTION.md。
 
-学习数据位于原用户目录的 tiger_sentence_learning_<散列>.userdb。
-本包不包含个人学习库或个人偏好，更新时请保留原有 .userdb 和
-tiger_sentence.options.yaml。选择后需实际确认上屏才会记录学习；
-Esc 取消不学习，已经成为首选的普通使用不额外强化。
-
-模型
-文件：models/sentence-fivegram-mobile.bin
-格式：TCSKNM03 Q8 五阶
-大小：405663171 字节
-SHA256：756f6c92cf43ad6e8e3087ce66b711ac6ad0fc41e6f3fb82b3766e35ecab8681
-身份说明：default-model.json
-
-验收
-Lua 5.4 与 LuaJIT 各通过 23380 项断言，含四档点击/Tab、取消、重复通知、
-错误提交、纠错来源/历史拒绝、关学习再开、不同原码、r2 升级和持久化重载。
-真实 librime 1.16.1 与 librime-lua 的原有 18 条路径及强档点击/Tab 首选与重启，
-合计 20 条通过；旧 r2 主模块负控在 weak/tap 新偏好写入处准确失败。
-这些是隔离宿主回归，本次没有安装或初始化实际用户目录。
-包内 SHA256SUMS.txt 覆盖所有随包文件，验证日志见 validation/。
+SHA256SUMS.txt 可校验包内文件。validation/ 为这次隔离回归记录，不包含用户学习数据。

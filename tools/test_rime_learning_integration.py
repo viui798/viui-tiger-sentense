@@ -51,6 +51,12 @@ def main():
         for selection in selections:
             with temporary_tree() as root:
                 isolated_sources(root)
+                if case == 'fusion':
+                    # New production scores already place 捡 first. This owned
+                    # fixture retains a lower exact candidate to test learning.
+                    with (root / 'rime.lua').open('a', encoding='utf-8') as handle:
+                        handle.write('\nrequire("tiger_sentence").set_decoder_parameters_for_test('
+                                     '{canonical_code_reward=2,whole_input_single_character_reward=0})\n')
                 shared = root / '_shared'
                 shared.mkdir()
                 (shared / 'default.yaml').write_text(
