@@ -4204,6 +4204,28 @@ local function prepare_learning(env, attach)
     return live
 end
 
+-- 英文段（`[` … `]`）里用 Tab 选中词典联想后继续打字：把组合串中正在输入的那个
+-- 英文词替换成高亮候选里的英文词，再接上本次按键，于是 Tab 选重之后能接着输入。
+-- 例：输入 `[hell` → Tab 选中 hello → 按空格得到 `[hello `；按 w 得到 `[hello w`。
+-- 挂在 correction 表上而不是新建 local：主 chunk 的局部变量已到 Lua 的 200 上限。
+function correction.accept_inline_tab_selection(env, state, context, typed)
+    if not state.tab_pending or not inline_english_open(context) then return false end
+    if type(context.get_selected_candidate) ~= "function" then return false end
+    local raw = live_input(context)
+    local word = raw:match("([A-Za-z][A-Za-z'-]*)$")
+    if not word then return false end
+    local candidate = context:get_selected_candidate()
+    local chosen = candidate and type(candidate.text) == "string" and
+        candidate.text:match("([A-Za-z][A-Za-z'-]*)$") or nil
+    if not chosen or chosen == word then return false end
+    restore_composition_input(context, raw:sub(1, #raw - #word) .. chosen .. (typed or ""))
+    state.tab_pending = false
+    state.suspended = true
+    state.empty_code_pending = nil
+    save_transient_state(context, state, env)
+    return true
+end
+
 local function processor(key_event, env)
     if key_event:release() then
         return 2
@@ -4239,6 +4261,7 @@ local function processor(key_event, env)
     if ch then
         if mixed_mode then
             if #live_input(context) >= max_raw_length then return 1 end
+            if correction.accept_inline_tab_selection(env, state, context, ch) then return 1 end
             state.tab_pending = false
             state.empty_code_pending = nil
             reset_early_evidence(state)
@@ -4510,6 +4533,7 @@ local function processor(key_event, env)
         -- 不提交候选；英文段用 `]` 闭合之后，空格才上屏。
         if inline_english_open(context) then
             if #live_input(context) >= max_raw_length then return 1 end
+            if correction.accept_inline_tab_selection(env, state, context, " ") then return 1 end
             state.tab_pending = false
             state.empty_code_pending = nil
             reset_early_evidence(state)
