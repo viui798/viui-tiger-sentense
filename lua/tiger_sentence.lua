@@ -4534,6 +4534,17 @@ local function processor(key_event, env)
         if inline_english_open(context) then
             if #live_input(context) >= max_raw_length then return 1 end
             if correction.accept_inline_tab_selection(env, state, context, " ") then return 1 end
+            -- 连按两下空格＝退出英文段（等价于按 `]`）：第一个空格进原文，
+            -- 第二个空格把英文段闭合，之后按键回到中文。
+            if live_input(context):sub(-1) == " " then
+                state.tab_pending = false
+                state.empty_code_pending = nil
+                reset_early_evidence(state)
+                learned.pending, learned.baseline = {}, nil
+                context:push_input("]")
+                save_transient_state(context, state, env)
+                return 1
+            end
             state.tab_pending = false
             state.empty_code_pending = nil
             reset_early_evidence(state)
