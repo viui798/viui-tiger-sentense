@@ -252,7 +252,9 @@ local function segment_convert(text, db, prefix, split_pat, fmm_cache)
     local char_count = #offsets - 1
     local result_parts = {}
     local i = 1
-    local MAX_LOOKAHEAD = 6
+    -- 词表里最长词条为 16 字（俗语/长句），窗口太小会让这些消歧条目永远匹配不到，
+    -- 只能逐字转换，从而把「不干不净」「人如风后入江云」这类词转错。
+    local MAX_LOOKAHEAD = 16
 
     while i <= char_count do
         local start_byte = offsets[i]
