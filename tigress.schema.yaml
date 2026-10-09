@@ -290,6 +290,7 @@ super_replacer:
       tags: [ abc ]
       prefix: "_s2hk_"
       files:
+        - lua/data/HKVariantsPhrases.txt
         - lua/data/HKVariants.txt
     # 第三级：通繁 → 臺繁
     - option: s2tw
@@ -299,6 +300,7 @@ super_replacer:
       tags: [ abc ]
       prefix: "_s2tw_"
       files:
+        - lua/data/TWVariantsPhrases.txt
         - lua/data/TWVariants.txt
 
 # 字符集联动（lua/wanxiang/charset_filter.lua）：
