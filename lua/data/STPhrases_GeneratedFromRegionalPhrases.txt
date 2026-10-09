@@ -1,0 +1,10 @@
+# 港/臺词组变体的「输入侧」预置映射（OpenCC STPhrases_GeneratedFromRegionalPhrases 的等价物）
+# 来源：由 HKVariantsPhrases.txt / TWVariantsPhrases.txt 反推简体输入形式生成
+# 格式：简体<TAB>地区繁体（转换取第一个）
+东涌线	東涌綫
+无线新闻台	無綫新聞台
+林杰梁	林杰樑
+正斗粥面专家	正斗粥麵專家
+炮台山循道卫理中学	炮台山循道衛理中學
+炮台山循道衞理中学	炮台山循道衛理中學
+面房里	麵房里

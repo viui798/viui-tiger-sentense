@@ -283,6 +283,7 @@ super_replacer:
       files:
         - lua/data/STCharacters.txt
         - lua/data/STPhrases.txt
+        - lua/data/STPhrases_GeneratedFromRegionalPhrases.txt
     # 第二级：通繁 → 港繁
     - option: s2hk
       mode: replace
