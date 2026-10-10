@@ -1,14 +1,14 @@
 {
   "project": "tiger-sentense-rime",
-  "version": "20261009-4eaf42e",
-  "schema_version": "1.6.20261009",
+  "version": "20261010-9ed168f",
+  "schema_version": "1.6.20261010.1",
   "source_repository": "https://github.com/lvyww/tiger-sentense-rime",
   "source_branch": "main",
-  "source_commit": "4eaf42e661129ab965fef200dc4a08eff7b4e3fe",
-  "source_tree": "bbbbce7a38ef5770807acc52e949dcf9e8c9b932",
+  "source_commit": "9ed168fb595d91e305f1fcea556a432e8d721a51",
+  "source_tree": "4eac6a2d50765ad61dc652cb12f60a86703507c8",
   "source_worktree_clean": true,
   "remote_main_verified": true,
-  "previous_remote_main": "d530dabd4edf3c6b1467e94586e25892461705a9",
+  "previous_remote_main": "4eaf42e661129ab965fef200dc4a08eff7b4e3fe",
   "model": {
     "path": "models/sentence-fivegram-mobile.bin",
     "bytes": 405663171,
@@ -17,7 +17,10 @@
   "changes": [
     "Disable single-character primary-code reward (2 x code length -> 0).",
     "Keep +5 whole-input single-character reward; require shortest code only for configured top-N non-whitelisted characters.",
-    "Preserve exact-over-correction explicit learning on current readable/adaptive-learning mainline."
+    "Learn selected exact code fragments and reuse them across prefixes.",
+    "Ignore legacy fusion-v1| and exact-correction-v1| records without rewriting journal bytes.",
+    "Add auto_select_min_code_length with a default of 3.",
+    "Keep the D89-r3 five-gram model, code tables, lexical prior and whitelist unchanged."
   ],
   "production_defaults": {
     "high_freq_limit": 1500,
@@ -53,6 +56,12 @@
       "whole_input_single_character_reward": 0,
       "reason": "Keep a non-first exact candidate for explicit-learning regression; production defaults separately checked."
     },
-    "frontend_installation_performed": false
+    "frontend_installation_performed": false,
+    "post_merge": {
+      "lua_syntax": "passed",
+      "integration_contract_cases": 19,
+      "integration_contract_checks": 89,
+      "auxiliary_pipeline_preserved": true
+    }
   }
 }

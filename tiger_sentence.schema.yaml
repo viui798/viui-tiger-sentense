@@ -9,17 +9,17 @@
 schema:
   schema_id: tiger_sentence
   name: 虎整句
-  version: "1.6.20261009"
+  version: "1.6.20261010.1"
   author:
     - TigerClaw
   description: |
     从虎整句常用字词表生成的变长整句方案。
     码表/字频/白名单为明文 txt（tiger_sentence.codes.txt 等），运行时加载，
     不使用 Rime 词典文件或用户覆盖层；可直接替换以导入其它形码方案。
-    只有整个独立输入作为单一码表边时才隐式允许非首选。
-    允许单字重码组句默认开启：分段路径中的非首选单字按语言模型分数竞争，
+    整个输入由一个词条完整匹配时，候选菜单保留全部名次供手选。
+    自动选重最低码数默认为 3：分段路径中的非首选单字至少三码才按语言模型分数竞争，
     非首选多字词仍必须显式选重；分号/引号/数字写入编码选重。
-    首次输入时用 Lua 优先分页加载 sentence-fivegram-mobile.bin 做五阶打分。
+    首次输入时用 Lua 分页加载 models/sentence-fivegram-mobile.bin 做五阶 Kneser-Ney 打分。
     形码证据和紧凑词先验仅重排现有候选，不进入自动上屏置信度。
     集成虎单/虎词辅助功能：快符（;a）、拼音反查、简繁、拼音、拆字、emoji、
     Unicode 提示/编码、数字转大写、简易计算器、时间/日期。
@@ -47,8 +47,6 @@ switches: # 0 默认关，1 默认开
   # 以下三个整句开关同样不加 reset，选择存 tiger_sentence.options.yaml
   - name: tiger_sentence_early_commit
     states: [ 提前上屏关, 提前上屏开 ]
-  - name: tiger_sentence_allow_duplicate_single
-    states: [ 单字重码组句关, 单字重码组句开 ]
   - name: tiger_sentence_early_commit_to_preedit
     states: [ 提前上屏至应用, 提前上屏至编码 ]
   # D89-r3：按键纠错四档（radio 组，同一时间只启用一档；档名存
@@ -153,10 +151,9 @@ tiger_sentence:
   # 内存档：compact 省内存（默认）；balanced 大缓存（桌面可在 custom 补丁里改）
   memory_profile: compact
   # 首次默认值；之后以保存的选择为准，存 tiger_sentence.options.yaml
-  # 9.25：本包默认关闭提前上屏（需要时用 Ctrl 或菜单打开，选择会保存）
+  # 首次默认打开提前上屏；已保存的选择仍以 tiger_sentence.options.yaml 为准。
   option_defaults:
-    tiger_sentence_early_commit: false
-    tiger_sentence_allow_duplicate_single: true
+    tiger_sentence_early_commit: true
     tiger_sentence_early_commit_to_preedit: false
     # D89-r3：旧布尔开关仅用于兼容旧前端按钮；false = 关，true 映射到「中」。
     # 首次没有保存偏好时默认关闭（按键纠错关）。
@@ -170,6 +167,9 @@ tiger_sentence:
   min_retained_raw_length: 0
   # 高频字仅使用最优码组句的字数上限；0 表示全部放开非最优码。
   high_freq_limit: 1500
+  # 自动选重最低码数：分段非首选单字的编码至少达到此值才可省略选重键。
+  # 默认 3，整数范围 0～128；0 禁用。首选、显式选重和整段候选菜单不受此限制。
+  auto_select_min_code_length: 3
 
 key_binder:
   bindings:
@@ -192,7 +192,8 @@ key_binder:
     - { when: always, accept: "Control+period", toggle: ascii_punct }  # 中英文标点切换
 
 punctuator:
-  digit_separators: ""  # v1.3：禁用数字分隔候选
+  # 禁用 Rime 默认的 ASCII 数字分隔候选（例如 1 + 逗号）。
+  digit_separators: ""
   # 9.25：改用本包 symbols.yaml 标点表，与虎单/虎词/万象保持一致
   import_preset: symbols
   # 方括号键的四个候选：中文方括号、花括号、ASCII 方括号、直角引号
