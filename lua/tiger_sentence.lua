@@ -68,6 +68,33 @@ local function record_decode(started)
     performance.decode_max_ms = math.max(performance.decode_max_ms, elapsed)
 end
 
+-- 设备端性能打点（2026-10-11）：默认关闭；processor init 读取
+-- tiger_sentence/perf_log 配置后启用。启用时每次采样写一行日志
+-- 到用户目录 tiger_perf_log.txt（一次上屏一条，诊断用，仅定位卡顿时开启）。
+-- 主 chunk 局部变量已达 200 上限，因此用全局表承载（每次加载重建，无残留）。
+do
+    perf_diag = { enabled = false, path = nil }
+    perf_diag.write = function(sample)
+        if not perf_diag.enabled then return end
+        if not perf_diag.path then
+            local ok, dir = pcall(rime_api and rime_api.get_user_data_dir or function() return "" end)
+            if not ok or type(dir) ~= "string" or dir == "" then perf_diag.enabled = false return end
+            if dir:sub(-1) ~= "/" and dir:sub(-1) ~= "\\" then dir = dir .. "/" end
+            perf_diag.path = dir .. "tiger_perf_log.txt"
+        end
+        pcall(function()
+            local f = io.open(perf_diag.path, "a")
+            if not f then return end
+            f:write(string.format(
+                "t=%d calls=%d total=%.2fms max=%.2fms page=%d/%.1fKiB heap=%.2fMiB ev=%d iso=%d/%d\n",
+                os.time(), sample.decode_calls, sample.decode_total_ms, sample.decode_max_ms,
+                sample.page_misses, sample.page_bytes / 1024, collectgarbage("count") / 1024,
+                sample.early_evidence_builds, sample.isolation_hits, sample.isolation_misses))
+            f:close()
+        end)
+    end
+end
+
 local function finish_performance_sample()
     if performance.decode_calls == 0 then return end
     local sample = {
@@ -81,7 +108,12 @@ local function finish_performance_sample()
         isolation_misses = performance.isolation_misses
     }
     performance.last = sample
-    performance.decode_calls = 0
+    -- 设备端性能打点（2026-10-11）：tiger_sentence/perf_log 打开时，
+    -- 每次采样（一次上屏）记一行日志，用于前端现场定位卡顿段。
+    -- 默认关闭，关闭时无任何额外开销。状态挂在全局 perf_diag（局部已满）。
+    if perf_diag and perf_diag.enabled then
+        perf_diag.write(sample)
+    end    performance.decode_calls = 0
     performance.decode_total_ms = 0.0
     performance.decode_max_ms = 0.0
     performance.page_misses = 0
@@ -3543,6 +3575,14 @@ local function inline_english_open(context)
     return not closing or opening > closing
 end
 
+-- The bare-bracket translator menu is a symbol chooser, not an English
+-- completion menu. Its Tab should submit the highlighted symbol immediately;
+-- English-span Tab keeps the normal highlight-and-continue behavior.
+local function inline_bracket_symbol_menu(context)
+    local raw = live_input(context)
+    return (raw == "[" or raw == "]") and context:has_menu()
+end
+
 local function restore_composition_input(context, value)
     if buffered_text(context) ~= "" then value = "~" .. value end
     if context.input == value and buffered_text(context) ~= "" and
@@ -4261,6 +4301,19 @@ local function processor(key_event, env)
     end
     local ch = is_plain_char_key(key_event, repr)
     if ch then
+        if mixed_mode and inline_bracket_symbol_menu(context) then
+            local digit = tonumber(ch)
+            if digit and type(context.highlight) == "function" and
+                type(context.confirm_current_selection) == "function" and
+                context:highlight(digit - 1) and context:confirm_current_selection() then
+                state.tab_pending = false
+                state.empty_code_pending = nil
+                reset_early_evidence(state)
+                learned.pending, learned.baseline = {}, nil
+                reset_sentence_state(context, env)
+                return 1
+            end
+        end
         if mixed_mode then
             if #live_input(context) >= max_raw_length then return 1 end
             if correction.accept_inline_tab_selection(env, state, context, ch) then return 1 end
@@ -4511,6 +4564,16 @@ local function processor(key_event, env)
             learned.baseline = first
         end
         reset_early_evidence(state)
+        if repr == "Tab" and mixed_mode and inline_bracket_symbol_menu(context) then
+            state.tab_pending = false
+            state.empty_code_pending = nil
+            if type(context.confirm_current_selection) == "function" and
+                context:confirm_current_selection() then
+                learned.pending, learned.baseline = {}, nil
+                reset_sentence_state(context, env)
+                return 1
+            end
+        end
         state.suspended = true
         state.empty_code_pending = nil
         save_transient_state(context, state, env)
@@ -4533,6 +4596,16 @@ local function processor(key_event, env)
     if repr == "space" then
         -- 混输英文段（`[` 之后、`]` 之前）里的空格属于英文原文，只把它送进组合串，
         -- 不提交候选；英文段用 `]` 闭合之后，空格才上屏。
+        if mixed_mode and inline_bracket_symbol_menu(context) and
+            type(context.confirm_current_selection) == "function" and
+            context:confirm_current_selection() then
+            state.tab_pending = false
+            state.empty_code_pending = nil
+            reset_early_evidence(state)
+            learned.pending, learned.baseline = {}, nil
+            reset_sentence_state(context, env)
+            return 1
+        end
         if inline_english_open(context) then
             if #live_input(context) >= max_raw_length then return 1 end
             if correction.accept_inline_tab_selection(env, state, context, " ") then return 1 end
@@ -4790,6 +4863,20 @@ do
             results[#results + 1] = words[index]
         end
         return results
+    end
+
+    -- 预热两张英文表（2026-10-11 中英混输卡顿修复）。
+    -- 原先两张表都在打字中途惰性解析（桌面 ~180ms，手机 1~2s 整帧冻结），
+    -- 且 Trime 等前端进程频繁被杀，每次会话第一次进英文段都要重新承受。
+    -- 在方案 init 时调用即可：加载发生在会话建立（用户还没有按键），
+    -- 打字路径里只剩哈希查询，功能与结果完全不变。
+    function M.prewarm_inline_english_tables()
+        if not english_prefix_index then
+            M.inline_english_words("a", 1)
+        end
+        if not english_translations then
+            M.inline_english_translation("a")
+        end
     end
 end
 
@@ -5189,7 +5276,24 @@ M.set_learning_for_test = function(index, mode)
     reset_decode_cache()
 end
 M.processor_component = {
-    init = function(env) configure_memory(env); M.options.init(env) end,
+    init = function(env)
+        configure_memory(env); M.options.init(env)
+        -- 诊断开关：tiger_sentence/perf_log（custom patch）控制，无配置 = 关
+        do
+            local ok, enabled = pcall(function()
+                local cfg = env.engine and env.engine.schema and env.engine.schema.config
+                return cfg and cfg:get_bool("tiger_sentence/perf_log")
+            end)
+            if perf_diag then
+                perf_diag.enabled = (ok and enabled) == true
+                perf_diag.path = nil
+            end
+        end
+        -- 中英混输英文表预热：把 1~2s 的整个解析过程移到会话建立时
+        -- （见 prewarm_inline_english_tables 注释；表在启用混输时才有用，
+        --   关闭混输的会话同样加载也无害，仅多 ~6MB 内存）
+        pcall(M.prewarm_inline_english_tables)
+    end,
     func = processor,
     fini = function(env)
         M.options.fini(env)
@@ -5379,7 +5483,24 @@ M.ascii_component = {
                 normalized_repr:match("bracketleft$") or normalized_repr == "["
             local right_bracket = keycode == 0x5d or
                 normalized_repr:match("bracketright$") or normalized_repr == "]"
+            -- In a clean English mode, brackets are ordinary ASCII text.
+            -- Keep the mixed-input entry point for Chinese mode and for an
+            -- already-open English span.
+            if (left_bracket or right_bracket) and
+                context:get_option("ascii_mode") and
+                not inline_english_open(context) and
+                not context:is_composing() then
+                return 2
+            end
             if env.inline_english then
+                -- Let the sentence processor own Tab for the bare-bracket
+                -- symbol chooser. The native ASCII wrapper otherwise consumes
+                -- it before the mixed-input processor can confirm the symbol.
+                if inline_bracket_symbol_menu(context) and
+                    (normalized_repr == "tab" or normalized_repr == "iso_left_tab" or
+                     normalized_repr == "shift+tab") then
+                    return 2
+                end
                 if right_bracket then
                     local current_input = live_input(context)
                     local english_text = current_input:match("%[(.*)$") or ""

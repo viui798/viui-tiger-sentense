@@ -2,6 +2,27 @@
 
 本文件记录「芝士虎整」方案包的主要更新。虎整句方案版本见 `tiger_sentence.schema.yaml` 中 `schema.version`（当前 `1.6.20261010.1`，对应该方案的上游 `1.6.20261010.1` / `9ed168f` 发布）。
 
+## v0.2.8.2（2026-10-11）
+
+**移除中英混输**。设备端排查确认：只要用过一次中英混输，之后普通中文输入就持续变卡（切方案也不恢复）。为恢复打字手感，本版本把该功能整体摘除，其余功能不变。
+
+- `tiger_sentence.schema.yaml`：
+  - processors 的 `lua_processor@tiger_sentence_ascii` 换回标准 `ascii_composer`（Shift 切英文的按键规则仍在：Caps 启动切换、Shift_L/R 上屏编码并进西文）；
+  - recognizer 不再注册 `inline_english` 模式，`[`/`]` 回到普通符号输入（四个方括号类候选来自 punctuator，保持不变）；
+  - schema 版本 `1.6.20261010.2`。
+- 保留诊断开关 `tiger_sentence/perf_log`（默认关），以及 `memory_profile` / `max_lookahead` 低配档位选项。
+
+## v0.2.8.1（2026-10-11）
+
+统计与滤镜性能修复（Android/Windows 打字卡顿治理）。详细说明见 [`docs/更新说明-20261011-统计与滤镜性能修复.md`](docs/更新说明-20261011-统计与滤镜性能修复.md)。
+
+- **击键计数器 v5**（`lua/key_counter.lua`）：pending 计数改纯内存累计，取消每键 2 次同步写盘（Windows/Android 每键卡顿主因）；累计文件改按上屏批 + 时间/字节阈值落盘；按键分类与对外 API 语义不变。
+- **统计保存节流**（`lua/input_statistics.lua`）：每次上屏的全量序列化重写改为 ≥30s 节流，用户指令仍即时写，正常退出补写不丢数据。
+- **简繁滤镜**（`lua/wanxiang/super_replacer.lua`）：`max_lookahead` 可配置（默认 16，低配可设 8）；`fmm_cache` 加触顶上限，消除会话内无上限累积导致的「越打越卡」。
+- **重码组句**（`lua/db.lua`）：组合搜索加 `MAX_DFS_NODES=2000` 硬上限，长句最坏耗时可控。
+- **中英混输首键冻结**（第 5 项，`lua/tiger_sentence.lua`）：英文词典索引与释义表改为方案 init 时预热，消除手机每次会话第一次进英文段的 1~2s 整帧冻结。
+- 虎整句引擎解码性能经逐键基准确认**无回归**（本次上游升级后反而更快）；以上改动均不改变候选结果与统计读数语义。
+
 ## v0.2.8（2026-10-10）
 
 虎整句核心更新到上游 `1.6.20261010.1`（`9ed168f`），并以三方合并方式保留芝士虎整的全部辅助功能。

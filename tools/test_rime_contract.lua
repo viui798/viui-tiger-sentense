@@ -158,4 +158,65 @@ for _,repr in ipairs({"Left","Right","Home","End"})do
         "Caret navigation retained append evidence or Tab confirmation")
     cases=cases+1
 end
+for _,raw in ipairs({"[", "]"}) do
+    local env,context=environment(raw,1,false)
+    local confirmed=0
+    context.confirm_current_selection=function()
+        confirmed=confirmed+1
+        return true
+    end
+    check(sentence.processor(key("Tab"),env)==1,"Tab did not handle the bare bracket symbol menu")
+    check(confirmed==1,"Tab did not submit the highlighted bracket symbol")
+    cases=cases+1
+end
+do
+    local env,context=environment("[",1,false)
+    local selected,confirmed=-1,0
+    context.highlight=function(_, index) selected=index; return true end
+    context.confirm_current_selection=function() confirmed=confirmed+1; return true end
+    check(sentence.processor(key("2"),env)==1,"Digit did not handle the bracket symbol menu")
+    check(selected==1 and confirmed==1,"Digit did not submit the second bracket symbol")
+    cases=cases+1
+end
+do
+    local env,context=environment("[",1,false)
+    local confirmed=0
+    context.confirm_current_selection=function() confirmed=confirmed+1; return true end
+    check(sentence.processor(key("space"),env)==1,"Space did not handle the bracket symbol menu")
+    check(confirmed==1,"Space did not submit the highlighted bracket symbol")
+    cases=cases+1
+end
+do
+    local env,context=environment("[",1,false)
+    env.inline_english=true
+    env.buffered=false
+    env.native={process_key_event=function() return 1 end}
+    check(sentence.ascii_component.func(key("Tab"),env)==2,
+        "ASCII wrapper consumed Tab before the bracket processor")
+    cases=cases+1
+end
+do
+    local env,context=environment("",0,false)
+    context.get_option=function(_, name) return name=="ascii_mode" end
+    env.inline_english=false
+    env.buffered=false
+    env.native={process_key_event=function() return 1 end}
+    check(sentence.ascii_component.func(key("["),env)==2,
+        "Pure English mode did not pass left bracket to native ASCII")
+    check(sentence.ascii_component.func(key("]"),env)==2,
+        "Pure English mode did not pass right bracket to native ASCII")
+    cases=cases+1
+end
+do
+    local env,context=environment("",0,false)
+    context.get_option=function() return false end
+    env.inline_english=false
+    env.buffered=false
+    env.native={process_key_event=function() return 1 end}
+    check(sentence.ascii_component.func(key("["),env)==1,
+        "Chinese mode did not enter mixed input at left bracket")
+    check(context.input=="[" and env.inline_english==true,
+        "Chinese mode did not preserve the mixed-input entry state")
+    cases=cases+1
+end
 print(string.format('{"status":"passed","cases":%d,"checks":%d,"caret_and_lazy_menu":true,"real_frontend":false}',cases,checks))
