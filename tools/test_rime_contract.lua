@@ -219,4 +219,22 @@ do
         "Chinese mode did not preserve the mixed-input entry state")
     cases=cases+1
 end
+-- v0.2.8.3: the schema must keep mixed input unwired and commit half-width
+-- brackets directly. Guard the wiring itself so future edits cannot silently
+-- restore the removed paths.
+do
+    local schema = assert(io.open(repo .. "/tiger_sentence.schema.yaml", "rb"))
+    local content = schema:read("*a")
+    schema:close()
+    check(not content:find("lua_processor@tiger_sentence_ascii", 1, true),
+        "mixed-input ascii processor is still registered")
+    check(not content:find("inline_english:", 1, true),
+        "inline_english recognizer pattern is still registered")
+    check(content:find("- ascii_composer", 1, true) ~= nil,
+        "standard ascii_composer is not registered")
+    check(content:find("'[': '['", 1, true) ~= nil and
+        content:find("']': ']'", 1, true) ~= nil,
+        "half-width brackets are not wired to direct commit")
+    cases=cases+1
+end
 print(string.format('{"status":"passed","cases":%d,"checks":%d,"caret_and_lazy_menu":true,"real_frontend":false}',cases,checks))

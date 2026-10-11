@@ -4868,8 +4868,8 @@ do
     -- 预热两张英文表（2026-10-11 中英混输卡顿修复）。
     -- 原先两张表都在打字中途惰性解析（桌面 ~180ms，手机 1~2s 整帧冻结），
     -- 且 Trime 等前端进程频繁被杀，每次会话第一次进英文段都要重新承受。
-    -- 在方案 init 时调用即可：加载发生在会话建立（用户还没有按键），
-    -- 打字路径里只剩哈希查询，功能与结果完全不变。
+    -- 2026-10-11 起中英混输已下线，方案 init 不再调用此函数；若将来重新启用
+    -- 混输，把 init 里的调用接回即可（加载发生在会话建立、用户还没有按键）。
     function M.prewarm_inline_english_tables()
         if not english_prefix_index then
             M.inline_english_words("a", 1)
@@ -5289,10 +5289,8 @@ M.processor_component = {
                 perf_diag.path = nil
             end
         end
-        -- 中英混输英文表预热：把 1~2s 的整个解析过程移到会话建立时
-        -- （见 prewarm_inline_english_tables 注释；表在启用混输时才有用，
-        --   关闭混输的会话同样加载也无害，仅多 ~6MB 内存）
-        pcall(M.prewarm_inline_english_tables)
+        -- 2026-10-11：中英混输已下线（schema 不再接线），英文表预热随之停用，
+        -- 避免方案初始化时无谓解析两张英文表（本机 ~150ms，手机按前次测量 1~2s）。
     end,
     func = processor,
     fini = function(env)

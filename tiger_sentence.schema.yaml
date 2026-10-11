@@ -9,7 +9,7 @@
 schema:
   schema_id: tiger_sentence
   name: 虎整句
-  version: "1.6.20261010.2"
+  version: "1.6.20261010.3"
   author:
     - TigerClaw
   description: |

@@ -67,7 +67,7 @@
 - 方案菜单中能看到四个方案。
 - 输入 `'nihao` 能出现拼音反查候选。
 - 输入 `` ` `` 加虎码能进入造词模式。
-- 虎整句输入 `[hello]` 后，英文可以留在当前组合中。
+- 虎整句输入 `ujkf` 等编码能看到整句候选；`[` 与 `]` 直接上屏半角方括号。
 - `models/sentence-fivegram-mobile.bin` 存在且不是 LFS 指针文件。
 - 日志中没有 `lua`、`model`、`prism` 或 `dictionary` 加载错误。
 

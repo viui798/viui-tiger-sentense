@@ -1,6 +1,15 @@
 # 更新日志
 
-本文件记录「芝士虎整」方案包的主要更新。虎整句方案版本见 `tiger_sentence.schema.yaml` 中 `schema.version`（当前 `1.6.20261010.1`，对应该方案的上游 `1.6.20261010.1` / `9ed168f` 发布）。
+本文件记录「芝士虎整」方案包的主要更新。虎整句方案版本见 `tiger_sentence.schema.yaml` 中 `schema.version`（当前 `1.6.20261010.3`，基于上游 `1.6.20261010.1` / `9ed168f` 发布）。
+
+## v0.2.8.3（2026-10-11）
+
+修复 v0.2.8.2 遗留的无谓开销与文档问题，候选行为不变。
+
+- **停用英文表 init 预热**（`lua/tiger_sentence.lua`）：中英混输已下线，但方案初始化仍无条件解析两张英文表（71,536 + 71,269 行；本机实测 ~158ms、约 6MB 内存，手机按前次测量为 1~2 秒级）。现移除该调用，方案加载不再为已移除的功能付费；预热函数仍留在模块内，将来重新启用混输时可在 init 接回。
+- **更正 v0.2.8.2 文案**：旧条目误写「四个方括号类候选来自 punctuator，保持不变」。实际为半角档 `[` / `]` 直接原样上屏，四候选菜单已在 v0.2.8.2 移除。
+- **补充接线断言**（`tools/test_rime_contract.lua`）：断言 schema 不再注册 `lua_processor@tiger_sentence_ascii` 与 `inline_english`，处理器列表包含标准 `ascii_composer`，且半角方括号为直接上屏，防止未来改动无声回退。
+- 方案版本 `1.6.20261010.3`（仅版本标识变化，配置行为与 v0.2.8.2 相同）。
 
 ## v0.2.8.2（2026-10-11）
 
@@ -8,7 +17,7 @@
 
 - `tiger_sentence.schema.yaml`：
   - processors 的 `lua_processor@tiger_sentence_ascii` 换回标准 `ascii_composer`（Shift 切英文的按键规则仍在：Caps 启动切换、Shift_L/R 上屏编码并进西文）；
-  - recognizer 不再注册 `inline_english` 模式，`[`/`]` 回到普通符号输入（四个方括号类候选来自 punctuator，保持不变）；
+  - recognizer 不再注册 `inline_english` 模式，`[`/`]` 恢复原样上屏（半角档直接输出 `[` / `]`，此前的方括号四候选菜单移除）；
   - schema 版本 `1.6.20261010.2`。
 - 保留诊断开关 `tiger_sentence/perf_log`（默认关），以及 `memory_profile` / `max_lookahead` 低配档位选项。
 
