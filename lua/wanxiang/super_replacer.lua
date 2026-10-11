@@ -247,14 +247,16 @@ local function connect_db(db_name, current_version, delimiter, tasks, config_sig
 end
 
 -- FMM 分词转换算法
-local function segment_convert(text, db, prefix, split_pat, fmm_cache)
+local function segment_convert(text, db, prefix, split_pat, fmm_cache, max_lookahead, cache_limit)
     local offsets = get_utf8_offsets(text)
     local char_count = #offsets - 1
     local result_parts = {}
     local i = 1
     -- 词表里最长词条为 16 字（俗语/长句），窗口太小会让这些消歧条目永远匹配不到，
     -- 只能逐字转换，从而把「不干不净」「人如风后入江云」这类词转错。
-    local MAX_LOOKAHEAD = 16
+    -- 2026-10：窗口改为可配置（默认 16；低配部署可降到 8 省一半成本），
+    -- 并给 fmm_cache 设了触顶上限（会话内无上限累积会越打越卡）。
+    local MAX_LOOKAHEAD = max_lookahead or 16
 
     while i <= char_count do
         local start_byte = offsets[i]
@@ -273,6 +275,18 @@ local function segment_convert(text, db, prefix, split_pat, fmm_cache)
                 local db_res = db:fetch(cache_key)
                 fmm_cache[cache_key] = db_res or false
                 val = fmm_cache[cache_key]
+                if cache_limit then
+                    -- 触顶全部清一次：键是临时句子片段，清空代价远小于累积开销；
+                    -- （fmm_cache 原先会话内无上限累积，是繁体档「越打越卡」的来源）
+                    local n = (fmm_cache._n or 0) + 1
+                    fmm_cache._n = n
+                    if n >= cache_limit then
+                        for k in pairs(fmm_cache) do
+                            if k ~= "_n" then fmm_cache[k] = nil end
+                        end
+                        fmm_cache._n = 0
+                    end
+                end
             end
           
             if val then
@@ -346,6 +360,20 @@ function M.init(env)
     
     local chain_val = cfg_root and cfg_root:get_value("chain")
     env.chain = chain_val and chain_val:get_bool() or false
+
+    -- -- 芝士虎整性能修复（2026-10）：
+    -- * max_lookahead 可配置：记录里最长消歧词条为 16 字，桌面档保持 16；
+    --   手机/低配部署可在方案补丁里降到 8（约省一半查询成本，覆盖 ~90% 长词条）。
+    -- * fmm_cache 设上限：会话内无上限累积会让长期打字越来越卡，触顶即重建。
+    local la_val = cfg_root and cfg_root:get_value("max_lookahead")
+    local lookahead = la_val and tonumber(la_val:get_string()) or 16
+    if not lookahead or lookahead < 2 then lookahead = 2 end
+    if lookahead > 16 then lookahead = 16 end
+    env.max_lookahead = math.floor(lookahead)
+    local fmm_limit_val = cfg_root and cfg_root:get_value("fmm_cache_limit")
+    local fmm_limit = fmm_limit_val and tonumber(fmm_limit_val:get_string()) or 20000
+    if not fmm_limit or fmm_limit < 1000 then fmm_limit = 1000 end
+    env.fmm_cache_limit = math.floor(fmm_limit)
 
     if delim == " " then 
         env.split_pattern = "%S+"
@@ -605,7 +633,8 @@ function M.func(input, env)
                         val = db:fetch(lower_key)
                     end
                     if not val and t.fmm then
-                        local seg_result = segment_convert(query_text, db, t.prefix, split_pat, env.fmm_cache)
+                        local seg_result = segment_convert(query_text, db, t.prefix, split_pat, env.fmm_cache,
+                            env.max_lookahead, env.fmm_cache_limit)
                         if seg_result ~= query_text then val = seg_result end
                     end
                   

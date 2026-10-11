@@ -1,15 +1,26 @@
--- key_counter.lua — 击键计数器（文件共享版 v4）
+-- key_counter.lua — 击键计数器（内存缓冲版 v5）
 -- 挂载：方案XXX.schema.yaml processors 第一行加              - lua_processor@*key_counter
--- 为什么用文件：元书实测 processor 与 translator 的 Lua 状态不共享内存，
---   文件系统是唯一可靠的跨实例通道。
+-- v5 性能修复：v4 每个按键同步 io.open 两个文件各一次（Windows/Android 上
+--   每键卡顿的主因），退格还要把 kc_count.txt 整读整写。当前 input_statistics
+--   4.2 版并不读取本模块的输出（它用 translator 自己的触键计数），因此：
+--   * pending 计数全部留在内存，take() 时才消费；
+--   * 累计值按「上屏批 + 时间/字节双阈值」异步落盘 kc_total.txt；
+--   * M.count() / M.status() 返回 文件基线 + 内存增量，读数语义与 v4 一致。
+-- 唯一行为差异：进程被强杀时，最后一个未落盘周期的击键不进累计文件。
 -- 返回 2 = kNoop（放行不吞键）；返回 1 会吞掉所有按键（删除键失灵）！
 
 local M = {}
 local K_NOOP = 2
 
--- 两个计数文件（Rime 用户目录 lua/ 下）：
---   kc_count.txt  → pending 待取走的击键数（每次上屏 take 清零）
---   kc_total.txt  → 累计击键数（只增不清，用于面板验证是否在工作）
+-- 累计值落盘的节流：距上次落盘至少这么久，或未落盘字节达到这么多个
+local RESTORE_SECONDS = 60
+local RESTORE_BYTES = 120
+
+-- 计数文件（Rime 用户目录 lua/ 下）：
+--   kc_total.txt  → 累计击键字节流：“1”=编码键 “2”=退格键 “3”=被删码
+--                   “4”=选字/提交键；只增不清，用于面板验证是否在工作。
+--   kc_count.txt  → v4 遗留的 pending 文件，v5 的 pending 全在内存，
+--                   不再读写该文件（指针保留以兼容旧诊断脚本的存在性检查）。
 local count_file, total_file, last_file
 if rime_api and rime_api.get_user_data_dir then
     local ok, dir = pcall(rime_api.get_user_data_dir)
@@ -21,16 +32,83 @@ if rime_api and rime_api.get_user_data_dir then
     end
 end
 
--- 追加 1 字节（一次按键）：普通键 "1"，退格键 "2"；失败静默
-local function bump(byte)
-    byte = byte or "1"
-    if not count_file then return end
+-- ===== 内存计数（与 v4 的 kc_count.txt / kc_total.txt 字节语义完全一致）=====
+-- pending: { {ch="1"|"2"|"3"|"4"}, ... }；退格把最近一个未消费 "1" 改成 "3"
+local pending = {}
+-- 累计：基线是从 kc_total.txt 读回的既有字节串（惰性读一次），
+-- 新增的键先存在 unflushed 里，落盘时一次性追加写入。
+local total_baseline = nil            -- 字符串或 ""（读过文件后非 nil）
+local unflushed = {}                  -- { {ch=...}, ... } 未落盘的新键
+local unflushed_bytes = 0
+local last_flush_time = 0
+
+local function pending_clear()
+    for i = #pending, 1, -1 do pending[i] = nil end
+end
+
+local function pending_track(ch)
+    -- v4 的 bump 同时写 pending（kc_count.txt）和累计（kc_total.txt）
+    pending[#pending + 1] = ch
+    unflushed[#unflushed + 1] = ch
+    unflushed_bytes = unflushed_bytes + 1
+end
+
+local function ensure_total_baseline()
+    if total_baseline then return end
+    total_baseline = ""
+    if not total_file then return end
     pcall(function()
-        local f = io.open(count_file, "a")
-        if f then f:write(byte); f:close() end
-        local t = io.open(total_file, "a")
-        if t then t:write(byte); t:close() end
+        local f = io.open(total_file, "rb")
+        if f then
+            total_baseline = f:read("*a") or ""
+            f:close()
+        end
     end)
+end
+
+-- 累计落盘：把 unflushed 的字节追加到 kc_total.txt。
+-- v4 是每键一次写；v5 改为 take()（上屏）时机触发，且受时间/字节阈值控制。
+local function total_flush(force)
+    ensure_total_baseline()
+    if unflushed_bytes == 0 then return end
+    local now = os.time()
+    if not force and unflushed_bytes < RESTORE_BYTES and
+        now - last_flush_time < RESTORE_SECONDS then
+        return
+    end
+    local batch = {}
+    for i = 1, #unflushed do batch[i] = unflushed[i] end
+    local text = table.concat(batch)
+    unflushed = {}
+    unflushed_bytes = 0
+    last_flush_time = now
+    total_baseline = total_baseline .. text
+    if not total_file then return end
+    pcall(function()
+        local f = io.open(total_file, "a")
+        if not f then return end
+        f:write(text)
+        f:close()
+    end)
+end
+
+-- =========================================================================
+-- 以下判定逻辑与 v4 保持一致（只在「记什么」上变化：内存 vs 每键写文件）
+-- =========================================================================
+
+-- 退格：把 pending 里最后一个未消费码 "1" 改为 "3"（被删码），并追加 "2"
+-- （v4 是读文件改写文件；v5 直接在内存缓冲上做，结果完全一致）
+local function backspace_track()
+    for i = #pending, 1, -1 do
+        if pending[i] == "1" then
+            pending[i] = "3"
+            -- 累计流同样只保留追加语义：退格额外记一个 "2"（与 v4 追加一致；
+            -- v4 对累计文件不改写历史，也不改 pending 段的累计副本）
+            pending_track("2")
+            return
+        end
+    end
+    -- 空删（无未消费码）：不计数（与 v4 一致，v4 直接不写任何文件）
 end
 
 -- 退格键判定（BackSpace 0xff08 / ASCII BS 0x08 / Delete 0xffff）
@@ -39,46 +117,6 @@ local function is_backspace(ev)
     local kc = ev and ev.keycode or 0
     kc = kc % 0x1000000  -- 去掉 Shift/Ctrl/Alt 修饰位
     return kc == 0xff08 or kc == 0x08 or kc == 0xffff
-end
-
--- 读文件字节数
-local function read_bytes(path)
-    if not path then return 0 end
-    local n = 0
-    pcall(function()
-        local f = io.open(path, "rb")
-        if f then
-            local s = f:read("*a")
-            n = s and #s or 0
-            f:close()
-        end
-    end)
-    return n
-end
-
--- 有效退格：把最后一个未消费码 "1" 改为 "3"（被删码），并追加 "2"（退格键）
--- 空删（无未消费码）：不写任何文件，不计入统计
-local function backspace_bump()
-    if not count_file then return end
-    pcall(function()
-        local f = io.open(count_file, "rb")
-        if not f then return end
-        local s = f:read("*a") or ""
-        f:close()
-        local last = nil
-        for i = #s, 1, -1 do
-            if s:sub(i, i) == "1" then last = i break end
-        end
-        if last then
-            s = s:sub(1, last - 1) .. "3" .. s:sub(last + 1)
-            local g = io.open(count_file, "w")
-            if g then g:write(s); g:close() end
-            local h = io.open(count_file, "a")
-            if h then h:write("2"); h:close() end
-            local t = io.open(total_file, "a")
-            if t then t:write("2"); t:close() end
-        end
-    end)
 end
 
 -- 修饰键（Shift/Ctrl/Alt/Caps 等）：单独按下只是切换模式，不产生输入，不计数
@@ -91,11 +129,7 @@ local MODIFIER_KEYS = {
 }
 -- Esc：清空当前输入 → 连同之前未上屏的码一起丢弃，不计数
 local function escape_clear()
-    if not count_file then return end
-    pcall(function()
-        local f = io.open(count_file, "w")
-        if f then f:close() end
-    end)
+    pending_clear()
 end
 
 -- [0813] 选字键动态收集：从 schema 的 key_binder/bindings 读取绑定了候选
@@ -150,8 +184,8 @@ local function load_select_keys(env)
     end)
 end
 
--- processor 入口：每次按键追加计数
--- "1"=未消费码 "2"=退格键 "3"=被删码（原"1"被退格消费）
+-- processor 入口：每次按键追加计数（纯内存，零文件 I/O）
+-- "1"=未消费码 "2"=退格键 "3"=被删码（原"1"被退格消费）"4"=选字/提交键
 function M.func(key_event, env)
     load_select_keys(env)
     local rep = key_event and key_event["repeat"]
@@ -162,11 +196,7 @@ function M.func(key_event, env)
     if kc == 0 then
         return K_NOOP  -- 无有效键值的事件（特殊通知），不计数
     end
-    -- [0813] 最近按键序列记录（诊断用，默认关闭）
-    -- 需要诊断选字键识别/重复事件问题时：删除下方 --[[ 和 ]]-- 启用。
-    -- 启用后每键覆盖写 kc_last.txt（最近 6 键，约 70 字节恒定）。
-    -- 恢复面板显示需在 input_statistics format_summary 的 kc_line 后
-    -- 加：读取 key_counter.last_key() 展示。
+    -- [0813] 最近按键序列记录（诊断用，默认关闭，身份与 v4 相同）
     --[[
     if last_file then
         pcall(function()
@@ -219,62 +249,57 @@ function M.func(key_event, env)
         return K_NOOP
     end
     if is_backspace(key_event) then
-        backspace_bump()
+        backspace_track()
         return K_NOOP
     end
-    -- 选字/提交键（空格、数字、Enter、Tab、方案绑定的选字键如分号）：写 "4"
+    -- 选字/提交键（空格、数字、Enter、Tab、方案绑定的选字键如分号）：记 "4"
     if raw == 0x20 or (raw >= 0x30 and raw <= 0x39)
         or raw == 0xff0d or raw == 0xff09
         or SELECT_KEYS[raw] then
-        bump("4")
+        pending_track("4")
     else
-        bump("1")
+        pending_track("1")
     end
     return K_NOOP
 end
 
--- input_statistics 每次上屏调用：取走待取击键数并清零（保留文件）
+-- input_statistics 每次上屏调用：取走待取击键数并清零。
+-- v5：读纯内存 pending；同时是累计值的落盘点（受阈值控制，通常数秒一次）。
 -- 返回 (总键数, 退格数, 最后键类型)
--- 文件内容："1"=编码键 "2"=退格键 "3"=被删码 "4"=选字/提交键（空格/数字/Enter）
+-- 计数类型："1"=编码键 "2"=退格键 "3"=被删码 "4"=选字/提交键（空格/数字/Enter）
 function M.take()
     local n, bs, last_type = 0, 0, nil
-    if count_file then
-        pcall(function()
-            local f = io.open(count_file, "rb")
-            if f then
-                local s = f:read("*a") or ""
-                n = #s  -- 总键 = 全部字节
-                for i = 1, #s do
-                    if s:sub(i, i) == "2" then bs = bs + 1 end  -- "2"=退格键
-                end
-                if #s > 0 then
-                    last_type = s:sub(#s, #s)  -- 最后一个键的类型
-                end
-                f:close()
-            end
-            local g = io.open(count_file, "w")
-            if g then g:close() end
-        end)
+    n = #pending
+    for i = 1, #pending do
+        if pending[i] == "2" then bs = bs + 1 end  -- "2"=退格键
     end
+    if n > 0 then last_type = pending[n] end
+    pending_clear()
+    total_flush(false)   -- 未落盘累计达标则此刻追加一次；不达标留在内存
     return n, bs, last_type
 end
 
 -- 次选顶屏：把最后一个编码键写回（它属于下一个字，不算本次上屏）
+-- v4 只写 pending（kc_count.txt），不写累计；这里保持一致
 function M.restore_last()
-    if count_file then
-        pcall(function()
-            local f = io.open(count_file, "a")
-            if f then f:write("1"); f:close() end
-        end)
-    end
+    pending[#pending + 1] = "1"
 end
 
+-- 读 pending 的字节数（v4 里等于 count_file 的字节数；v5 pending 在内存）
+
 -- 累计击键数（只增不清）：面板显示，打字后变大 = 计数器在工作
+-- v5：先落盘（保证外部直接读 kc_total.txt 的脚本也能拿到完整数据），
+-- 再返回 文件基线 + 增量。
 function M.count()
-    return read_bytes(total_file)
+    ensure_total_baseline()
+    if unflushed_bytes > 0 then
+        total_flush(true)   -- 立刻把增量写盘，凑整外部读取
+    end
+    return total_baseline and #total_baseline or 0
 end
 
 -- 最近一次按键的 keycode（十六进制字符串），面板"最近键"显示用
+-- （v4 的 last_file 诊断开关默认关闭，保持关闭）
 function M.last_key()
     local s = ""
     if last_file then
@@ -291,17 +316,14 @@ end
 
 -- 清空待取计数（指令模式下调用：指令键不 commit，不计入统计）
 function M.reset()
-    if count_file then
-        pcall(function()
-            local f = io.open(count_file, "w")
-            if f then f:close() end
-        end)
-    end
+    pending_clear()
 end
 
--- 挂载检测：累计文件存在 = func 至少跑过一次
+-- 挂载检测：曾计数过 = 计数器在工作
 function M.status()
-    return total_file and read_bytes(total_file) > 0 and 1 or 0
+    ensure_total_baseline()
+    local total = (total_baseline and #total_baseline or 0) + #pending
+    return total > 0 and 1 or 0
 end
 
 return M

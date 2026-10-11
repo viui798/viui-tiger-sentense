@@ -789,6 +789,40 @@ local function save_stats(schema_id)
 	file:close()
 end
 
+-- -- 节流保存（2026-10 芝士虎整性能修复）
+-- 热路径是 commit_notifier：每次上屏都 save_stats()，把整个统计表序列化后
+-- 整体重写档案（日/周/月/年会随使用时间增长，手机上每词一次大写盘会卡顿）。
+-- 改为「脏标记 + 距上次落盘 ≥ SAVE_STATS_INTERVAL 秒才真正写」：
+-- 面板/指令仍走 save_stats() 即时写（低频，要求立即生效）；
+-- normal_exit 的 finit 会把未保存的脏数据补写，正常退出不丢数据。
+local SAVE_STATS_INTERVAL = 30       -- 两次全量落盘的最小间隔（秒）
+local save_dirty = false
+local last_save_time = 0
+
+local function request_save(schema_id, immediate)
+	if immediate then
+		save_stats(schema_id)
+		save_dirty = false
+		last_save_time = os.time()
+		return
+	end
+	local now = os.time()
+	if save_dirty and now - last_save_time >= SAVE_STATS_INTERVAL then
+		save_stats(schema_id)
+		save_dirty = false
+		last_save_time = now
+	else
+		save_dirty = true
+	end
+end
+local function flush_save(schema_id)
+	if save_dirty then
+		save_stats(schema_id)
+		save_dirty = false
+		last_save_time = os.time()
+	end
+end
+
 -- 将一段文字嵌入 splitor 中间（♡ 前后花朵数相等）
 local function embedTextIntoSplitor(myText)
 	local tmpLen = utf8.len(myText)
@@ -1511,7 +1545,7 @@ local function init(env)
 
 		-- 上屏统计
 		update_stats(input_length, codeLen, string.len(ctx.input), 0)
-		save_stats(env.engine.schema.schema_id)
+		request_save(env.engine.schema.schema_id, false)
 	end)
 end
 function finit(env)
@@ -1519,6 +1553,8 @@ function finit(env)
 		env.notifier:disconnect()
 		env.notifier = nil
 	end
+	-- 正常退出（卸载环境/切方案）时把尚未节流落盘的统计补写，不丢数据
+	flush_save(env.engine.schema.schema_id)
 end
 
 return { init = init, fini = finit, func = translator }

@@ -83,6 +83,10 @@ end
 local collision_dict = {
     CONFIG = { 
         MAX_COMBINATIONS = 10, 
+        -- MAX_DFS_NODES：组合搜索的展开次数硬上限（2026-10 性能修复）。
+        -- MAX_COMBINATIONS 只限「结果条数」，候选重码很多时 DFS 分支仍可能
+        -- 转 plenty 次；这里对展开计数早退，语义与触顶一致（只是少搜几条）。
+        MAX_DFS_NODES = 2000,
         PRIORITY_DECREMENT = 100, 
         SHOW_REPLACEMENT_COMMENT = true, 
         COMMENT_PREFIX = "💫" 
@@ -634,7 +638,10 @@ function merged_dict.func(input, env)
                     for _, a in ipairs(m.collisions) do if a and not u[a] then table.insert(o, a); u[a]=true end end
                     ol[i] = o
                 end
+                local dfs_nodes = 0  -- 组合搜索展开计数（硬上限防最坏耗时）
                 local function dfs(p, le)
+                    if dfs_nodes >= cf.MAX_DFS_NODES then return end
+                    dfs_nodes = dfs_nodes + 1
                     if #res >= cf.MAX_COMBINATIONS or p > #ms then
                         if #sm > 0 then
                             local nt = col.apply_replacements(g.text, sm, sa)
