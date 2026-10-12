@@ -24,7 +24,6 @@ local PATHS = {
     collision_wubi  = find_dict_path("chongma_wubi.txt"),
     tigress_ci      = find_dict_path("tiger_dicts/tigress/tigress_ci.dict.yaml") or find_dict_path("tigress_ci.dict.yaml"),
     wubici          = find_dict_path("wubici.dict.yaml"),
-    en_dict         = find_dict_path("dicts/en.dict.yaml") or find_dict_path("en.dict.yaml"),
     zhuyin_word     = find_dict_path("lua/zhuyin.txt") or find_dict_path("zhuyin.txt"),
     zhuyin_zi       = find_dict_path("lua/zhuyin_zi.txt") or find_dict_path("zhuyin_zi.txt")
 }
@@ -290,126 +289,6 @@ function tigress_ci_dict.get_candidates(prefix)
     return res
 end
 
--- ==================== 5. 英文词库模块 (en_dict)  ====================
-local en_dict = {
-    db_name = "lua/en_dict",
-    INTERNAL_VERSION = "en_v25_bucket_batch", 
-    db = nil,
-    depth = 4,
-    max_word_length = 5
-}
-
-function en_dict.init(env)
-    local db, needs_rebuild = fast_init_db(en_dict.db_name, en_dict.INTERNAL_VERSION)
-    en_dict.db = db
-
-    if needs_rebuild and PATHS.en_dict then
-        local start_time = os.clock()
-        db:empty()
-
-        local file = io.open(PATHS.en_dict, "r")
-        if file then
-            local buckets = { {}, {}, {}, {}, {}, {}, {} }
-
-            for line in file:lines() do
-                if not line:match("^%s*#") and not line:match("^%s*$") then
-                    local text, code = line:match("^([^\t]+)\t([^\t]*)")
-                    if text and code and #text <= en_dict.max_word_length then
-                        local code_low = code:lower()
-                        local first_char = code_low:sub(1,1)
-
-                        local b_idx = 7
-                        if first_char >= 'a' and first_char <= 'd' then b_idx = 1
-                        elseif first_char >= 'e' and first_char <= 'h' then b_idx = 2
-                        elseif first_char >= 'i' and first_char <= 'l' then b_idx = 3
-                        elseif first_char >= 'm' and first_char <= 'p' then b_idx = 4
-                        elseif first_char >= 'q' and first_char <= 't' then b_idx = 5
-                        elseif first_char >= 'u' and first_char <= 'x' then b_idx = 6
-                        end
-
-                        table.insert(buckets[b_idx], text .. "\t" .. code_low)
-                    end
-                end
-            end
-            file:close()
-
-            for i = 1, 7 do
-                local prefix_groups = {}
-                for _, raw_str in ipairs(buckets[i]) do
-                    local text, code_low = raw_str:match("^(.-)\t(.*)$")
-                    if text and code_low then
-                        local code_len = #code_low
-                        local text_low = text:lower()
-
-                        local type_rank = 3
-                        local s_code = code_low
-                        if text == code_low then
-                            type_rank = 1
-                            s_code = ""
-                        elseif text_low == code_low then
-                            type_rank = 2
-                            s_code = ""
-                        end
-                        local s_rank = (type_rank == 1) and "" or tostring(type_rank)
-                        local entry_str = text .. "\t" .. s_code .. "\t" .. s_rank
-
-                        local start_i = math.max(1, code_len - en_dict.depth)
-                        for j = start_i, code_len do
-                            local prefix = code_low:sub(1, j)
-                            prefix_groups[prefix] = prefix_groups[prefix] or {}
-                            table.insert(prefix_groups[prefix], entry_str)
-                        end
-                    end
-                end
-
-                for prefix, entries in pairs(prefix_groups) do
-                    db:update(prefix, table.concat(entries, ENTRY_SEP))
-                end
-
-                buckets[i] = nil
-                prefix_groups = nil
-                collectgarbage("step", 500)
-            end
-        end
-
-        db:meta_update("version", en_dict.INTERNAL_VERSION)
-        log_rebuild("en_dict", "重建完成", os.clock() - start_time)
-    end
-    env.max_additional_chars = en_dict.depth
-end
-
-function en_dict.func(ctx, input_code)
-    if not en_dict.db or #input_code == 0 then return {} end
-    local data = en_dict.db:fetch(input_code:lower()) or ""
-    if data == "" then return {} end
-    local limit_len = #input_code + (en_dict.depth or 4)
-    local res = {}
-    for entry in string.gmatch(data, "[^" .. ENTRY_SEP .. "]+") do
-        local text, m_code, m_rank = entry:match("^([^\t]+)\t([^\t]*)\t?(.*)$")
-        if text then
-            local final_code = (m_code == "") and text:lower() or m_code
-            local final_rank = (m_rank == "" or m_rank == nil) and 1 or tonumber(m_rank)
-            local code_len = #final_code
-            if code_len <= limit_len then
-                table.insert(res, {text = text, code_len = code_len, rank = final_rank})
-            end
-        end
-    end
-    table.sort(res, function(a, b)
-        if a.code_len ~= b.code_len then return a.code_len < b.code_len end
-        if a.rank ~= b.rank then return a.rank < b.rank end
-        local al, bl = a.text:lower(), b.text:lower()
-        if al ~= bl then return al < bl end
-        return a.text > b.text
-    end)
-    local cands = {}
-    for i, v in ipairs(res) do
-        table.insert(cands, Candidate("english", 0, #ctx.input, v.text, ""))
-        if i >= 50 then break end
-    end
-    return cands
-end
-
 -- ==================== 6. 注音模块 (zhuyin) ====================
 local zhuyin = {
     db_word_name = "lua/zhuyin_word",
@@ -576,7 +455,6 @@ local merged_dict = {}
 function merged_dict.init(e)
     collision_dict.init(e); e.collision = collision_dict
     tigress_ci_dict.init(e); e.tigress_ci = tigress_ci_dict
-    en_dict.init(e); e.en_dict = en_dict
     zhuyin.init(e); e.zhuyin = zhuyin
     e.engine_ctx = e.engine.context
 
@@ -613,7 +491,7 @@ function merged_dict.func(input, env)
 
     local s = ctx.input:gsub("%s+", ""); if #s == 0 then for c in input:iter() do yield(c) end return end
     
-    local opt_p, opt_c, opt_e = ctx:get_option("pinyin"), ctx:get_option("completion"), ctx:get_option("english_word")
+    local opt_p, opt_c = ctx:get_option("pinyin"), ctx:get_option("completion")
     
     -- === 新增：读取重码替换开关状态 ===
     local chongma_off = ctx:get_option("chongma_off")
@@ -687,10 +565,6 @@ function merged_dict.func(input, env)
     if opt_c and #s == 3 and env.tigress_ci then
         local ok, l = pcall(env.tigress_ci.get_candidates, s:lower())
         if ok and l then for i, v in ipairs(l) do yield(Candidate("tigress_ci", 0, #ctx.input, v.text, "~"..v.remaining)); if i>=50 then break end end end
-    end
-    if opt_e and env.en_dict then
-        local ok, l = pcall(env.en_dict.func, ctx, s)
-        if ok and l then for _, c in ipairs(l) do yield(c) end end
     end
     collectgarbage("step", 20)
 end

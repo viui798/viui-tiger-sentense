@@ -3567,22 +3567,6 @@ local function live_input(context)
     return value
 end
 
-local function inline_english_open(context)
-    local raw = live_input(context)
-    local opening = raw:match(".*()%[")
-    if not opening then return false end
-    local closing = raw:match(".*()%]")
-    return not closing or opening > closing
-end
-
--- The bare-bracket translator menu is a symbol chooser, not an English
--- completion menu. Its Tab should submit the highlighted symbol immediately;
--- English-span Tab keeps the normal highlight-and-continue behavior.
-local function inline_bracket_symbol_menu(context)
-    local raw = live_input(context)
-    return (raw == "[" or raw == "]") and context:has_menu()
-end
-
 local function restore_composition_input(context, value)
     if buffered_text(context) ~= "" then value = "~" .. value end
     if context.input == value and buffered_text(context) ~= "" and
@@ -3706,14 +3690,6 @@ end
 
 local function try_empty_code_commit(env, state, full_before, appended_letter)
     local context = env.engine.context
-    -- Inline English is literal text carried in the raw composition. It must
-    -- never be interpreted as a code boundary for the sentence auto-commit.
-    if inline_english_open(context) or live_input(context):find("[", 1, true) then
-        state.empty_code_pending = nil
-        reset_early_evidence(state)
-        save_transient_state(context, state, env)
-        return false
-    end
     -- With key correction enabled, an exact-code dead end may be a typo.
     -- Never commit it or even evaluate the empty-code proposal: a later key
     -- can still expose the intended correction. Probabilistic early commit
@@ -3878,15 +3854,6 @@ local function try_early_commit(env)
     local context = env.engine.context
     local state = sentence_state(context, env)
     local live_raw = live_input(context)
-
-    -- Bracket-delimited English shares the composition with Chinese codes;
-    -- exclude the entire mixed composition from code-confidence evidence.
-    if inline_english_open(context) or live_raw:find("[", 1, true) then
-        reset_early_evidence(state)
-        state.empty_code_pending = nil
-        save_transient_state(context, state, env)
-        return
-    end
 
     if input_caret(context) ~= #live_raw or
         not context:get_option("tiger_sentence_early_commit") or state.suspended then
@@ -4180,8 +4147,6 @@ local function prepare_learning(env, attach)
                 -- The notifier confirms Rime submission, not application insertion.
                 pcall(function()
                     local state = sentence_state(ctx, env)
-                    local raw_input = ctx.input or ""
-                    if raw_input:find("[", 1, true) then return end
                     local selected, first, raw = learning_selection(env, state)
                     if raw == "" or live.submitted_raw == raw then return end
                     live.submitted_raw = raw
@@ -4221,8 +4186,7 @@ local function prepare_learning(env, attach)
                         ctx:refresh_non_confirmed_composition()
                     end
                 end
-                if name == "ascii_mode" and ctx:get_option(name) and buffered_text(ctx) ~= "" and
-                    not (ctx.input or ""):find("[", 1, true) then
+                if name == "ascii_mode" and ctx:get_option(name) and buffered_text(ctx) ~= "" then
                     ctx:confirm_current_selection()
                 end
             end)
@@ -4246,28 +4210,6 @@ local function prepare_learning(env, attach)
     return live
 end
 
--- 英文段（`[` … `]`）里用 Tab 选中词典联想后继续打字：把组合串中正在输入的那个
--- 英文词替换成高亮候选里的英文词，再接上本次按键，于是 Tab 选重之后能接着输入。
--- 例：输入 `[hell` → Tab 选中 hello → 按空格得到 `[hello `；按 w 得到 `[hello w`。
--- 挂在 correction 表上而不是新建 local：主 chunk 的局部变量已到 Lua 的 200 上限。
-function correction.accept_inline_tab_selection(env, state, context, typed)
-    if not state.tab_pending or not inline_english_open(context) then return false end
-    if type(context.get_selected_candidate) ~= "function" then return false end
-    local raw = live_input(context)
-    local word = raw:match("([A-Za-z][A-Za-z'-]*)$")
-    if not word then return false end
-    local candidate = context:get_selected_candidate()
-    local chosen = candidate and type(candidate.text) == "string" and
-        candidate.text:match("([A-Za-z][A-Za-z'-]*)$") or nil
-    if not chosen or chosen == word then return false end
-    restore_composition_input(context, raw:sub(1, #raw - #word) .. chosen .. (typed or ""))
-    state.tab_pending = false
-    state.suspended = true
-    state.empty_code_pending = nil
-    save_transient_state(context, state, env)
-    return true
-end
-
 local function processor(key_event, env)
     if key_event:release() then
         return 2
@@ -4281,8 +4223,6 @@ local function processor(key_event, env)
     learned.submitted_raw = nil
     local state = sentence_state(context, env)
     local repr = key_event:repr()
-    local raw_input = live_input(context)
-    local mixed_mode = raw_input:find("[", 1, true) ~= nil or raw_input == "]"
     if state.buffered_text ~= "" and live_input(context) == "" and
         (repr == "Tab" or repr == "ISO_Left_Tab" or repr == "Shift+Tab" or
          repr == "Up" or repr == "Down" or repr == "Page_Up" or repr == "Page_Down") then
@@ -4301,30 +4241,6 @@ local function processor(key_event, env)
     end
     local ch = is_plain_char_key(key_event, repr)
     if ch then
-        if mixed_mode and inline_bracket_symbol_menu(context) then
-            local digit = tonumber(ch)
-            if digit and type(context.highlight) == "function" and
-                type(context.confirm_current_selection) == "function" and
-                context:highlight(digit - 1) and context:confirm_current_selection() then
-                state.tab_pending = false
-                state.empty_code_pending = nil
-                reset_early_evidence(state)
-                learned.pending, learned.baseline = {}, nil
-                reset_sentence_state(context, env)
-                return 1
-            end
-        end
-        if mixed_mode then
-            if #live_input(context) >= max_raw_length then return 1 end
-            if correction.accept_inline_tab_selection(env, state, context, ch) then return 1 end
-            state.tab_pending = false
-            state.empty_code_pending = nil
-            reset_early_evidence(state)
-            learned.pending, learned.baseline = {}, nil
-            context:push_input(ch)
-            save_transient_state(context, state, env)
-            return 1
-        end
         if not context:is_composing() and
             (state.committed_raw ~= "" or state.last_seen_raw ~= "" or
              next(state.trackers or {}) ~= nil or state.suspended or
@@ -4452,21 +4368,15 @@ local function processor(key_event, env)
         -- punctuator appends its segment, learning_selection cannot decode
         -- that input (e.g. zhhbi,) or recover the sentence's selected index.
         -- Keep punctuation handling in the configured Rime punctuator.
-        if not mixed_mode then
-            local selected, _, raw = learning_selection(env, state)
-            learning_stage(env, state, selected, raw)
-        end
+        local selected, _, raw = learning_selection(env, state)
+        learning_stage(env, state, selected, raw)
         context:confirm_current_selection()
         return 2
     end
     if repr == "Return" or repr == "KP_Enter" then
         learned.pending, learned.baseline = {}, nil
-        if mixed_mode and context:has_menu() then
-            context:confirm_current_selection()
-        else
-            env.engine:commit_text(state.buffered_text .. live_input(context))
-            context:clear()
-        end
+        env.engine:commit_text(state.buffered_text .. live_input(context))
+        context:clear()
         reset_sentence_state(context, env)
         return 1
     end
@@ -4559,21 +4469,11 @@ local function processor(key_event, env)
         return 2
     end
     if repr == "Tab" or repr == "ISO_Left_Tab" or repr == "Shift+Tab" then
-        if not mixed_mode and not state.tab_pending and learned.store and learned.store.db then
+        if not state.tab_pending and learned.store and learned.store.db then
             local _, first = learning_selection(env, state)
             learned.baseline = first
         end
         reset_early_evidence(state)
-        if repr == "Tab" and mixed_mode and inline_bracket_symbol_menu(context) then
-            state.tab_pending = false
-            state.empty_code_pending = nil
-            if type(context.confirm_current_selection) == "function" and
-                context:confirm_current_selection() then
-                learned.pending, learned.baseline = {}, nil
-                reset_sentence_state(context, env)
-                return 1
-            end
-        end
         state.suspended = true
         state.empty_code_pending = nil
         save_transient_state(context, state, env)
@@ -4594,45 +4494,9 @@ local function processor(key_event, env)
         return 2
     end
     if repr == "space" then
-        -- 混输英文段（`[` 之后、`]` 之前）里的空格属于英文原文，只把它送进组合串，
-        -- 不提交候选；英文段用 `]` 闭合之后，空格才上屏。
-        if mixed_mode and inline_bracket_symbol_menu(context) and
-            type(context.confirm_current_selection) == "function" and
-            context:confirm_current_selection() then
-            state.tab_pending = false
-            state.empty_code_pending = nil
-            reset_early_evidence(state)
-            learned.pending, learned.baseline = {}, nil
-            reset_sentence_state(context, env)
-            return 1
-        end
-        if inline_english_open(context) then
-            if #live_input(context) >= max_raw_length then return 1 end
-            if correction.accept_inline_tab_selection(env, state, context, " ") then return 1 end
-            -- 连按两下空格＝退出英文段（等价于按 `]`）：第一个空格进原文，
-            -- 第二个空格把英文段闭合，之后按键回到中文。
-            if live_input(context):sub(-1) == " " then
-                state.tab_pending = false
-                state.empty_code_pending = nil
-                reset_early_evidence(state)
-                learned.pending, learned.baseline = {}, nil
-                context:push_input("]")
-                save_transient_state(context, state, env)
-                return 1
-            end
-            state.tab_pending = false
-            state.empty_code_pending = nil
-            reset_early_evidence(state)
-            learned.pending, learned.baseline = {}, nil
-            context:push_input(" ")
-            save_transient_state(context, state, env)
-            return 1
-        end
         if context:has_menu() then
-            if not mixed_mode then
-                local selected, _, raw = learning_selection(env, state)
-                learning_stage(env, state, selected, raw)
-            end
+            local selected, _, raw = learning_selection(env, state)
+            learning_stage(env, state, selected, raw)
             context:confirm_current_selection()
         end
         learned.pending, learned.baseline = {}, nil
@@ -4644,261 +4508,7 @@ end
 
 local M = {}
 
-function M.inline_english_parts(raw)
-    if type(raw) ~= "string" then return nil end
-    local parts, cursor, found = {}, 1, false
-    while true do
-        local opening = raw:find("[", cursor, true)
-        if not opening then
-            if cursor <= #raw then
-                parts[#parts + 1] = {kind="code", value=raw:sub(cursor)}
-            end
-            break
-        end
-        found = true
-        if opening > cursor then
-            parts[#parts + 1] = {kind="code", value=raw:sub(cursor, opening - 1)}
-        end
-        local closing = raw:find("]", opening + 1, true)
-        if closing then
-            parts[#parts + 1] = {kind="english", value=raw:sub(opening + 1, closing - 1)}
-            cursor = closing + 1
-        else
-            -- An open English span is still a valid live composition.
-            parts[#parts + 1] = {kind="english", value=raw:sub(opening + 1)}
-            break
-        end
-    end
-    return found and parts or nil
-end
-
-function M.lock_boundaries_from_path(path)
-    local boundaries = {}
-    while path and (path.raw_length or 0) > 0 do
-        table.insert(boundaries, 1,
-            tostring(path.raw_length) .. "," .. tostring(path.text_length) .. ";")
-        path = path.previous
-    end
-    return table.concat(boundaries)
-end
-
-function M.path_from_lock(lock)
-    if not lock or not lock.boundaries then return nil end
-    local path
-    for raw_length, text_length in lock.boundaries:gmatch("(%d+),(%d+);") do
-        path = {raw_length=tonumber(raw_length), text_length=tonumber(text_length), previous=path}
-    end
-    return path
-end
-
-function M.insert_english_spans(text, insertions)
-    for index = #insertions, 1, -1 do
-        local item = insertions[index]
-        text = text:sub(1, item.at) .. item.text .. text:sub(item.at + 1)
-    end
-    return text
-end
-
-function M.decode_inline_english(raw, state)
-    local parts = M.inline_english_parts(raw)
-    if not parts then return nil end
-    local initial_lock = active_lock(state)
-    local states = {{
-        raw = state.committed_raw or "",
-        text = state.committed_text or "",
-        path = M.path_from_lock(initial_lock),
-        score = 0,
-        insertions = {}
-    }}
-
-    for _, part in ipairs(parts) do
-        if part.kind == "english" then
-            for _, item in ipairs(states) do
-                local last = item.insertions[#item.insertions]
-                if last and last.at == #item.text then
-                    last.text = last.text .. part.value
-                elseif part.value ~= "" then
-                    item.insertions[#item.insertions + 1] = {at=#item.text, text=part.value}
-                end
-            end
-        elseif part.value ~= "" then
-            local extended = {}
-            for _, previous in ipairs(states) do
-                local combined_raw = previous.raw .. part.value
-                local lock
-                if previous.raw ~= "" then
-                    if initial_lock and previous.raw == initial_lock.raw and
-                        previous.text == initial_lock.text then
-                        lock = initial_lock
-                    else
-                        lock = {
-                            raw = previous.raw,
-                            text = previous.text,
-                            boundaries = M.lock_boundaries_from_path(previous.path)
-                        }
-                    end
-                else
-                    lock = initial_lock
-                end
-                local decoded = decode(combined_raw, false, previous.text, lock)
-                for _, candidate in ipairs(decoded) do
-                    if candidate.text and candidate.text:sub(1, #previous.text) == previous.text then
-                        local insertions = {}
-                        for i, insertion in ipairs(previous.insertions) do
-                            insertions[i] = {at=insertion.at, text=insertion.text}
-                        end
-                        extended[#extended + 1] = {
-                            raw = combined_raw,
-                            text = candidate.text,
-                            path = candidate.path,
-                            score = candidate.score or candidate.confidence_score or 0,
-                            insertions = insertions
-                        }
-                    end
-                end
-            end
-            table.sort(extended, function(a, b) return a.score > b.score end)
-            states = {}
-            local seen = {}
-            for _, item in ipairs(extended) do
-                local signature = item.text .. "\0" .. item.raw
-                if not seen[signature] then
-                    seen[signature] = true
-                    states[#states + 1] = item
-                    if #states >= candidate_limit then break end
-                end
-            end
-        end
-    end
-
-    local results, seen = {}, {}
-    for _, item in ipairs(states) do
-        local text = M.insert_english_spans(item.text, item.insertions)
-        if text ~= "" and not seen[text] then
-            seen[text] = true
-            results[#results + 1] = {text=text, score=item.score, path=item.path}
-        end
-    end
-    table.sort(results, function(a, b) return a.score > b.score end)
-    return results
-end
-
--- English word suggestions inside an unfinished `[` span. Reuse the
--- project's bundled Wanxiang English wordlist; load it lazily so ordinary
--- Chinese input does not pay the indexing cost.
-do
-    local english_prefix_index
-
-    -- 英文→中文释义（随包 lua/data/english_chinese.txt，取自万象），
-    -- 用于给 `[` 混输的英文词典候选补上中文注释；同样惰性加载。
-    local english_translations
-
-    function M.inline_english_translation(word)
-        if type(word) ~= "string" or word == "" then return nil end
-        if english_translations == nil then
-            english_translations = {}
-            local content = read_data_file("lua/data/english_chinese.txt")
-            if content then
-                for line in content:gmatch("[^\r\n]+") do
-                    local key, rest = line:match("^([^\t]+)\t(.+)$")
-                    if key and rest then
-                        local parts = {}
-                        for part in rest:gmatch("[^\t]+") do
-                            parts[#parts + 1] = part
-                            if #parts >= 3 then break end
-                        end
-                        if #parts > 0 then
-                            english_translations[key:lower()] = table.concat(parts, "；")
-                        end
-                    end
-                end
-            end
-        end
-        return english_translations[word:lower()]
-    end
-
-    function M.inline_english_words(prefix, limit)
-        if type(prefix) ~= "string" or prefix == "" or not prefix:match("^[A-Za-z]+$") then
-            return {}
-        end
-        if not english_prefix_index then
-            english_prefix_index = {}
-            local content = read_data_file("dicts/en.dict.yaml")
-            if not content then content = read_data_file("en.dict.yaml") end
-            if content then
-                for line in content:gmatch("[^\r\n]+") do
-                    local word = line:match("^([^\t]+)\t")
-                    if word and word:match("^[A-Za-z][A-Za-z'-]*$") then
-                        -- Keep two-letter buckets so a two-letter prefix can
-                        -- find longer words before their third character is typed.
-                        local key = word:sub(1, math.min(2, #word)):lower()
-                        local bucket = english_prefix_index[key]
-                        if not bucket then
-                            bucket = {}
-                            english_prefix_index[key] = bucket
-                        end
-                        bucket[#bucket + 1] = word
-                    end
-                end
-            end
-        end
-
-        local lower_prefix = prefix:lower()
-        local bucket = english_prefix_index[lower_prefix:sub(1, math.min(2, #lower_prefix))] or {}
-        local words = {}
-        for _, word in ipairs(bucket) do
-            local lower_word = word:lower()
-            if #word > #prefix and lower_word:sub(1, #lower_prefix) == lower_prefix then
-                words[#words + 1] = word
-            end
-        end
-        table.sort(words, function(a, b)
-            local al, bl = a:lower(), b:lower()
-            if #a ~= #b then return #a < #b end
-            if al ~= bl then return al < bl end
-            return a < b
-        end)
-        local results = {}
-        for index = 1, math.min(#words, limit or 12) do
-            results[#results + 1] = words[index]
-        end
-        return results
-    end
-
-    -- 预热两张英文表（2026-10-11 中英混输卡顿修复）。
-    -- 原先两张表都在打字中途惰性解析（桌面 ~180ms，手机 1~2s 整帧冻结），
-    -- 且 Trime 等前端进程频繁被杀，每次会话第一次进英文段都要重新承受。
-    -- 2026-10-11 起中英混输已下线，方案 init 不再调用此函数；若将来重新启用
-    -- 混输，把 init 里的调用接回即可（加载发生在会话建立、用户还没有按键）。
-    function M.prewarm_inline_english_tables()
-        if not english_prefix_index then
-            M.inline_english_words("a", 1)
-        end
-        if not english_translations then
-            M.inline_english_translation("a")
-        end
-    end
-end
-
 local function translator(input, seg, env)
-    -- Match the backtick mode's immediate candidate menu: a bare bracket has
-    -- four selectable symbols and carries the mode hint as its comment.
-    -- If the user types a letter instead, ascii_component leaves the opener
-    -- in the same composition and the mixed sentence path below takes over.
-    local bracket_choices = {
-        ["["] = {"【", "{", "[", "「"},
-        ["]"] = {"】", "}", "]", "」"}
-    }
-    local choices = bracket_choices[input]
-    if choices and seg:has_tag("inline_english") then
-        local hint = input == "[" and "[西文]" or "[中文]"
-        for _, symbol in ipairs(choices) do
-            local cand = Candidate("punct", seg.start, seg._end, symbol, hint)
-            cand.preedit = hint ~= "" and hint or input
-            yield(cand)
-        end
-        return
-    end
     -- 删词输入（编码 + ``/``）由 tiger_zaoci 负责，整句不参与，
     -- 否则整句候选会混进删词列表（那些候选删不掉）。
     if input:match("^[a-z]+/$") then return end
@@ -4927,94 +4537,6 @@ local function translator(input, seg, env)
         -- Never translate the full context into a later punctuation segment.
         if seg.start ~= 0 or input:sub(1, 1) ~= "~" then return end
         input = input:sub(2)
-    end
-    -- A recognizer-tagged segment can expose only its local suffix as
-    -- `input` on some Rime frontends. Inline English needs the opening `[`;
-    -- recover the complete live composition so even a two-letter prefix is
-    -- recognized consistently.
-    local context_input = live_input(context)
-    if context_input:find("[", 1, true) then input = context_input end
-    -- Once early-commit has submitted text to the application, Rime may keep
-    -- the old raw-code boundary and dictionary lock in context properties.
-    -- Inline English is a new live composition after that boundary: replaying
-    -- the old lock against the suffix can reject every result (for example,
-    -- committed `自动` followed by `[hello]dqvw`). Decode only the live suffix,
-    -- while keeping committed text as the visible prefix outside this call.
-    local mixed_state = state
-    if committed_text ~= "" and committed_raw ~= "" then
-        mixed_state = {
-            committed_raw = "",
-            committed_text = "",
-            locks = {}
-        }
-    end
-    local mixed_results = M.decode_inline_english(input, mixed_state)
-    if mixed_results then
-        local sentence_candidates, suggestion_candidates, seen_text = {}, {}, {}
-        local spans = M.inline_english_parts(input)
-        local last_span = spans and spans[#spans]
-        local waiting_for_english = inline_english_open(context) and last_span and
-            last_span.kind == "english" and last_span.value == ""
-        local waiting_for_chinese = input:sub(-1) == "]" and last_span and
-            last_span.kind == "english"
-        for _, item in ipairs(mixed_results) do
-            local text = item.text
-            -- After an auto-committed prefix, a bare `[` or `]` can have
-            -- an empty visible suffix even though the mode hint is useful
-            -- and the composition must remain active for the next key.
-            if text ~= "" or buffered ~= "" or waiting_for_english or waiting_for_chinese then
-                seen_text[text] = true
-                local comment = waiting_for_english and "[西文]" or
-                    waiting_for_chinese and "[中文]" or ""
-                local cand = Candidate(buffered ~= "" and "sentence_buffered" or "sentence",
-                    seg.start, seg._end, text, comment)
-                if buffered ~= "" then cand.quality = 1000 end
-                cand.preedit = buffered .. input
-                sentence_candidates[#sentence_candidates + 1] = cand
-            end
-        end
-        -- Offer dictionary completions only while the English span is open;
-        -- closing it with `]` preserves the exact spelling the user entered.
-        if inline_english_open(context) and last_span and last_span.kind == "english" then
-            local prefix = last_span.value:match("([A-Za-z]+)$")
-            if prefix and #prefix >= 2 then
-                local start_at = #last_span.value - #prefix + 1
-                local words = M.inline_english_words(prefix, candidate_limit)
-                for _, word in ipairs(words) do
-                    local suggested_value = last_span.value:sub(1, start_at - 1) .. word
-                    local suggested_input = input:sub(1, #input - #last_span.value) .. suggested_value
-                    local suggestions = M.decode_inline_english(suggested_input, mixed_state)
-                    for _, item in ipairs(suggestions or {}) do
-                        local text = item.text
-                        if (text ~= "" or buffered ~= "") and not seen_text[text] then
-                            seen_text[text] = true
-                            local cand = Candidate(buffered ~= "" and "sentence_buffered" or "sentence_english",
-                                seg.start, seg._end, text,
-                                M.inline_english_translation(word) or "英文词典")
-                            cand.preedit = buffered .. input
-                            if buffered ~= "" then cand.quality = 1000 end
-                            suggestion_candidates[#suggestion_candidates + 1] = cand
-                        end
-                    end
-                end
-            end
-        end
-        local yielded = 0
-        if sentence_candidates[1] then
-            yield(sentence_candidates[1])
-            yielded = yielded + 1
-        end
-        for _, cand in ipairs(suggestion_candidates) do
-            if yielded >= candidate_limit then break end
-            yield(cand)
-            yielded = yielded + 1
-        end
-        for index = 2, #sentence_candidates do
-            if yielded >= candidate_limit then break end
-            yield(sentence_candidates[index])
-            yielded = yielded + 1
-        end
-        return
     end
     -- With no live code, the only visible value is the editable buffer.
     -- Replaying its entire locked history just to yield an empty suffix made
@@ -5289,8 +4811,6 @@ M.processor_component = {
                 perf_diag.path = nil
             end
         end
-        -- 2026-10-11：中英混输已下线（schema 不再接线），英文表预热随之停用，
-        -- 避免方案初始化时无谓解析两张英文表（本机 ~150ms，手机按前次测量 1~2s）。
     end,
     func = processor,
     fini = function(env)
@@ -5451,126 +4971,4 @@ M.options = {};
         env._tiger_options = nil
     end
 end)()
--- Retain Rime's native modifier timing and bindings. Only while a buffered
--- composition exists, raw-code/inline-ASCII exits must submit its displayed
--- candidate instead of the private transport marker. The schema is private;
--- neither the user's configuration nor ordinary-mode bindings are changed.
-M.ascii_component = {
-    func = function(key, env)
-        local context = env.engine.context
-        local input_inline = inline_english_open(context)
-        if input_inline then
-            env.inline_english = true
-            -- Some Squirrel app_options start in ASCII mode. Inline English
-            -- still needs Rime's candidate UI, and `]` should return to
-            -- Chinese input, so normalize the mode as soon as the span opens.
-            if context:get_option("ascii_mode") then context:set_option("ascii_mode", false) end
-        elseif env.inline_english then
-            env.inline_english = false
-        end
-        -- Bracket-delimited inline English remains inside the same Rime
-        -- composition. The sentence translator removes the delimiters and
-        -- decodes only the Chinese code spans.
-        if not key:release() and not key:ctrl() and not key:alt() and not key:super() then
-            local repr = key:repr()
-            local normalized_repr = repr:lower()
-            -- Some frontends encode modifiers in the high bits of keycode
-            -- and prefix them in repr (for example Shift+bracketleft).
-            local keycode = (tonumber(key.keycode) or 0) % 0x1000000
-            local left_bracket = keycode == 0x5b or
-                normalized_repr:match("bracketleft$") or normalized_repr == "["
-            local right_bracket = keycode == 0x5d or
-                normalized_repr:match("bracketright$") or normalized_repr == "]"
-            -- In a clean English mode, brackets are ordinary ASCII text.
-            -- Keep the mixed-input entry point for Chinese mode and for an
-            -- already-open English span.
-            if (left_bracket or right_bracket) and
-                context:get_option("ascii_mode") and
-                not inline_english_open(context) and
-                not context:is_composing() then
-                return 2
-            end
-            if env.inline_english then
-                -- Let the sentence processor own Tab for the bare-bracket
-                -- symbol chooser. The native ASCII wrapper otherwise consumes
-                -- it before the mixed-input processor can confirm the symbol.
-                if inline_bracket_symbol_menu(context) and
-                    (normalized_repr == "tab" or normalized_repr == "iso_left_tab" or
-                     normalized_repr == "shift+tab") then
-                    return 2
-                end
-                if right_bracket then
-                    local current_input = live_input(context)
-                    local english_text = current_input:match("%[(.*)$") or ""
-                    context:push_input("]")
-                    env.inline_english = false
-                    -- `]` is an explicit end boundary for the literal English
-                    -- span. If early commit is enabled, submit the current
-                    -- mixed candidate here (including the exact English text)
-                    -- so following Chinese starts a fresh sentence and can
-                    -- resume the normal confidence-based auto-commit flow.
-                    if english_text ~= "" and
-                        context:get_option("tiger_sentence_early_commit") and
-                        context:has_menu() and context:confirm_current_selection() then
-                        reset_sentence_state(context, env)
-                    end
-                    return 1
-                elseif normalized_repr == "escape" then
-                    env.inline_english = false
-                elseif not key:ctrl() and not key:alt() and not key:super() then
-                    -- ascii_mode normally commits Latin keystrokes directly.
-                    -- In an inline span, keep letters in the live Rime
-                    -- composition so the sentence translator can offer
-                    -- dictionary completions without submitting prior text.
-                    local english_char = repr:match("^Shift%+([A-Za-z])$") or
-                        repr:match("^([A-Za-z])$")
-                    if english_char then
-                        context:push_input(english_char)
-                        return 1
-                    end
-                end
-            elseif left_bracket then
-                -- Do not depend on the current segment tag here. After an
-                -- early commit, Rime may expose a non-abc/empty segment even
-                -- though the user is continuing the same sentence. Always
-                -- keep `[` in this composition and normalize per-app ASCII
-                -- mode so the inline translator can show its candidates.
-                if context:get_option("ascii_mode") then context:set_option("ascii_mode", false) end
-                env.inline_english = true
-                context:push_input("[")
-                return 1
-            end
-        end
-        local buffered = buffered_text(env.engine.context) ~= ""
-        if not env.native or env.buffered ~= buffered then
-            env.buffered = buffered
-            local schema = env.engine.schema
-            if buffered then
-                local default_schema = Schema(".default")
-                local defaults = default_schema.config
-                local source = schema.config:get_map("ascii_composer/switch_key") and schema.config or defaults
-                local private = Schema("tiger_sentence_ascii")
-                local caps = schema.config:get_bool("ascii_composer/good_old_caps_lock")
-                if caps == nil then caps = defaults:get_bool("ascii_composer/good_old_caps_lock") end
-                private.config:set_bool("ascii_composer/good_old_caps_lock", caps or false)
-                for _, name in ipairs({"Shift_L", "Shift_R", "Control_L", "Control_R",
-                    "Alt_L", "Alt_R", "Super_L", "Super_R", "Caps_Lock", "Eisu_toggle"}) do
-                    local path = "ascii_composer/switch_key/" .. name
-                    local style = source:get_string(path) or "noop"
-                    if style == "commit_code" or style == "inline_ascii" then style = "commit_text" end
-                    private.config:set_string(path, style)
-                end
-                schema = private
-            end
-            env.native_schema = schema
-            env.native = Component.Processor(env.engine, schema, "", "ascii_composer")
-        end
-        return env.native:process_key_event(key)
-    end,
-    fini = function(env)
-        env.inline_english = false
-        env.native = nil
-        env.native_schema = nil
-    end
-}
 return M

@@ -2,6 +2,15 @@
 
 本文件记录「芝士虎整」方案包的主要更新。虎整句方案版本见 `tiger_sentence.schema.yaml` 中 `schema.version`（当前 `1.6.20261010.3`，基于上游 `1.6.20261010.1` / `9ed168f` 发布）。
 
+## 未发布（2026-10-12）
+
+清理中英混输下线后遗留的死代码与随包资源，输入行为不变（不含模型与词库拆分，发布包体积的大头不受影响）。
+
+- **删除混输实现**（`lua/tiger_sentence.lua`，净减 610 行）：括号候选菜单、`decode_inline_english`、英文联想与释义加载、`ascii_component` ASCII 包装器、Tab 续接、预热函数以及各处 `[` 守卫分支全部移除；标准 `ascii_composer` 与标点直接上屏的行为保持 v0.2.8.2 现状。
+- **删除 en_dict 模块**（`lua/db.lua`，净减 127 行）：该模块在首次部署时会读取 `dicts/en.dict.yaml` 并构建 `lua/en_dict.userdb`，但 `english_word` 选项在所有随附方案中均未定义，属无效开销。
+- **移除两张仅混输/英文候选使用的词表**：`lua/data/english_chinese.txt` 与 `dicts/en.dict.yaml`（压缩后约 0.85MB）。
+- **测试更新**：契约测试改为断言“管线不接线、混输接口不再导出、en_dict 不再存在”，防止未来无声回退。
+
 ## v0.2.8.3（2026-10-11）
 
 修复 v0.2.8.2 遗留的无谓开销与文档问题，候选行为不变。
