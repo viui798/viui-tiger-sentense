@@ -4508,6 +4508,32 @@ end
 
 local M = {}
 
+-- 纠错候选的注释符号（默认 ✨）。可在方案里用 tiger_sentence/correction_mark
+-- 覆盖，例如把 custom.yaml 写成：
+--   patch:
+--     "tiger_sentence/correction_mark": "✓"
+-- 只读一次并缓存；改动后重新部署/重启前端生效。
+local DEFAULT_CORRECTION_MARK = "✨"
+local correction_mark_cache
+
+local function correction_mark(env)
+    if correction_mark_cache then
+        return correction_mark_cache
+    end
+    local mark
+    local schema = env and env.engine and env.engine.schema
+    if schema and schema.config then
+        local ok, value = pcall(function()
+            return schema.config:get_string("tiger_sentence/correction_mark")
+        end)
+        if ok and type(value) == "string" and value ~= "" then
+            mark = value
+        end
+    end
+    correction_mark_cache = mark or DEFAULT_CORRECTION_MARK
+    return correction_mark_cache
+end
+
 local function translator(input, seg, env)
     -- 删词输入（编码 + ``/``）由 tiger_zaoci 负责，整句不参与，
     -- 否则整句候选会混进删词列表（那些候选删不掉）。
@@ -4573,7 +4599,8 @@ local function translator(input, seg, env)
             end
             if text ~= "" or buffered ~= "" then
                 local cand = Candidate(buffered ~= "" and "sentence_buffered" or "sentence",
-                    seg.start, seg._end, text, (item.correction_count or 0) > 0 and "🐞" or "")
+                    seg.start, seg._end, text,
+                    (item.correction_count or 0) > 0 and correction_mark(env) or "")
                 if buffered ~= "" then cand.quality = 1000 end
                 if zaoci_bridge.is_user_word(item.text) then cand.comment = "〔自造词〕" end
                 cand.preedit = buffered .. (buffered ~= "" and preedit ~= "" and " " or "") .. preedit

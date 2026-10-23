@@ -51,7 +51,8 @@ switches: # 0 默认关，1 默认开
     states: [ 提前上屏至应用, 提前上屏至编码 ]
   # D89-r3：按键纠错四档（radio 组，同一时间只启用一档；档名存
   # tiger_sentence.options.yaml，不存分数）。每个错键惩罚：弱 8 / 中 6 / 强 4，
-  # 关闭则不纠错。开启任一档即禁用空码顶屏；纠错候选注释只显示 🐞。
+  # 关闭则不纠错。开启任一档即禁用空码顶屏；纠错候选注释默认显示 ✨，
+  # 可用 tiger_sentence/correction_mark 覆盖（见 custom.yaml）。
   # 旧布尔 tiger_sentence_key_correction 仍兼容：true 映射到「中」。
   - options: [ tiger_sentence_correction_off, tiger_sentence_correction_weak, tiger_sentence_correction_medium, tiger_sentence_correction_strong ]
     states: [ 按键纠错关, 按键纠错弱, 按键纠错中, 按键纠错强 ]

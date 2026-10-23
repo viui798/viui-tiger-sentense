@@ -12,6 +12,8 @@
 - **测试更新**：契约测试改为断言“管线不接线、混输接口不再导出、en_dict 不再存在”，防止未来无声回退。
 - **新增 Shift 大写直出**（`lua/shift_upper.lua`，三个虎码方案均已接入）：中文态且没有编码时，Shift + 字母直接上屏大写字母，不再进入虎码编码、不出中文候选。兼容前端发 `Shift+a`、直接发大写 `A`、以及只发一次裸 `Shift_L` 再由小写字母跟随这三种情况。原因：librime 的 speller 只看 keycode、忽略 Shift 修饰，`Shift+a` 原本会被当成虎码编码 `a`。西文态与正在输入编码时不做接管。
 - **虎单/虎词新增 `;` / `'` 顶字**（`lua/tiger_symbol_select.lua`，`tiger` 与 `tigress` 方案均已接入，排在 `key_binder` 之前）：候选不足时，`;`（无次选）和 `'`（不足三选）不再空按，而是先上屏首选、再输出标点。例：`rjk` 只有唯一候选时，`rjk;` → `符；`；`'` 顶字后输出 `’`。候选够数时仍交给 `key_binder` 正常选重。只接管 `^[a-z]+$` 的纯虎码编码，反查、造词、统计指令、计算器不受影响。注：参考实现（`symbol_proc.lua`，作者 晴）顶字后把符号放行给 punctuator；本方案 `;` 在 `speller.alphabet`、`'` 是 delimiter，放行会被 speller 吞成新编码，因此改为直接补出标点。
+- **纠错注释符号改为 ✨**（`lua/tiger_sentence.lua`）：虎整句纠错候选的注释从硬编码的 `🐞` 换成 `✨`，并支持方案配置覆盖——在 `tiger_sentence.custom.yaml` 写 `"tiger_sentence/correction_mark": "✓"` 即可，读取一次后缓存，重新部署或重启前端生效。注：`docs/虎整句D89-r3-安装与版本核对.txt` 是上游原包记录，里面仍写 🐞，属于上游行为描述，未改动。
+- **清理死引用与补文档**：`rime.lua` 移除已删除的 `tiger_sentence_ascii` 组件导出；README 选项表补充 `tiger_sentence/correction_mark`；`芝士虎整说明.md` 补 ✨ 与配置说明；上游安装记录与历史对比文档各加一行注记，说明 🐞/混输属于上游或历史状态。
 
 ## v0.2.8.3（2026-10-11）
 

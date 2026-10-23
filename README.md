@@ -108,7 +108,8 @@
 | `tiger_sentence_early_commit` | 提前上屏关 / 开 | 是否允许自动提前上屏 |
 | `tiger_sentence/auto_select_min_code_length` | 0～128，默认 3 | 分段非首选单字参与隐式选重的最低码数；0 表示禁用 |
 | `tiger_sentence_early_commit_to_preedit` | 提前上屏至应用 / 编码 | 提前上屏时写入应用还是写入编码区 |
-| 按键纠错 | 关 / 弱 / 中 / 强 | 错键惩罚分别为关闭、8、6、4 |
+| 按键纠错 | 关 / 弱 / 中 / 强 | 错键惩罚分别为关闭、8、6、4；纠错候选的注释默认显示 ✨ |
+| `tiger_sentence/correction_mark` | 任意字符串，默认 `✨` | 纠错候选的注释符号，改后需重新部署或重启前端 |
 | 简繁 | 简体 / 通繁 / 港繁 / 臺繁 | 四档单选 |
 | `pinyin` | 拼音注释关 / 开 | `Ctrl+P` |
 | `chaifen` | 拆字注释关 / 开 | `Ctrl+J` |
