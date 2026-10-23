@@ -76,8 +76,10 @@ engine:
     - lua_processor@*set_schema #拼音反查打法切换 /flypy /pinyin /zrm /mspy /sogou
     - lua_processor@tiger_zaoci_processor  # 加词模块：造词写入用户词库
     - lua_processor@*key_counter  # 击键计数（输入战报 4.2）
+    - lua_processor@*shift_upper  # 中文态 Shift+字母 → 直接上屏大写（手机端大写键）
     - ascii_composer
     - recognizer
+    - lua_processor@*tiger_symbol_select  # 候选不足时 ; / ' 顶字（须在 key_binder 之前）
     - key_binder
     - lua_processor@*tiger_kf  # 快符（立即上屏；init 在载入时连通知器）
     - speller

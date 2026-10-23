@@ -20,6 +20,12 @@ tiger_sentence_ascii = tiger_sentence.ascii_component
 tiger_sentence_buffer_filter = tiger_sentence.buffer_filter
 input_statistics = require("input_statistics")
 
+-- Shift 大写直出：中文态下 Shift+字母 → 直接上屏大写（见 lua/shift_upper.lua）
+shift_upper = require("shift_upper")
+
+-- 虎单：候选不足时 ; / ' 顶字（见 lua/tiger_symbol_select.lua）
+tiger_symbol_select = require("tiger_symbol_select")
+
 -- 加词模块（` 前缀造词 + 内存词库即时生效）
 local tiger_zaoci = require("tiger_zaoci")
 tiger_zaoci_processor = tiger_zaoci.processor

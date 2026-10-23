@@ -170,6 +170,25 @@ do
         "inline_english recognizer pattern is still registered")
     check(content:find("- ascii_composer", 1, true) ~= nil,
         "standard ascii_composer is not registered")
+    check(content:find("- lua_processor@*shift_upper", 1, true) ~= nil,
+        "shift_upper processor is not registered")
+    local rime_lua = assert(io.open(repo .. "/rime.lua", "rb"))
+    local rime_content = rime_lua:read("*a")
+    rime_lua:close()
+    check(rime_content:find("shift_upper", 1, true) ~= nil,
+        "shift_upper is not exported from rime.lua")
+    for _, name in ipairs({"tiger", "tigress"}) do
+        local schema_file = assert(io.open(repo .. "/" .. name .. ".schema.yaml", "rb"))
+        local schema_content = schema_file:read("*a")
+        schema_file:close()
+        local select_pos = schema_content:find("- lua_processor@*tiger_symbol_select", 1, true)
+        local binder_pos = schema_content:find("    - key_binder\n", 1, true)
+        check(select_pos ~= nil, name .. " does not register tiger_symbol_select")
+        check(select_pos ~= nil and binder_pos ~= nil and select_pos < binder_pos,
+            name .. " must register tiger_symbol_select before key_binder")
+    end
+    check(rime_content:find("tiger_symbol_select", 1, true) ~= nil,
+        "tiger_symbol_select is not exported from rime.lua")
     check(content:find("'[': '['", 1, true) ~= nil and
         content:find("']': ']'", 1, true) ~= nil,
         "half-width brackets are not wired to direct commit")
