@@ -85,6 +85,7 @@
 | **纠错注释** | 默认 ✨，可用 `tiger_sentence/correction_mark` 覆盖（见 `lua/tiger_sentence.lua` 的 `correction_mark_state`） |
 | **造词桥接** | `zaoci_bridge` 在 `tiger_sentence.lua` 里，负责自造词参与组句/调频；合并上游时**必须保留** |
 | **主题/个人配置** | `squirrel.custom.yaml`、`docs/CORRECTION_*.md`、`docs/EARLY_EVIDENCE_GATE.md` 被 `.gitignore` 排除，不要提交 |
+| **开关记忆** | 「要记住」的开关**不能写 `reset`**（librime 每个新会话都会按 reset 强制复位，且热键 toggle 不写 user.yaml）。虎整句存 `tiger_sentence.options.yaml`（`M.options`），虎单/虎词存 `tiger.options.yaml` / `tigress.options.yaml`（`lua/option_persist.lua`）。`ascii_mode` / `ascii_punct` / `full_shape` 保留 reset 属有意行为 |
 | **中文文件名** | 打包脚本已处理 UTF-8 标志位；手动 `zip` 会导致 Windows 乱码 |
 
 ## 6. 升级上游的正确姿势
@@ -119,7 +120,7 @@
 
 ## 8. 当前状态（2026-10-31）
 
-- `main` = `dff7d93`，tag `v0.3.1`，最新 Release = v0.3.1（Latest）
+- `main` = tag `v0.3.2`，最新 Release = v0.3.2（Latest）
 - 测试：契约 112 checks 通过；`run_regressions.py` 全绿（learning 23,063 / backspace 805 checks）
 - 与上游文件对比：29 个文件里 24 个逐字节一致，5 个有意不同（整合 schema、带集成的
   `tiger_sentence.lua`、`default.custom.yaml`、`rime.lua`、`symbols.yaml`）
