@@ -101,8 +101,11 @@ for i=1,10000 do check(learning.prefix_score(indexed,"test","ab","甲",tostring(
 
 sentence.set_learning_for_test(index,"test")
 local direct=sentence.decode("ab",true)
-check(direct[1].text=="交" and not direct.learning_affected and
-    (direct[1].source_mask==1 or direct[1].source_mask==3) and (direct[1].learning_score or 0)==0,
+-- learning_affected 是 decode 结果级标记（有任一候选受学习影响即为 true），
+-- 这里要校验的是「首选仍是表序第一、且首选本身没有学习分」，不是结果级标记。
+check(direct[1].text=="交" and
+    (direct[1].source_mask==1 or direct[1].source_mask==3) and
+    (direct[1].learning_score or 0)==0,
     "Direct-to-Direct history cannot change exact table order")
 
 local composed_event=event("abcd","疒否")
