@@ -40,7 +40,6 @@ EXCLUDE_FILES = {
     "SOURCE_BASELINE.md",
     "RIME_CORRECTNESS.md",
     "IOS_TEST_README.md",
-    "安装与更新说明.txt",          # 上游原包的安装说明，对本仓库不适用
 }
 EXCLUDE_DIRS = (
     "tools/",          # 开发/测试脚本（含本脚本）

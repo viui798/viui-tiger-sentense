@@ -8,7 +8,6 @@ exe_processor = require("exe")  -- 缂冩垿銆夐崥顖氬З閸?
 shijian2_translator = require("shijian2") -- 妤傛楠囬弮鍫曟？
 
 -- 快符
-tiger_kf_processor = require("tiger_kf").processor
 
 -- 韫囶偆顑?
 

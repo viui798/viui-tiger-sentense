@@ -71,33 +71,6 @@ local function record_decode(started)
     performance.decode_max_ms = math.max(performance.decode_max_ms, elapsed)
 end
 
--- 设备端性能打点（2026-10-11）：默认关闭；processor init 读取
--- tiger_sentence/perf_log 配置后启用。启用时每次采样写一行日志
--- 到用户目录 tiger_perf_log.txt（一次上屏一条，诊断用，仅定位卡顿时开启）。
--- 主 chunk 局部变量已达 200 上限，因此用全局表承载（每次加载重建，无残留）。
-do
-    perf_diag = { enabled = false, path = nil }
-    perf_diag.write = function(sample)
-        if not perf_diag.enabled then return end
-        if not perf_diag.path then
-            local ok, dir = pcall(rime_api and rime_api.get_user_data_dir or function() return "" end)
-            if not ok or type(dir) ~= "string" or dir == "" then perf_diag.enabled = false return end
-            if dir:sub(-1) ~= "/" and dir:sub(-1) ~= "\\" then dir = dir .. "/" end
-            perf_diag.path = dir .. "tiger_perf_log.txt"
-        end
-        pcall(function()
-            local f = io.open(perf_diag.path, "a")
-            if not f then return end
-            f:write(string.format(
-                "t=%d calls=%d total=%.2fms max=%.2fms page=%d/%.1fKiB heap=%.2fMiB ev=%d iso=%d/%d\n",
-                os.time(), sample.decode_calls, sample.decode_total_ms, sample.decode_max_ms,
-                sample.page_misses, sample.page_bytes / 1024, collectgarbage("count") / 1024,
-                sample.early_evidence_builds, sample.isolation_hits, sample.isolation_misses))
-            f:close()
-        end)
-    end
-end
-
 local function finish_performance_sample()
     if performance.decode_calls == 0 then return end
     local sample = {
@@ -111,12 +84,7 @@ local function finish_performance_sample()
         isolation_misses = performance.isolation_misses
     }
     performance.last = sample
-    -- 设备端性能打点（2026-10-11）：tiger_sentence/perf_log 打开时，
-    -- 每次采样（一次上屏）记一行日志，用于前端现场定位卡顿段。
-    -- 默认关闭，关闭时无任何额外开销。状态挂在全局 perf_diag（局部已满）。
-    if perf_diag and perf_diag.enabled then
-        perf_diag.write(sample)
-    end    performance.decode_calls = 0
+    performance.decode_calls = 0
     performance.decode_total_ms = 0.0
     performance.decode_max_ms = 0.0
     performance.page_misses = 0
@@ -4757,13 +4725,6 @@ M.lexicon_probe = function(code)
     end
     return copy
 end
-M.lexicon_lengths = function()
-    local copy = {}
-    for index = 1, #lexicon_state.lengths do
-        copy[index] = lexicon_state.lengths[index]
-    end
-    return copy
-end
 -- Read-only view for benchmarks and diagnostics; callers must not mutate.
 M.lexicon_data_view = function()
     ensure_lexicon(nil)
@@ -4778,7 +4739,6 @@ M.reference_isolation_penalty = isolation_penalty
 M.reference_path_isolation_penalty = ranking_prior.reference_path_isolation_penalty
 M.path_isolation_penalty = path_isolation_penalty
 M.has_complete_candidate = has_complete_candidate
-M.apply_auto_select_min_code_length = lexicon_state.apply_auto_select_min_code_length
 M.build_prefix_evidence = build_prefix_evidence
 M.find_prefix_evidence = find_prefix_evidence
 M.common_text_prefix = common_text_prefix
@@ -4795,7 +4755,6 @@ M.set_model_enabled = function(enabled)
     kn_load_error = nil
     clear_model_dependent_caches()
 end
-M.prefix_extends = prefix_extends
 M.prefix_contradicted = prefix_contradicted
 M.retain_trackers_without_counting = retain_trackers_without_counting
 M.auto_commit_matches_visible_top = auto_commit_matches_visible_top
@@ -4902,8 +4861,6 @@ M.buffer_filter = function(input, env)
     end
 end
 M.learning = learning
-M.apply_source_ordering_for_test = learning.apply_source_ordering
-M.dedup_limit_for_test = dedup_limit
 M.set_learning_for_test = function(index, mode)
     learning_index, learning_mode = index, mode or ""
     reset_decode_cache()
@@ -4911,17 +4868,6 @@ end
 M.processor_component = {
     init = function(env)
         configure_memory(env); M.options.init(env)
-        -- 诊断开关：tiger_sentence/perf_log（custom patch）控制，无配置 = 关
-        do
-            local ok, enabled = pcall(function()
-                local cfg = env.engine and env.engine.schema and env.engine.schema.config
-                return cfg and cfg:get_bool("tiger_sentence/perf_log")
-            end)
-            if perf_diag then
-                perf_diag.enabled = (ok and enabled) == true
-                perf_diag.path = nil
-            end
-        end
     end,
     func = processor,
     fini = function(env)
