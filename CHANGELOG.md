@@ -1,6 +1,16 @@
 # 更新日志
 
-本文件记录「芝士虎整」方案包的主要更新。虎整句方案版本见 `tiger_sentence.schema.yaml` 中 `schema.version`（当前 `1.6.20261010.3`，基于上游 `1.6.20261010.1` / `9ed168f` 发布）。
+本文件记录「芝士虎整」方案包的主要更新。虎整句方案版本见 `tiger_sentence.schema.yaml` 中 `schema.version`（当前 `1.6.20261030.1`，基于上游 `1.6.20261030.1` / `e86ceeb` 发布）。
+
+## v0.3.1（2026-10-31）
+
+对齐上游 1.6.20261030.1 的实现细节，并清理死代码与过期测试。
+
+- **ascii 处理器与上游一致**（`tiger_sentence.schema.yaml` / `rime.lua`）：processors 改回 `lua_processor@tiger_sentence_ascii`。在「提前上屏至编码」的 buffered 状态下按 Shift 切西文时，提交的是显示的候选，而不是内部 `~` 传输标记。
+- **恢复上游全部导出**：`apply_auto_select_min_code_length`、`apply_source_ordering_for_test`、`dedup_limit_for_test`、`lexicon_lengths`、`prefix_extends`（v0.3.0 的清理曾误把它们当作死代码删除）。
+- **清理**：移除设备端性能打点 `perf_diag`（`tiger_sentence/perf_log` 开关一并移除）、`rime.lua` 中未使用的 `tiger_kf_processor`、过期的 `安装与更新说明.txt`。
+- **测试对齐上游**：learning（码长门槛、结果级 `learning_affected`、移除已废弃的 fusion/exact-correction 覆盖）、lexical prior（单候选跳过重排）、backspace（显式选择「回删编码」）、allocation（移除 fusion 用例）；`tools/run_regressions.py` 恢复全绿。
+- **覆盖审计**：switches / processors / segmentors / translators / filters / key_binder / 配置键 / `M.*` 导出全部与上游对齐，零缺失。
 
 ## v0.3.0（2026-10-31）
 
