@@ -22,17 +22,15 @@ switches: # 0 默认关，1 默认开
   - name: ascii_mode
     reset: 0
     states: [ 中文, 西文]  #中英文状态
+  # 辅助开关不写 reset：librime 的 reset 是「每个新输入会话都强制回默认」，
+  # 热键 toggle 又不落盘；持久化由 lua/option_persist.lua 负责（见该文件注释）。
   - name: extended_char  #自定义字集
-    reset: 1
     states: [ 全字集, 常用字]
   - name: pinyin  #拼音滤镜
-    reset: 0
     states: [ 拼, pīn ]
   - name: emoji_cn  #emoji滤镜
-    reset: 0
     states: [ 🈚, 🈶 ]
   - name: chaifen
-    reset: 0 
     states: [ 拆隐, 拆显]
   # - options: [ gb2312, gbk, utf8 ]
   #   states: [ gb2312, GBK, UTF-8 ]
@@ -45,10 +43,8 @@ switches: # 0 默认关，1 默认开
     reset: 0
     states: [ 有刻, 半刻, 无刻]
   - name: charset_comment_filter  #字符集提示
-    reset: 0  
     states: [ U区关, U区开]
   - name: udpf_switch
-    reset: 0
     states: [ U编关, U编开]
   - name: ascii_punct
     reset: 0
@@ -62,18 +58,17 @@ switches: # 0 默认关，1 默认开
   - name: full_shape
     reset: 0
     states: [ 半角, 全角]
-  - name: yin
-    reset: 1
+  - name: yin  # Ctrl+Q：音码反查总开关（关掉后 ' 前缀不再查拼音）
     states: [ 关, 音码 ]
   #拼音反查打法：radio 组，同一时间只启用一种（用 /flypy /pinyin /zrm /mspy /sogou 切换）
   #注意：radio 组不能写 name，否则 librime 只当普通开关、忽略 options
   - options: [ yin_flypy, yin_qp, yin_zrm, yin_mspy, yin_sogou ]
-    reset: 0
     states: [ 小鹤, 全拼, 自然码, 微软, 搜狗 ]
 
 engine:
   processors:
     - lua_processor@*set_schema #拼音反查打法切换 /flypy /pinyin /zrm /mspy /sogou
+    - lua_processor@*option_persist  # 辅助开关记忆：跨会话保存 pinyin/chaifen/emoji/U区/U编/音码/字集
     - lua_processor@tiger_zaoci_processor  # 加词模块：造词写入用户词库
     - lua_processor@*key_counter  # 击键计数（输入战报 4.2）
     - lua_processor@*shift_upper  # 中文态 Shift+字母 → 直接上屏大写（手机端大写键）

@@ -66,31 +66,29 @@ switches: # 0 默认关，1 默认开
     states: [ 按键纠错关, 按键纠错弱, 按键纠错中, 按键纠错强 ]
     abbrev: [ 关, 弱, 中, 强 ]
   # 10.2：简繁四档（移植自万象虎 super_replacer 方案）
-  # s2s 简体 / s2t 通繁 / s2hk 港繁 / s2tw 臺繁；不设 reset，首次载入为「简体」
+  # s2s 简体 / s2t 通繁 / s2hk 港繁 / s2tw 臺繁
+  #
+  # 下列辅助开关一律不写 reset：librime 的 reset 语义是「每个新输入会话都强制
+  # 回默认」，写了 reset 的开关无法记住用户选择（热键 toggle 也不落盘）。
+  # 持久化由 lua/tiger_sentence.lua 的 M.options 写入 tiger_sentence.options.yaml，
+  # 在每个新会话 init 与每次按键前重放，与「提前上屏」同一机制。
   - options: [ s2s, s2t, s2hk, s2tw ]
     states: [ 简体, 通繁, 港繁, 臺繁 ]
   - name: pinyin  # 拼音滤镜
-    reset: 0
     states: [ 拼, pīn ]
   - name: chaifen  # 拆字滤镜
-    reset: 0
     states: [ 拆隐, 拆显 ]
   - name: emoji_cn  # emoji滤镜
-    reset: 0
     states: [ 🈚, 🈶 ]
   - name: charset_comment_filter  # Unicode字符集提示
-    reset: 0
     states: [ U区关, U区开 ]
   - name: udpf_switch  # Unicode编码切换
-    reset: 0
     states: [ U编关, U编开 ]
   - name: yin
-    reset: 1
     states: [ 关, 音码 ]
   #拼音反查打法：radio 组，同一时间只启用一种（用 /flypy /pinyin /zrm /mspy /sogou 切换）
   #注意：radio 组不能写 name，否则 librime 只当普通开关、忽略 options
   - options: [ yin_flypy, yin_qp, yin_zrm, yin_mspy, yin_sogou ]
-    reset: 0
     states: [ 小鹤, 全拼, 自然码, 微软, 搜狗 ]
 
 engine:
@@ -174,6 +172,13 @@ tiger_sentence:
     tiger_sentence_key_correction: false
     # 可选：首次默认档位覆盖 off / weak / medium / strong（想默认开启时取消注释）
     # tiger_sentence_correction_level: off
+    # 辅助开关首次默认值；之后以 tiger_sentence.options.yaml 里保存的选择为准。
+    pinyin: false
+    chaifen: false
+    emoji_cn: false
+    charset_comment_filter: false
+    udpf_switch: false
+    yin: true
   # 学习已提交候选的纠正（直接点选与 Tab 选择）
   tab_learning: true
   # 提前上屏与空码自动上屏共用的最短保留编码数；0 表示不额外限制。

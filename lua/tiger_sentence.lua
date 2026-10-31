@@ -4907,8 +4907,31 @@ M.options = {};
     local defaults = {
         tiger_sentence_early_commit = true,
         tiger_sentence_early_commit_to_preedit = false,
-        tiger_sentence_key_correction = false
+        tiger_sentence_key_correction = false,
+        -- 辅助开关：librime 的 reset 会在每个新会话把它们写回默认，所以这里统一
+        -- 持久化到 tiger_sentence.options.yaml，并在 init/按键前重放（见 open_store）。
+        pinyin = false,
+        chaifen = false,
+        emoji_cn = false,
+        charset_comment_filter = false,
+        udpf_switch = false,
+        yin = true
     }
+    -- radio 组按「选中档的 option 名」保存；首次默认见 default 字段。
+    local groups = {
+        { path = "options/tiger_sentence_hans",
+          options = { "s2s", "s2t", "s2hk", "s2tw" }, default = "s2s" },
+        { path = "options/tiger_sentence_yin_scheme",
+          options = { "yin_flypy", "yin_qp", "yin_zrm", "yin_mspy", "yin_sogou" }, default = "yin_flypy" }
+    }
+    local group_of = {}
+    for _, group in ipairs(groups) do
+        group.members = {}
+        for _, name in ipairs(group.options) do
+            group.members[name] = true
+            group_of[name] = group
+        end
+    end
     local stores = {}
     local level_path = "options/tiger_sentence_correction_level"
     local function valid_level(level)
@@ -4952,6 +4975,17 @@ M.options = {};
         store.backspace_unit = backspace.valid(unit) and unit or nil
         local repertoire = read_string(config, characters.path)
         store.character_set = characters.valid(repertoire) and repertoire or nil
+        store.groups = {}
+        for _, group in ipairs(groups) do
+            local value = read_string(config, group.path)
+            if not group.members[value] then
+                value = nil
+                for _, name in ipairs(group.options) do
+                    if legacy:get_bool("var/option/" .. name) then value = name end
+                end
+            end
+            store.groups[group.path] = value or group.default
+        end
         stores[path] = store
         return store
     end
@@ -4968,12 +5002,25 @@ M.options = {};
         correction.set_level(level)
         set_property_if_changed(context, "tiger_sentence_correction_level", level)
     end
+    -- Radio groups: enable the selected member first, then clear the others,
+    -- so a synchronous re-translation never sees an empty group.
+    local function apply_group(context, group, selected)
+        if group.members[selected] and not context:get_option(selected) then
+            context:set_option(selected, true)
+        end
+        for _, name in ipairs(group.options) do
+            if name ~= selected and context:get_option(name) then context:set_option(name, false) end
+        end
+    end
     local function save_store(store, context)
         local saved, accepted = pcall(function()
             for option, choice in pairs(store.values) do store.config:set_bool("options/" .. option, choice) end
             if store.level then store.config:set_string(level_path, store.level) end
             if store.backspace_unit then store.config:set_string(backspace.path, store.backspace_unit) end
             if store.character_set then store.config:set_string(characters.path, store.character_set) end
+            for _, group in ipairs(groups) do
+                store.config:set_string(group.path, store.groups[group.path])
+            end
             return store.config:save_to_file(store.path)
         end)
         set_property_if_changed(context, "tiger_sentence_options_error",
@@ -5003,6 +5050,9 @@ M.options = {};
             if env._tiger_learning then env._tiger_learning.pending, env._tiger_learning.baseline = {}, nil end
         end
         characters.activate(context)
+        for _, group in ipairs(groups) do
+            apply_group(context, group, live.store.groups[group.path] or group.default)
+        end
         live.revision = live.store.revision
         live.syncing = false
     end
@@ -5062,6 +5112,17 @@ M.options = {};
                 live.syncing = false
                 if store.backspace_unit == unit then return end
                 store.backspace_unit = unit
+                store.revision = store.revision + 1
+                save_store(store, ctx)
+                return
+            end
+            local group = group_of[name]
+            if group then
+                -- Radio groups may deselect before selecting. Persist only the
+                -- positive selection, never an intermediate empty group.
+                if not ctx:get_option(name) then return end
+                if store.groups[group.path] == name then return end
+                store.groups[group.path] = name
                 store.revision = store.revision + 1
                 save_store(store, ctx)
                 return

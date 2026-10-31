@@ -19,6 +19,8 @@
 --
 -- 选中状态由 yin_scheme 这组 radio 开关（switches）保存，默认 0 = 小鹤双拼。
 -- 若一个都没选中（例如开关被外部清掉），兜底走小鹤。
+-- Ctrl+Q 切的是 yin（音码总开关）：关掉后保留 yin_add_user 标签不做转换，
+-- 于是没有任何翻译器的 tag 能匹配，反查即整体失效（见下方 M.func 的短路）。
 
 local MAP = {
   { option = "yin_flypy", tag = "yin_flypy" }, -- 小鹤双拼
@@ -38,6 +40,11 @@ function M.func(segmentation, env)
   local seg = segmentation:back()
   -- 不是反查输入就交给后面的分段器
   if not seg or not seg:has_tag("yin_add_user") then
+    return true
+  end
+  -- 音码总开关（Ctrl+Q）：关掉就不换 tag，留在 yin_add_user 上，
+  -- 没有翻译器响应，反查自然不出候选。
+  if not env.ctx:get_option("yin") then
     return true
   end
   local tag = "yin_flypy"

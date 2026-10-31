@@ -2,6 +2,37 @@
 
 本文件记录「芝士虎整」方案包的主要更新。虎整句方案版本见 `tiger_sentence.schema.yaml` 中 `schema.version`（当前 `1.6.20261030.1`，基于上游 `1.6.20261030.1` / `e86ceeb` 发布）。
 
+## v0.3.2（2026-10-31，未打标签）
+
+修复辅助开关「只在当前输入会话有效、换应用或重启就回默认」的问题。
+
+### 根因
+
+- librime 每个输入会话都新建一个 Engine；引擎构造时 `InitializeOptions()` 会把 `switches` 中带 `reset`
+  的开关强制写回默认值。`reset` 的语义是「每会话复位」，不是「首次默认」。
+- `key_binder` 的 `toggle:` 只改内存选项，从不写 `user.yaml`；只有方案菜单里的开关会按
+  `switcher/save_options` 落盘。因此热键切换的开关无法靠 librime 自己记住。
+- 「提前上屏」之所以正常，是因为方案 Lua 把它存进 `tiger_sentence.options.yaml` 并在每个新会话重放。
+
+### 变更
+
+- **虎整句**：`pinyin`、`chaifen`、`emoji_cn`、`charset_comment_filter`、`udpf_switch`、`yin`、
+  `yin_flypy…sogou` 打法组、`s2s/s2t/s2hk/s2tw` 去掉 `reset`，改由 `lua/tiger_sentence.lua` 的
+  `M.options` 持久化（radio 档位按选中 option 名存 `tiger_sentence.options.yaml`，跨会话合并）。
+- **虎单 / 虎词**：新增 `lua/option_persist.lua`，同样的开关存到 `tiger.options.yaml` /
+  `tigress.options.yaml`；字集开关 `extended_char` 一并记忆。注册为 `lua_processor@*option_persist`。
+- **音码开关真正接线**：`Ctrl+Q` 的 `yin` 原本没有任何消费者；现在 `lua/yin_pick.lua` 读取它，
+  关闭后保留 `yin_add_user` 标签不做转换，单引号反查不再出候选。默认仍为开。
+- `ascii_mode`、`ascii_punct`、`full_shape` 保留 `reset`（有意每会话复位）。
+- 测试：`tools/test_tiger_sentence_incremental.lua` 新增「上述开关不得带 reset / 三个方案必须接线
+  持久化模块 / yin_pick 必须读取 yin」的结构断言。
+
+### 验证
+
+- 契约测试 112 checks 通过；`tools/run_regressions.py --lua lua` 全绿。
+- 用本机 librime 探针（隔离用户目录）验证三种路径：同会话内切换、新建会话、进程重启后，
+  虎整句的拼音/拆字/音码/简繁与虎单、虎词的拆字/字集均保持所选状态。
+
 ## v0.3.1（2026-10-31）
 
 对齐上游 1.6.20261030.1 的实现细节，并清理死代码与过期测试。

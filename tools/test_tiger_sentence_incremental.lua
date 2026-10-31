@@ -629,6 +629,50 @@ if not (symbols_content:find("'/'%s*:") or symbols_content:find('"/"%s*:')) then
 end
 print("OK  idle punctuation is delegated to the symbols.yaml preset")
 
+-- 辅助开关跨会话记忆：这些开关不能写 reset（librime 每个新会话都会按 reset 强制
+-- 回默认），持久化由方案自己的 Lua 选项库负责。见 lua/option_persist.lua 注释。
+local function read_repo_file(name)
+    local file = assert(io.open(repo .. "/" .. name, "rb"))
+    local content = file:read("*a")
+    file:close()
+    return content
+end
+local function assert_sticky(content, schema, header, states)
+    if content:find(header .. "\n    states: " .. states, 1, true) == nil then
+        fail(schema .. " sticky switch missing or still carries reset: " .. header)
+    end
+end
+local sentence_schema = read_repo_file("tiger_sentence.schema.yaml")
+assert_sticky(sentence_schema, "tiger_sentence", "  - name: pinyin  # 拼音滤镜", "[ 拼, pīn ]")
+assert_sticky(sentence_schema, "tiger_sentence", "  - name: chaifen  # 拆字滤镜", "[ 拆隐, 拆显 ]")
+assert_sticky(sentence_schema, "tiger_sentence", "  - name: emoji_cn  # emoji滤镜", "[ 🈚, 🈶 ]")
+assert_sticky(sentence_schema, "tiger_sentence", "  - name: charset_comment_filter  # Unicode字符集提示", "[ U区关, U区开 ]")
+assert_sticky(sentence_schema, "tiger_sentence", "  - name: udpf_switch  # Unicode编码切换", "[ U编关, U编开 ]")
+assert_sticky(sentence_schema, "tiger_sentence", "  - name: yin", "[ 关, 音码 ]")
+assert_sticky(sentence_schema, "tiger_sentence",
+    "  - options: [ yin_flypy, yin_qp, yin_zrm, yin_mspy, yin_sogou ]", "[ 小鹤, 全拼, 自然码, 微软, 搜狗 ]")
+assert_sticky(sentence_schema, "tiger_sentence",
+    "  - options: [ s2s, s2t, s2hk, s2tw ]", "[ 简体, 通繁, 港繁, 臺繁 ]")
+for _, name in ipairs({ "tiger", "tigress" }) do
+    local content = read_repo_file(name .. ".schema.yaml")
+    if content:find("lua_processor@*option_persist", 1, true) == nil then
+        fail(name .. " schema does not wire lua_processor@*option_persist")
+    end
+    assert_sticky(content, name, "  - name: extended_char  #自定义字集", "[ 全字集, 常用字]")
+    assert_sticky(content, name, "  - name: pinyin  #拼音滤镜", "[ 拼, pīn ]")
+    assert_sticky(content, name, "  - name: chaifen", "[ 拆隐, 拆显]")
+    assert_sticky(content, name, "  - name: yin  # Ctrl+Q：音码反查总开关（关掉后 ' 前缀不再查拼音）", "[ 关, 音码 ]")
+    assert_sticky(content, name,
+        "  - options: [ yin_flypy, yin_qp, yin_zrm, yin_mspy, yin_sogou ]", "[ 小鹤, 全拼, 自然码, 微软, 搜狗 ]")
+end
+if read_repo_file("rime.lua"):find('option_persist = require("option_persist")', 1, true) == nil then
+    fail("rime.lua does not register option_persist")
+end
+if read_repo_file("lua/yin_pick.lua"):find('get_option("yin")', 1, true) == nil then
+    fail("yin_pick does not honor the Ctrl+Q 音码 switch")
+end
+print("OK  auxiliary switches persist without reset across sessions")
+
 local env_tab, context_tab, _, _, menu_tab, segment_tab = fake_environment(false)
 context_tab.input = "rl"
 menu_tab.count = 3

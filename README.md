@@ -116,11 +116,15 @@
 | 字集（虎整句） | 常用字集 / 全字集 | `Ctrl+J`；清单见 `tiger_sentence.common_characters.txt` |
 | 回删单位（虎整句） | 回删编码 / 回删整字 / 先编码后整字 | 默认整字；保存到 `tiger_sentence.options.yaml` |
 | `pinyin` | 拼音注释关 / 开 | `Ctrl+P` |
-| `chaifen` | 拆字注释关 / 开 | `Ctrl+J` |
+| `chaifen` | 拆字注释关 / 开 | `Ctrl+Shift+J` |
 | `emoji_cn` | Emoji 关 / 开 | `Ctrl+I` |
 | `charset_comment_filter` | Unicode 字符集提示 | `Ctrl+U` |
 | `udpf_switch` | Unicode 编码显示 | `Ctrl+Y` |
 | `yin` | 拼音反查关 / 开 | `Ctrl+Q` |
+
+上表的辅助开关（含简繁四档和拼音反查打法）从 v0.3.2 起会保存到
+`tiger_sentence.options.yaml`，重启输入法、重新部署或切换应用后仍然生效；
+`ascii_punct`、`full_shape`、`ascii_mode` 仍按 Rime 惯例每个输入会话复位。
 
 默认设置：
 
