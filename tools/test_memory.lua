@@ -3,6 +3,17 @@ local repo=arg[1] or "."
 package.path=repo.."/lua/?.lua;"..package.path
 rime_api={get_user_data_dir=function()return repo end}
 local sentence=dofile(os.getenv('TIGER_SENTENCE_MODULE') or (repo..'/lua/tiger_sentence.lua'))
+
+-- 兼容旧测试 API：上游 20261010 起用 auto_select_min_code_length 取代
+-- 「允许单字重码组句」布尔开关；测试沿用旧调用时映射到新 API。
+local function set_duplicate_single(ctx)
+    local enabled = true
+    if type(ctx) == "table" and type(ctx.get_option) == "function" then
+        enabled = ctx:get_option("tiger_sentence_allow_duplicate_single") and true or false
+    end
+    sentence.apply_auto_select_min_code_length(enabled and 1 or 0)
+end
+
 local checks=0
 local function check(ok,msg)checks=checks+1;assert(ok,msg)end
 check(sentence.memory_status().model==nil,'diagnostics loaded a model')
@@ -28,7 +39,7 @@ check(not sentence.set_memory_profile('unknown') and sentence.memory_status().pr
 sentence.configure_memory({engine={schema={config={get_string=function()return nil end}}}})
 check(sentence.memory_status().profile=='balanced','missing schema profile inherited previous value')
 for _,duplicate in ipairs({false,true}) do
- sentence.set_allow_duplicate_single({get_option=function()return duplicate end})
+ set_duplicate_single({get_option=function()return duplicate end})
  for _,raw in ipairs({'ot','ueot','awmenamcunta','jeumbauefaalhngyoehiyfbmvmxfzbflrl',string.rep('ot',64)}) do
   sentence.set_memory_profile('balanced')
   local expected=sentence.decode_full(raw,true,'')

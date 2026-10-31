@@ -4726,6 +4726,13 @@ M.lexicon_probe = function(code)
     return copy
 end
 -- Read-only view for benchmarks and diagnostics; callers must not mutate.
+M.lexicon_lengths = function()
+    local copy = {}
+    for index = 1, #lexicon_state.lengths do
+        copy[index] = lexicon_state.lengths[index]
+    end
+    return copy
+end
 M.lexicon_data_view = function()
     ensure_lexicon(nil)
     return {
@@ -4739,10 +4746,12 @@ M.reference_isolation_penalty = isolation_penalty
 M.reference_path_isolation_penalty = ranking_prior.reference_path_isolation_penalty
 M.path_isolation_penalty = path_isolation_penalty
 M.has_complete_candidate = has_complete_candidate
+M.apply_auto_select_min_code_length = lexicon_state.apply_auto_select_min_code_length
 M.build_prefix_evidence = build_prefix_evidence
 M.find_prefix_evidence = find_prefix_evidence
 M.common_text_prefix = common_text_prefix
 M.strong_empty_code_candidate = strong_empty_code_candidate
+M.prefix_extends = prefix_extends
 M.set_model_enabled = function(enabled)
     local disabled = enabled == false
     if disabled == model_disabled then
@@ -4860,6 +4869,8 @@ M.buffer_filter = function(input, env)
         if not buffered or candidate.type == "sentence_buffered" then yield(candidate) end
     end
 end
+M.apply_source_ordering_for_test = learning.apply_source_ordering
+M.dedup_limit_for_test = dedup_limit
 M.learning = learning
 M.set_learning_for_test = function(index, mode)
     learning_index, learning_mode = index, mode or ""

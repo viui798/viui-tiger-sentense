@@ -167,7 +167,7 @@ for _,synchronous_translation in ipairs({false,true})do
         self.pushes=self.pushes+1;self.input=self.input..ch;self.caret_pos=#self.input
         if synchronous_translation then
             Candidate=function(_,_,_,text)return {text=text}end;yield=function()end
-            sentence.translator(self.input,{start=0,_end=#self.input},{engine={context=self}})
+            sentence.translator(self.input,{start=0,_end=#self.input,has_tag=function() return false end},{engine={context=self}})
         end
     end
     local env={engine={context=context,commit_text=function(_,text)commits[#commits+1]=text end}}

@@ -3,6 +3,17 @@ local repo = arg[1] or "."
 package.path = repo .. "/lua/?.lua;" .. package.path
 rime_api = {get_user_data_dir=function() return repo end}
 local sentence = dofile(os.getenv("TIGER_SENTENCE_MODULE") or repo.."/lua/tiger_sentence.lua")
+
+-- 兼容旧测试 API：上游 20261010 起用 auto_select_min_code_length 取代
+-- 「允许单字重码组句」布尔开关；测试沿用旧调用时映射到新 API。
+local function set_duplicate_single(ctx)
+    local enabled = true
+    if type(ctx) == "table" and type(ctx.get_option) == "function" then
+        enabled = ctx:get_option("tiger_sentence_allow_duplicate_single") and true or false
+    end
+    sentence.apply_auto_select_min_code_length(enabled and 1 or 0)
+end
+
 local checks = 0
 local function check(ok, msg) checks=checks+1; assert(ok, msg) end
 sentence.set_model_enabled(false)
@@ -15,7 +26,7 @@ io.open=function(path,mode)
     return original_open(path,mode)
 end
 sentence.apply_high_freq_limit(0)
-sentence.set_allow_duplicate_single({get_option=function()return true end})
+set_duplicate_single({get_option=function()return true end})
 -- An old published snapshot survives later decode/trim/reset generations.
 local function signature(result)
     local out={}

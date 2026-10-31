@@ -11,6 +11,17 @@ if f then f:close() else
     created=true
 end
 local sentence=dofile(os.getenv("TIGER_SENTENCE_MODULE") or repo.."/lua/tiger_sentence.lua")
+
+-- 兼容旧测试 API：上游 20261010 起用 auto_select_min_code_length 取代
+-- 「允许单字重码组句」布尔开关；测试沿用旧调用时映射到新 API。
+local function set_duplicate_single(ctx)
+    local enabled = true
+    if type(ctx) == "table" and type(ctx.get_option) == "function" then
+        enabled = ctx:get_option("tiger_sentence_allow_duplicate_single") and true or false
+    end
+    sentence.apply_auto_select_min_code_length(enabled and 1 or 0)
+end
+
 local checks=0
 local function check(ok,label) checks=checks+1;assert(ok,label) end
 local function near(a,b,label) check(math.abs(a-b)<1e-9,label..": "..tostring(a).." vs "..tostring(b)) end
@@ -20,7 +31,7 @@ check(defaults.whole_input_single_character_reward==5,"whole single reward must 
 check(defaults.canonical_isolation_factor==0 and defaults.canonical_isolation_min_code_length==4,
     "full-code rare-character protection changed")
 check(sentence.model_status().loaded,"scoring gate requires the deterministic model fixture")
-sentence.set_allow_duplicate_single(nil)
+set_duplicate_single(nil)
 local function find(raw,text,incremental)
     sentence.reset_decode_cache()
     local menu=incremental and sentence.decode(raw,true) or sentence.decode_full(raw,true)

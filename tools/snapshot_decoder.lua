@@ -7,6 +7,17 @@ package.path=source.."/lua/?.lua;"..package.path
 rime_api={get_user_data_dir=function()return data end}
 os.time=function()return 1800000000 end
 local sentence=require("tiger_sentence")
+
+-- 兼容旧测试 API：上游 20261010 起用 auto_select_min_code_length 取代
+-- 「允许单字重码组句」布尔开关；测试沿用旧调用时映射到新 API。
+local function set_duplicate_single(ctx)
+    local enabled = true
+    if type(ctx) == "table" and type(ctx.get_option) == "function" then
+        enabled = ctx:get_option("tiger_sentence_allow_duplicate_single") and true or false
+    end
+    sentence.apply_auto_select_min_code_length(enabled and 1 or 0)
+end
+
 if arg[5] and sentence.set_memory_profile then assert(sentence.set_memory_profile(arg[5])) end
 local trim_every=tonumber(arg[6]) or 0
 if arg[7]=="legacy-ranking" and sentence.set_decoder_parameters_for_test then
@@ -106,7 +117,7 @@ end
 local learned_modes = ignore_learning_behavior and {false} or {false,true}
 for _,learned in ipairs(learned_modes)do
     for _,duplicate in ipairs({false,true})do
-        sentence.set_allow_duplicate_single({get_option=function()return duplicate end})
+        set_duplicate_single({get_option=function()return duplicate end})
         sentence.set_learning_for_test(learned and learning.runtime_index(events,os.time()) or nil,learned and "snapshot" or "")
         local group=tostring(learned).."/"..tostring(duplicate)
         for case,raw in ipairs(samples)do

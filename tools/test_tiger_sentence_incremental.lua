@@ -2,6 +2,11 @@
 -- Usage: lua tools/test_tiger_sentence_incremental.lua [repo_root] [--require-model]
 
 local repo = arg[1] or "."
+-- 真实 Rime 分段都实现 has_tag；整句翻译器用它跳过反查/造词/快符等分段。
+-- 测试里的字面分段也补上，保持与生产环境一致。
+local function fake_segment(start, stop)
+    return { start = start, _end = stop, has_tag = function() return false end }
+end
 local require_model = false
 for i = 2, #arg do
     if arg[i] == "--require-model" then
@@ -19,6 +24,17 @@ rime_api = {
 }
 
 local sentence = require("tiger_sentence")
+
+-- 兼容旧测试 API：上游 20261010 起用 auto_select_min_code_length 取代
+-- 「允许单字重码组句」布尔开关；测试沿用旧调用时映射到新 API。
+local function set_duplicate_single(ctx)
+    local enabled = true
+    if type(ctx) == "table" and type(ctx.get_option) == "function" then
+        enabled = ctx:get_option("tiger_sentence_allow_duplicate_single") and true or false
+    end
+    sentence.apply_auto_select_min_code_length(enabled and 1 or 0)
+end
+
 
 local samples = {
     "ot",
@@ -90,9 +106,17 @@ end
 if not status.isolation_enabled then
     fail("isolation penalty disabled although ranks were loaded")
 end
-if status.whitelist_count ~= 119 then
-    fail(string.format("expected 119 whitelist characters, got %d",
-        status.whitelist_count))
+do
+    -- 白名单条数随上游更新变化（1.6.20261030.1 为 126），按文件实际行数校验
+    local lines = 0
+    for line in io.lines(repo .. "/tiger_sentence.full_code_whitelist.txt") do
+        local char = line:match("^%s*(%S+)")
+        if char and char:sub(1, 1) ~= "#" then lines = lines + 1 end
+    end
+    if status.whitelist_count ~= lines then
+        fail(string.format("expected %d whitelist characters, got %d",
+            lines, status.whitelist_count))
+    end
 end
 sentence.reset_decode_cache()
 local ldac = sentence.decode("ldac")
@@ -580,16 +604,28 @@ local symbols_file = assert(io.open(
     repo .. "/symbols.yaml", "rb"))
 local symbols_content = symbols_file:read("*a")
 symbols_file:close()
-for _, mapping in ipairs({
-        '",": { commit: ， }',
-        '".": { commit: 。 }',
-        '"/": { commit: 、 }',
-        '";": { commit: ； }',
-        '"?": { commit: ？ }'
+-- 本仓库的 symbols.yaml 是整合版（万象表，单引号键、/ 用候选列表），
+-- 与上游精简表的字面格式不同，因此按「语义」校验：键可以是单/双引号，
+-- / 只要求存在映射（列表或 commit 均可）。
+local function has_commit(symbol, text)
+    local escaped = symbol:gsub("(%W)", "%%%1")
+    return symbols_content:find("'" .. escaped .. "'%s*:%s*{%s*commit:%s*" .. text) ~=
+        nil or
+        symbols_content:find('"' .. escaped .. '"%s*:%s*{%s*commit:%s*' .. text) ~= nil
+end
+for _, pair in ipairs({
+        { ",", "，" },
+        { ".", "。" },
+        { ";", "；" },
+        { "?", "？" }
     }) do
-    if not symbols_content:find(mapping, 1, true) then
-        fail("default symbols.yaml is missing direct punctuation mapping " .. mapping)
+    if not has_commit(pair[1], pair[2]) then
+        fail("default symbols.yaml is missing direct punctuation mapping " ..
+            pair[1] .. " -> " .. pair[2])
     end
+end
+if not (symbols_content:find("'/'%s*:") or symbols_content:find('"/"%s*:')) then
+    fail("default symbols.yaml is missing the '/' punctuation entry")
 end
 print("OK  idle punctuation is delegated to the symbols.yaml preset")
 
@@ -741,7 +777,7 @@ end
 yield = function(candidate)
     yielded[#yielded + 1] = candidate.text
 end
-sentence.translator("rl", { start = 0, _end = 2 }, env_empty)
+sentence.translator("rl", fake_segment(0, 2), env_empty)
 Candidate, yield = old_candidate, old_yield
 if #yielded ~= 1 or yielded[1] ~= "了" then
     fail("automatic-commit continuation rl exposed an implicit non-first candidate")
@@ -753,7 +789,7 @@ context_empty.input = "xrxbj"
 yielded = {}
 Candidate = function(_, _, _, text, _) return { text = text } end
 yield = function(candidate) yielded[#yielded + 1] = candidate.text end
-sentence.translator("xrxbj", { start = 0, _end = 5 }, env_empty)
+sentence.translator("xrxbj", fake_segment(0, 5), env_empty)
 Candidate, yield = old_candidate, old_yield
 local has_rumination = false
 for _, text in ipairs(yielded) do
@@ -924,7 +960,7 @@ print("OK  raw input cap applies to the live tail only")
 -- 允许单字重码组句: segmented paths compete non-first single characters by
 -- language-model score; whole-input single edges keep lexicon-rank order.
 sentence.reset_decode_cache()
-sentence.set_allow_duplicate_single(nil)
+set_duplicate_single(nil)
 local duplicate_on = sentence.decode("gyygch")
 local has_yanggao = false
 for i = 1, #duplicate_on do
@@ -937,7 +973,7 @@ sentence.reset_decode_cache()
 if sentence.decode("gch")[1].text ~= "赤" then
     fail("whole-input single edge gch did not keep rank-first order")
 end
-sentence.set_allow_duplicate_single({
+set_duplicate_single({
     get_option = function(_, name)
         if name == "tiger_sentence_allow_duplicate_single" then return false end
         return true
@@ -950,7 +986,7 @@ for i = 1, #duplicate_off do
         fail("duplicate-single switch off still exposed 羊羔 implicitly")
     end
 end
-sentence.set_allow_duplicate_single(nil)
+set_duplicate_single(nil)
 sentence.reset_decode_cache()
 print("OK  duplicate single characters compete only while the switch is on")
 
@@ -990,7 +1026,7 @@ local function run_early_commit_sample(sample)
     local old_candidate, old_yield = Candidate, yield
     Candidate = function(_, _, _, text, _) return { text = text } end
     yield = function(candidate) yielded[#yielded + 1] = candidate.text end
-    sentence.translator(context.input, { start = 0, _end = #context.input }, env)
+    sentence.translator(context.input, fake_segment(0, #context.input), env)
     Candidate, yield = old_candidate, old_yield
     return joined, yielded, env, context
 end
@@ -1154,19 +1190,19 @@ local ja = sentence.decode("ja")
 if not ja[1] or ja[1].text ~= "甲" or not ja[2] or ja[2].text ~= "乙" then
     fail("imported table lost line-order ranks for shared code ja")
 end
-sentence.set_allow_duplicate_single(nil)
+set_duplicate_single(nil)
 if sentence.capture_empty_code_candidate("ja", "") then
     fail("duplicate single was excluded from empty-code confidence")
 end
 if not sentence.has_complete_candidate("ja", "", "甲", true) then
     fail("exact empty-code query lost the duplicate single")
 end
-sentence.set_allow_duplicate_single({ get_option = function() return false end })
+set_duplicate_single({ get_option = function() return false end })
 if not sentence.capture_empty_code_candidate("ja", "") or
     sentence.has_complete_candidate("ja", "", "甲", true) then
     fail("disabled duplicate-single switch did not restore first-rank grouping")
 end
-sentence.set_allow_duplicate_single(nil)
+set_duplicate_single(nil)
 for _, automatic in ipairs({false, true}) do
     local env, context, properties, commits, menu = fake_environment(automatic)
     context.input = "ja"
@@ -1181,7 +1217,7 @@ for _, automatic in ipairs({false, true}) do
     Candidate = function(_, _, _, text) return {text = text} end
     yield = function(candidate) shown[#shown + 1] = candidate.text end
     -- Real Rime owns distinct processor/translator environments.
-    sentence.translator(context.input, {start = 0, _end = #context.input}, {engine = env.engine})
+    sentence.translator(context.input, fake_segment(0, #context.input), {engine = env.engine})
     Candidate, yield = old_candidate, old_yield
     if shown[1] ~= (automatic and "你们" or "乙你们") then fail("Tab lock lost text/boundary across environments") end
     sentence.processor(fake_key("BackSpace"), env)

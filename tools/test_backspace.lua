@@ -73,7 +73,7 @@ end
 local function render(s,env)
     local out={};yield=function(c)out[#out+1]=c end
     local ctx=env.engine.context
-    s.translator(ctx.input,{start=0,_end=#ctx.input},env)
+    s.translator(ctx.input,{start=0,_end=#ctx.input,has_tag=function() return false end},env)
     return out
 end
 local function same_menu(a,b)

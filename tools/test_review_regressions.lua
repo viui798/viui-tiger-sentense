@@ -5,6 +5,17 @@ package.path = repo .. "/lua/?.lua;" .. package.path
 local directory = repo
 rime_api = {get_user_data_dir=function() return directory end}
 local sentence = dofile(os.getenv("TIGER_SENTENCE_MODULE") or repo .. "/lua/tiger_sentence.lua")
+
+-- 兼容旧测试 API：上游 20261010 起用 auto_select_min_code_length 取代
+-- 「允许单字重码组句」布尔开关；测试沿用旧调用时映射到新 API。
+local function set_duplicate_single(ctx)
+    local enabled = true
+    if type(ctx) == "table" and type(ctx.get_option) == "function" then
+        enabled = ctx:get_option("tiger_sentence_allow_duplicate_single") and true or false
+    end
+    sentence.apply_auto_select_min_code_length(enabled and 1 or 0)
+end
+
 local learning = sentence.learning
 local checks = 0
 local function check(ok, message) checks=checks+1; assert(ok, message) end
@@ -33,7 +44,7 @@ for _,code in ipairs({"abcde","abcdef","abcdefgh"}) do
     with_codes("甲\t"..code.."\n乙丙\t"..code.."\n丁\txy\n",function()
         local raw=code.."xy"
         for _,allow in ipairs({true,false}) do
-            sentence.set_allow_duplicate_single({get_option=function()return allow end})
+            set_duplicate_single({get_option=function()return allow end})
             for _,sample in ipairs({raw, code.."2xy", code.."12xy", code.."'xy"}) do
                 sentence.reset_decode_cache()
                 for i=1,#sample do
@@ -50,7 +61,7 @@ for _,code in ipairs({"abcde","abcdef","abcdefgh"}) do
         end
     end)
 end
-sentence.set_allow_duplicate_single({get_option=function()return true end})
+set_duplicate_single({get_option=function()return true end})
 -- Multi-digit selectors can make even a two-letter whole-input edge >4 bytes.
 with_codes("甲\tab\n乙\tab\n",function()
     sentence.decode("ab00002",true,"")

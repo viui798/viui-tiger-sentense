@@ -135,7 +135,7 @@ local function frontend_cycle(value, id)
     env.engine.commit_text = function() error("Unexpected automatic commit") end
     local translator_env = {engine=env.engine}
     local function refresh()
-        sentence.translator(ctx.input, {start=0, _end=#ctx.input}, translator_env)
+        sentence.translator(ctx.input, {start=0, _end=#ctx.input, has_tag=function() return false end}, translator_env)
     end
     function ctx:push_input(ch)
         self.input = self.input .. ch
