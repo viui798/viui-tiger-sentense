@@ -192,8 +192,25 @@ do
     check(content:find("'[': '['", 1, true) ~= nil and
         content:find("']': ']'", 1, true) ~= nil,
         "half-width brackets are not wired to direct commit")
-    check(sentence.ascii_component == nil,
-        "mixed-input ascii component is still exported")
+    -- 上游 1.6.20261030.1：按上游标准保留 ascii_component，并接入字集与三档回删
+    check(sentence.ascii_component ~= nil,
+        "upstream ascii component should be retained")
+    for _, name in ipairs({"backspace", "characters", "common_data", "features"}) do
+        local f = io.open(repo .. "/lua/tiger_sentence_" .. name .. ".lua", "rb")
+        check(f ~= nil, "tiger_sentence_" .. name .. ".lua is missing")
+        if f then f:close() end
+    end
+    for _, key in ipairs({"tiger_sentence_characters_common",
+                          "tiger_sentence_backspace_character",
+                          "character_set_shortcut_enabled",
+                          "tiger_sentence_backspace_unit"}) do
+        check(content:find(key, 1, true) ~= nil, key .. " is not wired in the schema")
+    end
+    local chars = io.open(repo .. "/tiger_sentence.common_characters.txt", "rb")
+    check(chars ~= nil, "tiger_sentence.common_characters.txt is missing")
+    if chars then
+        chars:close()
+    end
     check(sentence.inline_english_parts == nil and
         sentence.decode_inline_english == nil and
         sentence.prewarm_inline_english_tables == nil,

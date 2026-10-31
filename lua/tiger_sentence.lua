@@ -2,17 +2,20 @@
 -- Lexicon data is loaded from plain-text files (see load_lexicon_data below),
 -- so users can edit or replace the code table without re-running exporters.
 -- Pure Lua TCSKNM03 Q8 fivegram reader with paged I/O and bounded caches.
+local features = require("tiger_sentence_features")
 local BOS = "\2"
 local EOS = "\3"
 local ISOLATION_CACHE_ENTRIES = 8192
 local learning = require("tiger_sentence_learning")
+local backspace = require("tiger_sentence_backspace")
+local characters = require("tiger_sentence_characters")
 local learning_index, learning_mode, learning_affected = nil, "", false
 local learning_submit -- defined with the host submission adapter below
 
 -- 加词模块（`` ` `` 造词）的用户词库：整句搜句时也要能用上，见 rebuild_lexicon。
 -- 两个模块都由 rime.lua 加载，这里惰性取用，取不到就当作没有用户词。
 -- 注意：主 chunk 的局部变量已接近 Lua 的 200 上限，桥接只用这一个 local。
-local zaoci_bridge = { checked = false, module = nil }
+zaoci_bridge = { checked = false, module = nil }
 
 function zaoci_bridge.ref()
     if not zaoci_bridge.checked then
@@ -430,13 +433,14 @@ local function build_lexicon_index(entries, character_ranks, high_freq_limit, wh
         for index = 1, #texts do
             local text = texts[index]
             local is_user = user_marks and user_marks[code .. "\0" .. text] or nil
+            local visible = characters.allows(text)
             local rank
             if is_user then
                 -- 自造词排在第一位，但不占用词典的序号：词典条目保持原有
                 -- rank，原来的首选词才不会掉出「首条才参与组句」的那条路。
                 rank = 1
             else
-                dict_rank = dict_rank + 1
+                if visible then dict_rank = dict_rank + 1 end
                 rank = dict_rank
             end
             local allow_non_primary =
@@ -445,7 +449,7 @@ local function build_lexicon_index(entries, character_ranks, high_freq_limit, wh
                 or not common
                 or not common[text]
                 or whitelist[text] == true
-            if allow_non_primary or primary[text] == code then
+            if visible and (allow_non_primary or primary[text] == code) then
                 allowed[#allowed + 1] = {
                     t = text,
                     r = rank,
@@ -556,6 +560,7 @@ local function rebuild_lexicon(limit)
 
     local index = build_lexicon_index(entries, character_ranks, limit, whitelist)
     lexicon_state.built = true
+    lexicon_state.character_revision = characters.revision
     lexicon_state.high_freq_limit = limit
     lexicon_state.codes = index.codes
     lexicon_state.lengths = index.lengths
@@ -633,12 +638,13 @@ function lexicon_state.configure_auto_select_min_code_length(env)
 end
 
 local function ensure_lexicon(env)
+    if env and env.engine and env.engine.context then characters.activate(env.engine.context) end
     local schema = env and env.engine and env.engine.schema
     -- Decoder/diagnostic calls have no schema: they borrow the active index,
     -- never select a default schema or change its configured limit. This also
     -- avoids rebuilding (and clearing decode caches) inside a frontend call.
     if not schema then
-        if not lexicon_state.built then
+        if not lexicon_state.built or lexicon_state.character_revision ~= characters.revision then
             rebuild_lexicon(default_high_freq_limit)
         end
         return lexicon_state
@@ -653,6 +659,7 @@ local function ensure_lexicon(env)
     local limit = configured_high_freq_limit(env)
     if limit == nil then limit = default_high_freq_limit end
     if not lexicon_state.built or limit ~= lexicon_state.high_freq_limit or
+        lexicon_state.character_revision ~= characters.revision or
         zaoci_bridge.version() ~= lexicon_state.user_version then
         rebuild_lexicon(limit)
     end
@@ -1081,6 +1088,7 @@ local function fresh_transient_state()
         empty_code_pending = nil,
         continuation_after_auto_commit = false,
         model_generation = model_generation,
+        character_revision = characters.revision,
         auto_selection_generation = lexicon_state.auto_selection_generation
     }
 end
@@ -1156,8 +1164,10 @@ local function active_lock(state)
 end
 
 local function synchronize_model_state(state)
-    if state.model_generation == model_generation and
+    if state.character_revision == characters.revision and state.model_generation == model_generation and
         state.auto_selection_generation == lexicon_state.auto_selection_generation then return false end
+    state.selection_explicit, state.first_choice_eligible, state.tab_pending = false, false, false
+    state.character_revision = characters.revision
     state.model_generation = model_generation
     state.auto_selection_generation = lexicon_state.auto_selection_generation
     state.trackers = {}
@@ -1218,6 +1228,7 @@ local function save_sentence_state(context, state, env)
 end
 
 local function reset_sentence_state(context, env, continuation_after_auto_commit)
+    backspace.reset(context, env)
     finish_performance_sample()
     local transient = fresh_transient_state()
     transient.continuation_after_auto_commit = continuation_after_auto_commit or false
@@ -3479,7 +3490,7 @@ local function capture_empty_code_candidate(full_before, committed_text, locked)
     }
 end
 
-local function cycle_candidate_highlight(context, step)
+local function cycle_candidate_highlight(context, step, explicit)
     if not context:has_menu() then return false end
     local composition = context.composition
     if not composition or composition:empty() then return false end
@@ -3493,7 +3504,7 @@ local function cycle_candidate_highlight(context, step)
         and menu:prepare(candidate_limit) or menu:candidate_count()
     if not count or count <= 0 then return false end
     local selected = segment.selected_index or 0
-    local target = (selected + step) % count
+    local target = features.first_choice_selection and not explicit and (step < 0 and count - 1 or 0) or (selected + step) % count
     -- Highlight changes only the active index. Context:select(), by contrast,
     -- selects the candidate and may commit a whole-composition sentence.
     if type(context.highlight) == "function" and context:highlight(target) then
@@ -3620,6 +3631,7 @@ end
 local function invalidate_edit_state(context, state, env, first_changed, full_length, deleted_tail)
     local previous_lock = active_lock(state)
     state.tab_pending = false
+    state.selection_explicit, state.first_choice_eligible = false, false
     state.trackers = {}
     state.last_seen_raw = ""
     state.empty_code_pending = nil
@@ -4054,6 +4066,21 @@ local function learning_stage(env, state, selected, raw, submitted_first)
 
     local baseline = state.tab_pending and live.baseline or
         (not state.tab_pending and submitted_first)
+    local first_choice = #(selected._learning_ahead or {}) == 0
+    if first_choice then
+        if features.first_choice_selection and state.first_choice_eligible and state.selection_explicit and state.tab_pending and
+            baseline and not correction.affected(baseline) and
+            (learning.candidate_is_direct(selected) or learning.candidate_is_composed_only(selected)) then
+            local lock = active_lock(state)
+            local floor = math.max(#state.committed_raw, lock and #lock.raw or 0)
+            for _, e in ipairs(learning.first_choice_events(raw, selected, floor, live.mode)) do
+                if #live.pending < 256 then live.pending[#live.pending + 1] = e end
+            end
+        end
+        live.baseline = nil
+        state.first_choice_eligible = false
+        return
+    end
     if baseline and not correction.affected(baseline) and
         learning.candidate_is_direct(baseline) and learning.candidate_is_direct(selected) then
         -- Pure Direct choices retain table rank. A visible cross-source rival
@@ -4161,6 +4188,7 @@ local function prepare_learning(env, attach)
         if attach and context.update_notifier then
             live.update_connection = context.update_notifier:connect(function(ctx)
                 if not ctx:is_composing() then
+                    backspace.reset(ctx, env)
                     live.pending, live.baseline, live.submitted_raw = {}, nil, nil
                     if buffered_text(ctx) ~= "" then reset_sentence_state(ctx, env) end
                 end
@@ -4180,6 +4208,7 @@ local function prepare_learning(env, attach)
                     local state = sentence_state(ctx, env)
                     reset_early_evidence(state)
                     state.empty_code_pending, state.tab_pending = nil, false
+                    state.selection_explicit, state.first_choice_eligible = false, false
                     live.pending, live.baseline = {}, nil
                     save_transient_state(ctx, state, env)
                     if type(ctx.refresh_non_confirmed_composition) == "function" then
@@ -4191,6 +4220,10 @@ local function prepare_learning(env, attach)
                 end
             end)
         end
+    end
+    if live.character_revision ~= characters.revision then
+        live.character_revision = characters.revision
+        live.pending, live.baseline, live.submitted_raw = {}, nil, nil
     end
     if not context:is_composing() then learning.refresh_scores(live.store) end
     local index = live.store and live.store.db and live.store.index or nil
@@ -4212,9 +4245,33 @@ end
 
 local function processor(key_event, env)
     if key_event:release() then
+        if env._character_held ~= nil and env._character_held == key_event.keycode then env._character_held = nil; return 1 end
         return 2
     end
+    backspace.observe(key_event, env.engine.context)
     if env._tiger_options then env._tiger_options.sync() end
+    local ctx = env.engine.context
+    local config = env.engine.schema and env.engine.schema.config
+    local shortcut = config and type(config.get_string) == "function" and config:get_string("tiger_sentence/character_set_shortcut") or "Control+j"
+    if config and not ctx:get_option("ascii_mode") and (type(config.get_bool) ~= "function" or config:get_bool("tiger_sentence/character_set_shortcut_enabled") ~= false) and
+        key_event:repr() == shortcut then
+        if not env._character_held then
+            env._character_held = key_event.keycode
+            local full = ctx:get_option("tiger_sentence_characters_full")
+            ctx:set_option(full and "tiger_sentence_characters_common" or "tiger_sentence_characters_full", true)
+        end
+        return 1
+    end
+    characters.activate(ctx)
+    if live_input(ctx) == "" and rime_api and rime_api.get_user_data_dir then
+        characters.reload(rime_api.get_user_data_dir() .. "/tiger_sentence.common_characters.txt")
+    end
+    if env._character_revision ~= nil and env._character_revision ~= characters.revision then
+        save_locks(ctx, {})
+        env._tiger_sentence_transient = nil
+        if env._tiger_learning then env._tiger_learning.pending, env._tiger_learning.baseline = {}, nil end
+    end
+    env._character_revision = characters.revision
     configure_memory(env)
     ensure_lexicon(env)
     local context = env.engine.context
@@ -4286,6 +4343,11 @@ local function processor(key_event, env)
             return 1
         end
         local confirm = state.tab_pending and is_letter
+        if confirm and not features.first_choice_selection then
+            local composition = context.composition
+            local segment = composition and not composition:empty() and composition:back()
+            confirm = segment and (segment.selected_index or 0) ~= 0
+        end
         if confirm then
             local composition = context.composition
             local segment = composition and not composition:empty() and composition:back()
@@ -4309,6 +4371,7 @@ local function processor(key_event, env)
             if selected and selected.path and selected.path.raw_length > #state.committed_raw then
                 learning_stage(env, state, selected, full_before)
                 state.tab_pending = false
+                state.selection_explicit, state.first_choice_eligible = false, false
                 local boundaries, node = {}, selected.path
                 while node and node.raw_length > 0 do
                     table.insert(boundaries, 1, tostring(node.raw_length) .. "," .. tostring(node.text_length) .. ";")
@@ -4337,6 +4400,7 @@ local function processor(key_event, env)
             end
         end
         state.tab_pending = false
+        state.selection_explicit, state.first_choice_eligible = false, false
         learned.baseline = nil
         if not is_letter then
             state.empty_code_pending = nil
@@ -4387,10 +4451,24 @@ local function processor(key_event, env)
         return 1
     end
     if repr == "BackSpace" or repr == "Delete" then
+        local remove_count = 1
+        if repr == "BackSpace" then
+            local raw, caret = live_input(context), input_caret(context)
+            local span = 1
+            if raw ~= "" and caret == #raw and backspace.unit(context) ~= "code" then
+                -- Decode the current raw input before using the selected menu
+                -- path. Selectors belong to the same final raw boundary.
+                local selected = learning_selection(env, state)
+                span = backspace.last_span(selected, #state.committed_raw + #raw, #state.committed_raw)
+            end
+            remove_count = backspace.count(context, env, raw, caret,
+                state.committed_raw .. "\t" .. state.committed_text, span)
+        end
         -- Conservatively discard staged corrections on manual edits; a new
         -- Tab correction can be recorded after the edit has been decoded.
         learned.pending, learned.baseline = {}, nil
         state.tab_pending = false
+        state.selection_explicit, state.first_choice_eligible = false, false
         reset_early_evidence(state)
         state.empty_code_pending = nil
         if state.buffered_text ~= "" then
@@ -4415,35 +4493,35 @@ local function processor(key_event, env)
                 restore_composition_input(context, raw)
                 return 1
             end
-            local first = repr == "BackSpace" and caret - 1 or caret
+            local first = repr == "BackSpace" and caret - remove_count or caret
             if first < 0 or first >= #raw then return 1 end
-            local remaining = raw:sub(1, first) .. raw:sub(first + 2)
+            local remaining = raw:sub(1, first) .. raw:sub(first + remove_count + 1)
             invalidate_edit_state(context, state, env,
                 #state.committed_raw + first, #state.committed_raw + #remaining,
-                first == #raw - 1 and raw:sub(-1) or nil)
+                remove_count == 1 and first == #raw - 1 and raw:sub(-1) or nil)
             restore_composition_input(context, remaining)
             if type(context.caret_pos) == "number" then context.caret_pos = first + 1 end
             return 1
         end
-        if active_lock(state) then
+        if active_lock(state) or (repr == "BackSpace" and remove_count > 1) then
             local raw = live_input(context)
             local caret = input_caret(context)
-            local first = repr == "BackSpace" and caret - 1 or caret
+            local first = repr == "BackSpace" and caret - remove_count or caret
             if first < 0 or first >= #raw then
                 save_transient_state(context, state, env)
                 return 2
             end
-            local remaining = raw:sub(1, first) .. raw:sub(first + 2)
+            local remaining = raw:sub(1, first) .. raw:sub(first + remove_count + 1)
             invalidate_edit_state(context, state, env,
                 #state.committed_raw + first, #state.committed_raw + #remaining,
-                first == #raw - 1 and raw:sub(-1) or nil)
+                remove_count == 1 and first == #raw - 1 and raw:sub(-1) or nil)
             if remaining == "" then
                 context:clear()
                 reset_sentence_state(context, env)
             else
                 local edit = repr == "BackSpace" and context.pop_input or context.delete_input
                 if type(edit) == "function" then
-                    edit(context, 1)
+                    edit(context, remove_count)
                 else
                     restore_composition_input(context, remaining)
                     if type(context.caret_pos) == "number" then context.caret_pos = first end
@@ -4459,6 +4537,7 @@ local function processor(key_event, env)
         -- Let navigator move the caret; old append evidence and a pending Tab
         -- confirmation do not survive manual cursor navigation.
         state.tab_pending = false
+        state.selection_explicit, state.first_choice_eligible = false, false
         reset_early_evidence(state)
         state.empty_code_pending = nil
         save_transient_state(context, state, env)
@@ -4477,8 +4556,10 @@ local function processor(key_event, env)
         state.suspended = true
         state.empty_code_pending = nil
         save_transient_state(context, state, env)
-        if cycle_candidate_highlight(context, repr == "Tab" and 1 or -1) then
+        if cycle_candidate_highlight(context, repr == "Tab" and 1 or -1, state.selection_explicit) then
             state.tab_pending = true
+            state.selection_explicit = true
+            state.first_choice_eligible = features.first_choice_selection and context.composition:back().selected_index == 0
             save_transient_state(context, state, env)
             return 1
         end
@@ -4487,6 +4568,8 @@ local function processor(key_event, env)
         return 2
     end
     if repr == "Up" or repr == "Down" or repr == "Page_Up" or repr == "Page_Down" then
+        state.selection_explicit = true
+        state.first_choice_eligible = false
         reset_early_evidence(state)
         state.suspended = true
         state.empty_code_pending = nil
@@ -4513,12 +4596,13 @@ local M = {}
 --   patch:
 --     "tiger_sentence/correction_mark": "✓"
 -- 只读一次并缓存；改动后重新部署/重启前端生效。
-local DEFAULT_CORRECTION_MARK = "✨"
-local correction_mark_cache
+-- 主 chunk 的局部变量已达 200 上限（上游新增模块后更紧），纠错注释符号
+-- 的状态放到全局表里，不再占用 local。
+correction_mark_state = { default = "✨", cached = nil }
 
-local function correction_mark(env)
-    if correction_mark_cache then
-        return correction_mark_cache
+function correction_mark_state.get(env)
+    if correction_mark_state.cached then
+        return correction_mark_state.cached
     end
     local mark
     local schema = env and env.engine and env.engine.schema
@@ -4530,8 +4614,8 @@ local function correction_mark(env)
             mark = value
         end
     end
-    correction_mark_cache = mark or DEFAULT_CORRECTION_MARK
-    return correction_mark_cache
+    correction_mark_state.cached = mark or correction_mark_state.default
+    return correction_mark_state.cached
 end
 
 local function translator(input, seg, env)
@@ -4600,7 +4684,7 @@ local function translator(input, seg, env)
             if text ~= "" or buffered ~= "" then
                 local cand = Candidate(buffered ~= "" and "sentence_buffered" or "sentence",
                     seg.start, seg._end, text,
-                    (item.correction_count or 0) > 0 and correction_mark(env) or "")
+                    (item.correction_count or 0) > 0 and correction_mark_state.get(env) or "")
                 if buffered ~= "" then cand.quality = 1000 end
                 if zaoci_bridge.is_user_word(item.text) then cand.comment = "〔自造词〕" end
                 cand.preedit = buffered .. (buffered ~= "" and preedit ~= "" and " " or "") .. preedit
@@ -4841,6 +4925,7 @@ M.processor_component = {
     end,
     func = processor,
     fini = function(env)
+        backspace.reset(env.engine.context, env)
         M.options.fini(env)
         local live = env._tiger_learning
         if live and live.connection then live.connection:disconnect() end
@@ -4906,6 +4991,10 @@ M.options = {};
         end
         store.level = level
         if level then store.values[correction.option] = level ~= "off" end
+        local unit = read_string(config, backspace.path)
+        store.backspace_unit = backspace.valid(unit) and unit or nil
+        local repertoire = read_string(config, characters.path)
+        store.character_set = characters.valid(repertoire) and repertoire or nil
         stores[path] = store
         return store
     end
@@ -4926,10 +5015,13 @@ M.options = {};
         local saved, accepted = pcall(function()
             for option, choice in pairs(store.values) do store.config:set_bool("options/" .. option, choice) end
             if store.level then store.config:set_string(level_path, store.level) end
+            if store.backspace_unit then store.config:set_string(backspace.path, store.backspace_unit) end
+            if store.character_set then store.config:set_string(characters.path, store.character_set) end
             return store.config:save_to_file(store.path)
         end)
         set_property_if_changed(context, "tiger_sentence_options_error",
             saved and accepted and "" or "Unable to save tiger_sentence.options.yaml")
+        return saved and accepted
     end
     function M.options.sync(env)
         local live = env._tiger_options
@@ -4944,12 +5036,23 @@ M.options = {};
             end
         end
         apply_level(context, live.store.level or live.default_level)
+        backspace.apply(context, live.store.backspace_unit or live.default_backspace_unit)
+        local previous = context:get_option("tiger_sentence_characters_full") and "full" or "common"
+        local repertoire = live.store.character_set or live.default_characters
+        characters.apply(context, repertoire)
+        if previous ~= repertoire then
+            save_locks(context, {})
+            env._tiger_sentence_transient = nil
+            if env._tiger_learning then env._tiger_learning.pending, env._tiger_learning.baseline = {}, nil end
+        end
+        characters.activate(context)
         live.revision = live.store.revision
         live.syncing = false
     end
     function M.options.init(env)
         local ok, store = pcall(open_store)
         if not ok or not store then return end
+        characters.reload(rime_api.get_user_data_dir() .. "/tiger_sentence.common_characters.txt")
         local context = env.engine.context
         local live = {store=store, defaults={}, revision=-1}
         live.sync = function() M.options.sync(env) end
@@ -4961,9 +5064,51 @@ M.options = {};
         end
         local level = read_string(env.engine.schema.config, "tiger_sentence/option_defaults/tiger_sentence_correction_level")
         live.default_level = valid_level(level) and level or (live.defaults[correction.option] and "medium" or "off")
+        local unit = read_string(env.engine.schema.config, "tiger_sentence/option_defaults/tiger_sentence_backspace_unit")
+        live.default_backspace_unit = backspace.valid(unit) and unit or "character"
+        local repertoire = read_string(env.engine.schema.config, "tiger_sentence/option_defaults/tiger_sentence_character_set")
+        live.default_characters = characters.valid(repertoire) and repertoire or "common"
         M.options.sync(env)
         live.connection = context.option_update_notifier:connect(function(ctx, name)
             if live.syncing then return end
+            local repertoire = characters.options[name]
+            if repertoire then
+                if not ctx:get_option(name) then return end
+                local previous = store.character_set or live.default_characters
+                live.syncing = true
+                characters.apply(ctx, repertoire)
+                live.syncing = false
+                store.character_set = repertoire
+                store.revision = store.revision + 1
+                if not save_store(store, ctx) then
+                    store.character_set = previous
+                    store.config:set_string(characters.path, previous)
+                    live.syncing = true
+                    characters.apply(ctx, previous)
+                    live.syncing = false
+                    return
+                end
+                characters.reload(rime_api.get_user_data_dir() .. "/tiger_sentence.common_characters.txt")
+                characters.activate(ctx)
+                save_locks(ctx, {})
+                env._tiger_sentence_transient = nil
+                if env._tiger_learning then env._tiger_learning.pending, env._tiger_learning.baseline = {}, nil end
+                ensure_lexicon(env)
+                if ctx.refresh_non_confirmed_composition then ctx:refresh_non_confirmed_composition() end
+                return
+            end
+            local unit = backspace.options[name]
+            if unit then
+                if not ctx:get_option(name) then return end
+                live.syncing = true
+                backspace.apply(ctx, unit)
+                live.syncing = false
+                if store.backspace_unit == unit then return end
+                store.backspace_unit = unit
+                store.revision = store.revision + 1
+                save_store(store, ctx)
+                return
+            end
             local choice = correction.level_options[name]
             if choice then
                 -- Radio groups may deselect before selecting. Persist only
@@ -4998,4 +5143,39 @@ M.options = {};
         env._tiger_options = nil
     end
 end)()
+-- Retain Rime's native modifier timing and bindings. Only while a buffered
+-- composition exists, raw-code/inline-ASCII exits must submit its displayed
+-- candidate instead of the private transport marker. The schema is private;
+-- neither the user's configuration nor ordinary-mode bindings are changed.
+M.ascii_component = {
+    func = function(key, env)
+        backspace.observe(key, env.engine.context)
+        local buffered = buffered_text(env.engine.context) ~= ""
+        if not env.native or env.buffered ~= buffered then
+            env.buffered = buffered
+            local schema = env.engine.schema
+            if buffered then
+                local default_schema = Schema(".default")
+                local defaults = default_schema.config
+                local source = schema.config:get_map("ascii_composer/switch_key") and schema.config or defaults
+                local private = Schema("tiger_sentence_ascii")
+                local caps = schema.config:get_bool("ascii_composer/good_old_caps_lock")
+                if caps == nil then caps = defaults:get_bool("ascii_composer/good_old_caps_lock") end
+                private.config:set_bool("ascii_composer/good_old_caps_lock", caps or false)
+                for _, name in ipairs({"Shift_L", "Shift_R", "Control_L", "Control_R",
+                    "Alt_L", "Alt_R", "Super_L", "Super_R", "Caps_Lock", "Eisu_toggle"}) do
+                    local path = "ascii_composer/switch_key/" .. name
+                    local style = source:get_string(path) or "noop"
+                    if style == "commit_code" or style == "inline_ascii" then style = "commit_text" end
+                    private.config:set_string(path, style)
+                end
+                schema = private
+            end
+            env.native_schema = schema
+            env.native = Component.Processor(env.engine, schema, "", "ascii_composer")
+        end
+        return env.native:process_key_event(key)
+    end,
+    fini = function(env) env.native = nil; env.native_schema = nil end
+}
 return M

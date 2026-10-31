@@ -2,6 +2,34 @@
 
 本文件记录「芝士虎整」方案包的主要更新。虎整句方案版本见 `tiger_sentence.schema.yaml` 中 `schema.version`（当前 `1.6.20261010.3`，基于上游 `1.6.20261010.1` / `9ed168f` 发布）。
 
+## v0.3.0（2026-10-31）
+
+虎整句引擎升级到上游 `1.6.20261030.1`（源码 `e86ceeb`），模型与上一版逐字节相同（SHA-256 `756f6c92…ab8681`）。
+
+### 新增（按上游标准）
+
+- **字集切换**：常用字集 / 全字集，默认**常用**，`Ctrl+J` 或方案菜单切换并长期保存。清单为 `tiger_sentence.common_characters.txt`（空清单 = 空字集），来源见 `docs/COMMON_CHARACTERS_SOURCE.json`。
+- **三档回删**：回删编码 / 回删整字（默认）/ 先编码后整字，`Backspace` 按选中单位删除，跨会话保存；新增 `lua/tiger_sentence_backspace.lua`。
+- **Windows 自学习修复**：中文名学习文件在 C locale 下报 Illegal byte sequence、导致「上屏但没有学习」；现在只在打开文件期间临时启用 UTF-8 locale（`lua/tiger_sentence_learning_text.lua`）。
+- 白名单新增 7 字：倍 课 洪 供 察 峰 症。
+- 方案版本 `1.6.20261030.1`。
+
+### 行为变化
+
+- **Tab 首批**：上游 `first_choice_selection=false`，首次 Tab 直接选第二项；循环回首选不锁定、不强化。
+- **默认字集为「常用」**：生僻字需 `Ctrl+J` 切到全字集才会出现。
+- **默认回删单位为「整字」**：退格删掉当前候选末字的完整编码，不再是删一码。
+- **虎整句的拆字快捷键改为 `Ctrl+Shift+J`**：`Ctrl+J` 已被上游字集切换占用，且字集处理器排在 `key_binder` 之前。虎单/虎词仍是 `Ctrl+J`。
+
+### 保留（芝士虎整自有集成）
+
+- 造词桥接（自造词参与组句与调频）、✨ 纠错注释（`tiger_sentence/correction_mark`）、`perf_log` 诊断、标准 `ascii_composer` 管线、快符、拼音反查、输入统计、简繁四档、emoji/Unicode/拆字、Shift 大写直出、虎单/虎词 `;` `'` 顶字。
+- 合并后主 chunk 局部变量触及 Lua 200 上限，`zaoci_bridge` 与纠错注释状态改为全局表（行为不变）。
+
+### 验证
+
+- 全部 Lua 语法通过；契约测试 112 项通过（新增字集/回删接线断言）。
+
 ## v0.2.9（2026-10-23）
 
 清理中英混输下线后遗留的死代码与随包资源，输入行为不变（不含模型与词库拆分，发布包体积的大头不受影响）。

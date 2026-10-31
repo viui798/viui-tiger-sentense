@@ -6,10 +6,12 @@
 #       提示/编码、数字转大写、简易计算器、时间/日期、输入统计与击键计数。
 # 9.25：虎整句引擎升级为 TCSKNM03 Q8 五阶模型（引擎、n-gram 模块与模型取自
 #       虎整句-Rime-20260925）。
+# 10.30：虎整句引擎升级到上游 1.6.20261030.1（字集切换、三档回删、
+#       Windows 学习文件修复；模型未变）。
 schema:
   schema_id: tiger_sentence
   name: 虎整句
-  version: "1.6.20261010.3"
+  version: "1.6.20261030.1"
   author:
     - TigerClaw
   description: |
@@ -33,6 +35,9 @@ schema:
     - wanxiang_pro_sogou  # 拼音反查：搜狗双拼拼写索引（与其它打法并存，免切换）
 
 switches: # 0 默认关，1 默认开
+  - options: [ tiger_sentence_characters_common, tiger_sentence_characters_full ]
+    states: [ 常用字集, 全字集 ]
+    abbrev: [ 常, 全 ]
   - name: ascii_mode
     reset: 0
     states: [ 中文, 西文 ]
@@ -49,6 +54,9 @@ switches: # 0 默认关，1 默认开
     states: [ 提前上屏关, 提前上屏开 ]
   - name: tiger_sentence_early_commit_to_preedit
     states: [ 提前上屏至应用, 提前上屏至编码 ]
+  - options: [ tiger_sentence_backspace_code, tiger_sentence_backspace_character, tiger_sentence_backspace_code_then_character ]
+    states: [ 回删编码, 回删整字, 先编码后整字 ]
+    abbrev: [ 码, 字, 码后字 ]
   # D89-r3：按键纠错四档（radio 组，同一时间只启用一档；档名存
   # tiger_sentence.options.yaml，不存分数）。每个错键惩罚：弱 8 / 中 6 / 强 4，
   # 关闭则不纠错。开启任一档即禁用空码顶屏；纠错候选注释默认显示 ✨，
@@ -151,6 +159,8 @@ menu:
 
 tiger_sentence:
   # 内存档：compact 省内存（默认）；balanced 大缓存（桌面可在 custom 补丁里改）
+  character_set_shortcut_enabled: true
+  character_set_shortcut: "Control+j"
   memory_profile: compact
   # 首次默认值；之后以保存的选择为准，存 tiger_sentence.options.yaml
   # 首次默认打开提前上屏；已保存的选择仍以 tiger_sentence.options.yaml 为准。
@@ -159,6 +169,8 @@ tiger_sentence:
     tiger_sentence_early_commit_to_preedit: false
     # D89-r3：旧布尔开关仅用于兼容旧前端按钮；false = 关，true 映射到「中」。
     # 首次没有保存偏好时默认关闭（按键纠错关）。
+    # code / character / code_then_character; saved choices take precedence.
+    tiger_sentence_backspace_unit: character
     tiger_sentence_key_correction: false
     # 可选：首次默认档位覆盖 off / weak / medium / strong（想默认开启时取消注释）
     # tiger_sentence_correction_level: off
@@ -186,7 +198,9 @@ key_binder:
     - { when: always, accept: "Control+Shift+4", toggle: s2t }       # 万象虎同款：切简繁
     - { when: always, accept: "Control+Shift+dollar", toggle: s2t }  # 万象虎同款：切简繁
     - { accept: "Control+p", toggle: pinyin, when: composing }  # 拼音切换
-    - { accept: "Control+j", toggle: chaifen, when: composing }  # 拆字滤镜开关
+    # 10.30：上游 1.6.20261030.1 用 Ctrl+J 切字集（常用/全字集），且处理器排在
+    # key_binder 之前；虎整句的拆字注释改到 Ctrl+Shift+J，避免被字集开关吃掉。
+    - { accept: "Control+Shift+j", toggle: chaifen, when: composing }  # 拆字滤镜开关（Ctrl+J 已被字集占用）
     - { accept: "Control+i", toggle: emoji_cn, when: composing }  # emoji开关
     - { accept: "Control+q", toggle: yin, when: composing }  # 拼音反查开关
     - { accept: "Control+u", toggle: charset_comment_filter, when: composing }  # Unicode字符集切换
