@@ -13,7 +13,7 @@
 | `tiger_sentence` | 虎整句 | 连续输入，由五阶语言模型组句；主要辅助功能集中在这里 |
 | `wanxiang_pro` | 万象拼音 | 拼音反查和拼音候选来源 |
 
-`default.custom.yaml` 默认把上述四个方案加入方案列表。虎单、虎词、虎整句共用虎码编码、自造词、拼音反查、简繁转换和大部分辅助工具。`tiger_sentence_ascii` 是虎整句包内的内部 ASCII 配置，目前不被引用（保留用于回滚），不应加入方案列表。
+`default.custom.yaml` 默认把上述四个方案加入方案列表。虎单、虎词、虎整句共用虎码编码、自造词、拼音反查、简繁转换和大部分辅助工具。`tiger_sentence_ascii` 是虎整句包内的内部 ASCII 配置，供 `lua_processor@tiger_sentence_ascii`（上游同款）在 buffered 状态下切换西文时使用，不应加入方案列表。
 
 ## 主要能力
 
@@ -132,7 +132,7 @@
 
 ### 中英混输（已移除）
 
-中英混输已于 v0.2.8.2 整体移除：方案处理器换回标准 `ascii_composer`，recognizer 不再注册 `inline_english` 模式，`[` 与 `]` 直接上屏半角方括号，不再有英文段、词典联想、中文释义与四候选菜单。
+中英混输已于 v0.2.8.2 整体移除：recognizer 不再注册 `inline_english` 模式，`[` 与 `]` 直接上屏半角方括号，不再有英文段、词典联想、中文释义与四候选菜单。
 
 - `Shift` 切换中英文模式的行为不变（Caps、Shift 规则见 `ascii_composer` 配置）。
 - 若需按 `[` 直接输出中文括号，可将 `tiger_sentence.schema.yaml` 中 `punctuator/half_shape` 的 `'[': '['` 改为 `'[': '【'` 后重新部署。

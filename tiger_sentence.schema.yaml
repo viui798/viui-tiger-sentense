@@ -99,7 +99,7 @@ engine:
     - lua_processor@tiger_zaoci_processor  # 加词模块：造词写入用户词库
     - lua_processor@*key_counter  # 击键计数（输入战报 4.2）
     - lua_processor@*shift_upper  # 中文态 Shift+字母 → 直接上屏大写（手机端大写键）
-    - ascii_composer  # 2026-10-11：移除中英混输入口，换回标准 ASCII 切换（规则见本文件 ascii_composer 段）
+    - lua_processor@tiger_sentence_ascii  # 上游 1.6.20261030.1 同款：buffered（提前上屏至编码）状态下切西文提交显示候选
     - recognizer
     - lua_processor@*tiger_kf  # 快符（立即上屏；init 在载入时连通知器）
     - lua_processor@tiger_sentence_processor

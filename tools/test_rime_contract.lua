@@ -164,12 +164,12 @@ do
     local schema = assert(io.open(repo .. "/tiger_sentence.schema.yaml", "rb"))
     local content = schema:read("*a")
     schema:close()
-    check(not content:find("lua_processor@tiger_sentence_ascii", 1, true),
-        "mixed-input ascii processor is still registered")
+    check(content:find("- lua_processor@tiger_sentence_ascii", 1, true) ~= nil,
+        "upstream ascii processor is not registered")
     check(not content:find("inline_english:", 1, true),
         "inline_english recognizer pattern is still registered")
-    check(content:find("- ascii_composer", 1, true) ~= nil,
-        "standard ascii_composer is not registered")
+    check(content:find("- ascii_composer", 1, true) == nil,
+        "standard ascii_composer should not be registered (upstream uses the lua wrapper)")
     check(content:find("- lua_processor@*shift_upper", 1, true) ~= nil,
         "shift_upper processor is not registered")
     local rime_lua = assert(io.open(repo .. "/rime.lua", "rb"))
