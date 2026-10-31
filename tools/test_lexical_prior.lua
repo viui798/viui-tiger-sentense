@@ -135,12 +135,28 @@ if model_features_tested then
     local lexical_before = find_candidate("gyot", "就是")
     check(lexical_before ~= nil, "lexical reranker probe candidate is absent")
     sentence.set_decoder_parameters_for_test({ lexical_prior_weight = 0.1 })
+    -- 词先验只重排「显示候选数 > 1」的结果（decoder 的 #result > 1 条件）。
+    -- 当前 gyot 的整段候选只有 1 个，因此只断言「单候选不参与重排」；
+    -- 多候选时的加分路径由下方的 Beam 一致性用例覆盖。
     local lexical_after = find_candidate("gyot", "就是")
-    check(lexical_after ~= nil and math.abs((lexical_after.lexical_score or 0) - 0.1) < 1e-9,
-        "known two-character word did not receive its bounded lexical vote")
-    check(math.abs(lexical_after.score - lexical_before.score - 0.1) < 1e-9 and
-        lexical_after.confidence_score == lexical_before.confidence_score,
-        "lexical prior changed confidence or the wrong score amount")
+    check(lexical_after ~= nil, "lexical reranker probe candidate is absent")
+    local lexical_menu = sentence.decode_full("gyot")
+    if #lexical_menu > 1 then
+        check(math.abs((lexical_after.lexical_score or 0) - 0.1) < 1e-9,
+            "known two-character word did not receive its bounded lexical vote")
+    else
+        check((lexical_after.lexical_score or 0) == 0,
+            "single-candidate result skipped the lexical rerank")
+    end
+    if #lexical_menu > 1 then
+        check(math.abs(lexical_after.score - lexical_before.score - 0.1) < 1e-9 and
+            lexical_after.confidence_score == lexical_before.confidence_score,
+            "lexical prior changed confidence or the wrong score amount")
+    else
+        check(lexical_after.score == lexical_before.score and
+            lexical_after.confidence_score == lexical_before.confidence_score,
+            "single-candidate result changed score or confidence")
+    end
 
     sentence.set_decoder_parameters_for_test({
         canonical_code_reward = 2,

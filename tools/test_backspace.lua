@@ -100,7 +100,12 @@ local function environment(raw,opts)
     local env,tenv,renv={engine=engine},{engine=engine},{engine=engine}
     function ctx:get_property(k)return properties[k] or "" end
     function ctx:set_property(k,v)properties[k]=v end
-    function ctx:get_option(k)return k=="tiger_sentence_allow_duplicate_single" and opts.duplicate~=false end
+    function ctx:get_option(k)
+        -- 本测试覆盖的是「按编码逐码回删」的边界语义；上游 1.6.20261030.1
+        -- 的默认回删单位是「整字」，这里显式选择「回删编码」保持用例本意。
+        if k == "tiger_sentence_backspace_code" then return true end
+        return k=="tiger_sentence_allow_duplicate_single" and opts.duplicate~=false
+    end
     function ctx:set_option()end
     function ctx:is_composing()return self.input~="" end
     ctx.composition={empty=function()return true end}

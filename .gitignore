@@ -8,3 +8,6 @@
 /docs/CORRECTION_EMPTY_COMMIT.md
 /docs/CORRECTION_LEVELS.md
 /docs/EARLY_EVIDENCE_GATE.md
+
+# 词先验/五阶模型测试的临时夹具（tools/test_lexical_prior.lua 直接在仓库根跑时会生成）
+/sentence-fivegram-mobile.bin
