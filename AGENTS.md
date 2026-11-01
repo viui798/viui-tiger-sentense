@@ -125,7 +125,7 @@
 
 ## 8. 当前状态（2026-11-02）
 
-- `main` = v0.4.0 工作区（拼音反查引擎化已落地；标签/Release 待发）
+- `main` = tag `v0.4.0`，最新 Release = v0.4.0（Latest）：拼音反查接入五阶模型整句引擎
 - 测试：契约 21 cases / 127 checks；`run_regressions.py --lua lua` 全绿
   （pinyin 23 / learning 23,063 / backspace 805 checks）；`--negative-control` 全部
   detected（v0.4.0 修复了三处预存测试腐烂后恢复可用，见 docs/项目日志.md §10.5）
