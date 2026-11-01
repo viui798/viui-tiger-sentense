@@ -222,4 +222,56 @@ do
         "en_dict builder is still present")
     cases=cases+1
 end
+-- v0.4.0：拼音反查走五阶模型引擎（tiger_sentence_pinyin.lua），查虎码链路不动。
+do
+    local schema = assert(io.open(repo .. "/tiger_sentence.schema.yaml", "rb"))
+    local content = schema:read("*a")
+    schema:close()
+    check(content:find("- lua_translator@tiger_sentence_pinyin_translator", 1, true) ~= nil,
+        "pinyin engine translator is not registered in tiger_sentence.schema.yaml")
+    check(content:find("- script_translator@yin_add_user", 1, true) == nil,
+        "tiger_sentence must not keep the wanxiang script_translator")
+    check(content:find("tag: yin_flypy", 1, true) ~= nil and
+        content:find("\nyin_qp:", 1, true) ~= nil and
+        content:find("\nyin_sogou:", 1, true) ~= nil,
+        "affix_segmentor blocks for the five yin schemes are missing")
+    check(content:find("extra_tags: [ yin_add_user ]", 1, true) ~= nil,
+        "chaifen/db extra_tags wiring is missing in the yin affix blocks")
+    check(content:find("wanxiang_pro_qp", 1, true) == nil,
+        "tiger_sentence must not depend on wanxiang_pro prisms anymore")
+    local custom = assert(io.open(repo .. "/tiger_sentence.custom.yaml", "rb"))
+    local custom_content = custom:read("*a")
+    custom:close()
+    check(custom_content:find("dictionary: wanxiang_pro", 1, true) == nil,
+        "tiger_sentence.custom.yaml still carries the wanxiang reverse-lookup patch")
+    -- 虎单/虎词的反查继续走万象词库，不得被波及
+    for _, name in ipairs({"tiger", "tigress"}) do
+        local f = assert(io.open(repo .. "/" .. name .. ".schema.yaml", "rb"))
+        local other = f:read("*a")
+        f:close()
+        check(other:find("- script_translator@yin_add_user", 1, true) ~= nil,
+            name .. " lost its wanxiang reverse-lookup translator")
+    end
+    for _, name in ipairs({"tiger.custom.yaml", "tigress.custom.yaml"}) do
+        local f = assert(io.open(repo .. "/" .. name, "rb"))
+        local other = f:read("*a")
+        f:close()
+        check(other:find("dictionary: wanxiang_pro", 1, true) ~= nil,
+            name .. " lost the wanxiang reverse-lookup dictionary patch")
+    end
+    -- 新增文件在位（tools/export_pinyin_tables.py 是开发工具，不在回归临时树，
+    -- 由发布流程单独验证）
+    for _, name in ipairs({"lua/tiger_sentence_pinyin.lua", "lua/pinyin_keymaps.lua",
+                           "pinyin.qp.codes.txt"}) do
+        local f = io.open(repo .. "/" .. name, "rb")
+        check(f ~= nil, name .. " is missing")
+        if f then f:close() end
+    end
+    local rime_lua = assert(io.open(repo .. "/rime.lua", "rb"))
+    local rime_content = rime_lua:read("*a")
+    rime_lua:close()
+    check(rime_content:find("tiger_sentence_pinyin_translator", 1, true) ~= nil,
+        "tiger_sentence_pinyin_translator is not exported from rime.lua")
+    cases=cases+1
+end
 print(string.format('{"status":"passed","cases":%d,"checks":%d,"caret_and_lazy_menu":true,"real_frontend":false}',cases,checks))

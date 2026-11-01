@@ -2,6 +2,71 @@
 
 本文件记录「芝士虎整」方案包的主要更新。虎整句方案版本见 `tiger_sentence.schema.yaml` 中 `schema.version`（当前 `1.6.20261030.1`，基于上游 `1.6.20261030.1` / `e86ceeb` 发布）。
 
+## v0.4.0（2026-11-02）
+
+拼音反查的候选生成从 librime `script_translator`（万象词库词频）换成虎整句的五阶模型整句引擎。输入方式、候选呈现（含〔拆分·虎码〕注释）、五打法切换全部不变，「变的只是反查的内在」。
+
+### 动机
+
+- 万象反查的组句是 librime 词频拼句，长句质量远低于虎整句的五阶模型（TCSKNM03）。
+- 用户需要：拼音也能像整句那样组句，同时保留「打拼音查虎码」的用途（候选注释里的编码）。
+
+### 变更
+
+- **反查引擎化**：`lua_translator@tiger_sentence_pinyin_translator`（新模块
+  `lua/tiger_sentence_pinyin.lua`）接管五个反查 tag（小鹤/全拼/自然码/微软/搜狗）。
+  它是 `lua/tiger_sentence.lua` 的第二实例（dofile，词库/beam/解码缓存独立），
+  数据覆盖为 `pinyin.qp.codes.txt`（全拼无调音节 + 辅助码 + 简拼首字母 + 词）。
+- **键位转换**：`lua/pinyin_keymaps.lua` 从 `wanxiang_algebra.yaml` 的 `pro/*` 节
+  程序化派生（与万象反查 prism 同源），双拍 2 键 → 全拼音节，全拼恒等；
+  微软/搜狗的 ing 键（`;`）在转换层消化，不进引擎。
+- **码表生成**：`tools/export_pinyin_tables.py`（确定性、可重跑）：
+  字取 `dicts/zi.pro` 每音节 top-32（P5 性能 Gate 实测值），辅助码全量入库
+  （生僻字经「拼音+辅助码」可达），词取与 `wanxiang_pro.dict.yaml` 同源词表
+  权重 ≥145、上限 25 万条；字集外的字/词不导出（与字集滤镜行为一致）。
+- **简拼（新能力）**：全拼打法下 `jsj` → 计算机、`nh` → 你好（词首字母码整段
+  匹配 + 五阶模型排序）。引擎结构性边界：多键输入中单键边不参与组句
+  （上游「one-key character edges」语义），因此字级首字母序列（如 `js`）
+  不出候选——与旧版 librime 屏蔽简拼的行为一致。
+- **按键纠错随引擎生效**：反查候选带 ✨ 注释（四档纠错对拼音同样工作）。
+- **后缀式兼容**：`nihao\` 的尾部反引号在 affix 剥离缺位时由转换层兜底剥除
+  （前缀式的 `'` 一直正常）；「多音节后缀式会被虎码提前上屏吃掉字母」为 v0.3.x
+  既有限制，见 README。
+- **性能参数**：反查实例用独立 beam（默认 48/16/16，schema 键
+  `tiger_sentence/pinyin/beam_width` 等三项可调）与 `auto_select_min_code_length=0`
+  （单/双键音节边参与组句，必需）。
+- **接线**：`tiger_sentence.schema.yaml` 删除 `script_translator@yin_add_user` 与四份
+  `wanxiang_pro_*` 依赖；五个 affix_segmentor 配置块（剥前缀/后缀、tips、extra_tags）
+  移入 schema 本体；`tiger_sentence.custom.yaml` 清空为 stub。
+  **虎单/虎词的反查不受影响**（继续走万象词库）。
+- 主 chunk 仅新增数据覆盖钩子（`M.set_data_file_override`，顶层 local 199/200）。
+- 测试：`tools/test_pinyin_engine.lua`（23 checks：键位转换、tag 白名单、简拼、
+  缓存重建边界、真实码表冒烟）；契约测试新增 15 checks（接线与查虎码契约）；
+  `tools/bench_pinyin.lua` + 用例夹具收编进 tools/。
+- 修复三个预存测试腐烂：`test_allocation.lua` 夹具字符 𠀀 被字集滤镜过滤导致
+  seam 检查空转（负向控制 `partial-ranking-work` 失效）；`run_regressions.py`
+  过期锚点（`fusion-pair-cache` 随上游 fusion 移除删除；`caret-delete`、
+  `evidence-incomplete-gate` 更新到当前代码形态）。`--negative-control` 恢复可用。
+
+### 行为变化（用户可见）
+
+- 反查候选排序改为五阶模型（组句能力大幅提升；万象词频排序与 zc 用户词典调频不再生效）。
+- 全拼打法支持简拼；双拍打法在键序无法解析为音节时也可命中词首字母码。
+- 首次使用反查（或部署后第一次）有一次 ~3.6s 的词库构建停顿；常驻内存 +~184 MiB。
+- 权重低于截断线的超低频词（如「买椟还珠」）不在词表——用「拼音+辅助码」可达。
+
+### 验证
+
+- P5 性能 Gate（43.3 万条码表 + beam 48/16/16）：36 键句 frontend ~20ms（验收线
+  500ms）、40 键随机串单键 p95 ~2.5ms（验收线 80ms）、12 句真实语料 top-1 全对
+  （唯一失败为测试输入自身笔误）；建库 3.6s、常驻 ~184 MiB。
+- 真实 librime 无头验证：`tools/rime_pinyin_probe.cpp`（Squirrel 自带
+  librime 1.16 + librime-lua 驱动隔离用户目录，58 checks）——虎码主路径、
+  小鹤/全拼反查、简拼、后缀式剥反引号、yin 开关静默、虎单万象反查回归，全部通过。
+- 契约 21 cases / 127 checks；`run_regressions.py --lua lua` 全绿（含新测试）；
+  `--negative-control` 全部 detected。
+- 实机（鼠须管）验证清单见 docs/项目日志.md §10。
+
 ## v0.3.2（2026-10-31，未打标签）
 
 修复辅助开关「只在当前输入会话有效、换应用或重启就回默认」的问题。

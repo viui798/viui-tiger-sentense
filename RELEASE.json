@@ -102,8 +102,8 @@
       "sha256": "f1eeb74a3fee4e5f5d2f04b13d02e4104d7e85e4f438c918364fe6cae6750056"
     },
     "lua/tiger_sentence.lua": {
-      "bytes": 215955,
-      "sha256": "61689f6904d8547089acc0a38f559159f0e98197071dbadaa7735d7644a515f0"
+      "bytes": 232019,
+      "sha256": "3d5cdd7bb7e81254dba73f25757b894c3c0c3644ca7d815cac71bc56030ae335"
     },
     "lua/tiger_sentence_backspace.lua": {
       "bytes": 3295,
@@ -158,8 +158,8 @@
       "sha256": "8dbc884b6cb719d07e4cef153c8048db19a11f8224f75a4ed87853e688a27393"
     },
     "rime.lua": {
-      "bytes": 279,
-      "sha256": "419df2e184b58ee557138b0026bd7bedc4b9c502013b5b44bac9a045e1dfb04f"
+      "bytes": 1936,
+      "sha256": "5041dc65bf02556fb2bf6fe20e15ce12fdf5875791d37d166587ddd6e3b2d54c"
     },
     "symbols.yaml": {
       "bytes": 1540,
@@ -182,8 +182,8 @@
       "sha256": "95649cfc9d4ca2b38b2627af694753ac449fb5c7e73564e7daa791b0ecab8b1a"
     },
     "tiger_sentence.schema.yaml": {
-      "bytes": 4714,
-      "sha256": "cd3650d27a947c59603977cfecc5b03018f3c9101945243fc94b57ba8afb9a60"
+      "bytes": 19018,
+      "sha256": "9af2653555b945887d02077a8a2f446b072dda54b681d09e741b0011c87180ac"
     },
     "tiger_sentence.supplement.txt": {
       "bytes": 294,
@@ -196,6 +196,22 @@
     "安装与更新说明.txt": {
       "bytes": 8608,
       "sha256": "ce07e42885ebbbc44ea1efe7937f164e86df281477cece5140e27b4e195e4e44"
+    },
+    "pinyin.qp.codes.txt": {
+      "bytes": 7466874,
+      "sha256": "ee1819f3c01e141c1f651ec4a4c8f99c048b4b8938dc62081e362bd3644c260c"
+    },
+    "lua/pinyin_keymaps.lua": {
+      "bytes": 23819,
+      "sha256": "b1d5aa1dc5a6ce646b980191c3e39c51c2851f94348a099a0ae42c9e30a2016b"
+    },
+    "lua/tiger_sentence_pinyin.lua": {
+      "bytes": 9599,
+      "sha256": "b82eba13f17e13202a6cb1e37c7d8da3f7f2de9d5cea433b9e78308db9d13e56"
+    },
+    "tiger_sentence.custom.yaml": {
+      "bytes": 694,
+      "sha256": "c2c0d01ab2355121da225025a3aa4763b1f222f1c3ea1c7d58b13b44003f962b"
     }
   }
 }

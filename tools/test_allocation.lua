@@ -2,6 +2,12 @@
 local repo = arg[1] or "."
 package.path = repo .. "/lua/?.lua;" .. package.path
 rime_api = {get_user_data_dir=function() return repo end}
+-- 夹具里的 𠀀（U+20000，4 字节）不在常用字集（tiger_sentence_common_data）里，
+-- 会被字集滤镜过滤，导致 "abcdef" 解不出含它的路径、_confidence_candidates 恒空，
+-- 下面的 seam 检查全部空转。注入只含夹具字符的最小字集，保证 4 字节字符可见。
+package.preload["tiger_sentence_common_data"] = function()
+    return "甲乙丙丁𠀀"
+end
 local sentence = dofile(os.getenv("TIGER_SENTENCE_MODULE") or repo.."/lua/tiger_sentence.lua")
 
 -- 兼容旧测试 API：上游 20261010 起用 auto_select_min_code_length 取代

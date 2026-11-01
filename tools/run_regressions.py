@@ -39,7 +39,7 @@ def temporary_tree():
 def isolated_sources(destination):
     shutil.copytree(PACK / "lua", destination / "lua")
     (destination / "tools").mkdir()
-    for name in ("test_tiger_sentence_incremental.lua", "test_rime_contract.lua", "test_sentence_safety.lua", "test_sentence_learning.lua", "test_adaptive_learning.lua", "test_review_regressions.lua", "test_ngram_reader.lua", "test_memory.lua", "test_lexical_prior.lua", "test_whole_single_reward.lua", "test_allocation.lua", "test_key_correction_reuse.lua", "test_early_evidence_gate.lua", "test_empty_commit_correction_off.lua", "test_correction_levels.lua", "test_key_correction_gap.lua"):
+    for name in ("test_tiger_sentence_incremental.lua", "test_rime_contract.lua", "test_sentence_safety.lua", "test_sentence_learning.lua", "test_adaptive_learning.lua", "test_review_regressions.lua", "test_ngram_reader.lua", "test_memory.lua", "test_lexical_prior.lua", "test_whole_single_reward.lua", "test_allocation.lua", "test_key_correction_reuse.lua", "test_early_evidence_gate.lua", "test_empty_commit_correction_off.lua", "test_correction_levels.lua", "test_key_correction_gap.lua", "test_pinyin_engine.lua"):
         source = (ROOT / "tools" / name).read_text(encoding="utf-8")
         # Run the shared suite in the public mirror layout, without copying
         # unrelated TigerClaw tools or any live configuration/model files.
@@ -84,9 +84,7 @@ def negative_controls(lua, root):
          'local function evaluate_evidence_state(item)\n',
          'local function evaluate_evidence_state(item)\n    path_isolation_penalty(item)\n',
          "Partial evidence evaluated ranking-only isolation"),
-        ("fusion-pair-cache", "test_allocation.lua",
-         'local score = pair_scores[key]', 'local score = nil',
-         "Fusion recalculated an identical pair in one merge"),
+        # fusion-pair-cache 变异已随上游 fusion 硬排序的移除删除（锚点失效）。
         ("memory-schema-less", "test_memory.lua",
          'if not env or not schema then return end',
          'if not env or not schema then set_memory_profile("balanced"); return end',
@@ -105,8 +103,8 @@ def negative_controls(lua, root):
          'local count = type(menu.prepare) == "function"\n        and menu:prepare(candidate_limit) or menu:candidate_count()',
          'local count = menu:candidate_count()', "Tab wrapped at materialized prefix"),
         ("caret-delete", "test_rime_contract.lua",
-         'local raw = live_input(context)\n            local caret = input_caret(context)\n            local first = repr == "BackSpace" and caret - 1 or caret',
-         'local raw = live_input(context)\n            local caret = input_caret(context)\n            local first = #raw - 1', "Boundary delete removed data"),
+         'local caret = input_caret(context)\n            local first = repr == "BackSpace" and caret - remove_count or caret',
+         'local caret = input_caret(context)\n            local first = #raw - remove_count', "Boundary delete removed data"),
         ("display-confidence", "test_sentence_safety.lua",
          '            all_candidates,\n            completed._truncated or false,',
          '            result,\n            completed._truncated or false,', "Display Top-K inflated confidence"),
@@ -141,8 +139,8 @@ def negative_controls(lua, root):
          'local current = decode(full_raw, true, state.committed_text, active_lock(state))',
          "blocked correction built early evidence"),
         ("evidence-incomplete-gate", "test_early_evidence_gate.lua",
-         '        if current.correction_incomplete or current.exact_correction_affected or\n            (current[1]',
-         '        if false or current.exact_correction_affected or\n            (current[1]',
+         '        if current.correction_incomplete or\n            (current[1] and (current[1].correction_count or 0) > 0) then',
+         '        if false or (current[1] and (current[1].correction_count or 0) > 0) then',
          "incomplete correction built early evidence"),
         ("correction-prefix-view", "test_key_correction_reuse.lua",
          '        "\\tv3:" .. correction.profile',
@@ -235,7 +233,7 @@ def main():
     lua = str(Path(lua).resolve())
     with temporary_tree() as root:
         isolated_sources(root)
-        for script in ("test_tiger_sentence_incremental.lua", "test_rime_contract.lua", "test_sentence_safety.lua", "test_sentence_learning.lua", "test_adaptive_learning.lua", "test_review_regressions.lua", "test_ngram_reader.lua", "test_memory.lua", "test_lexical_prior.lua", "test_whole_single_reward.lua", "test_allocation.lua", "test_key_correction_reuse.lua", "test_early_evidence_gate.lua", "test_empty_commit_correction_off.lua", "test_correction_levels.lua", "test_key_correction_gap.lua"):
+        for script in ("test_tiger_sentence_incremental.lua", "test_rime_contract.lua", "test_sentence_safety.lua", "test_sentence_learning.lua", "test_adaptive_learning.lua", "test_review_regressions.lua", "test_ngram_reader.lua", "test_memory.lua", "test_lexical_prior.lua", "test_whole_single_reward.lua", "test_allocation.lua", "test_key_correction_reuse.lua", "test_early_evidence_gate.lua", "test_empty_commit_correction_off.lua", "test_correction_levels.lua", "test_key_correction_gap.lua", "test_pinyin_engine.lua"):
             result = execute(lua, root, script)
             print(result.stdout, end="", flush=True)
             result.check_returncode()

@@ -23,8 +23,9 @@
    升级上游后必须做覆盖审计（见 §6）。
 2. **绝不整文件覆盖 `tiger_sentence.schema.yaml`。** 上游 schema 是 4.7KB 精简版；本仓库是
    15KB 整合版（多了反查/快符/统计/简繁/emoji 等）。只能按块合并。
-3. **`lua/tiger_sentence.lua` 主 chunk 的局部变量已到 Lua 上限（200 个）。** 新增功能不要加
-   `local`，用全局表（参考 `zaoci_bridge`、`correction_mark_state`）。合并上游新模块时很可能超限。
+3. **`lua/tiger_sentence.lua` 主 chunk 的局部变量已到 Lua 上限（200 个）。** 现用 199/200
+   （v0.4.0 的 `data_file_override` 占 1 个）。新增功能不要加 `local`，用全局表
+   （参考 `zaoci_bridge`、`correction_mark_state`）。合并上游新模块时很可能超限。
 4. **模型走 Git LFS。** 不要用 `git archive` 打包（会得到指针文件）；用
    `tools/make_release_zip.py`，它从工作区读真实模型。
 5. **改动必须过测试再提交：**
@@ -66,7 +67,10 @@
 | `lua/shift_upper.lua` | Shift 大写直出（本地功能） |
 | `lua/tiger_symbol_select.lua` | 虎单/虎词 `;` `'` 顶字（本地功能） |
 | `lua/tiger_zaoci.lua` | 造词模块（本地功能，与引擎桥接） |
+| `lua/tiger_sentence_pinyin.lua` | 拼音反查引擎（v0.4.0：主 chunk 第二实例 + 键位转换，反查候选由五阶模型生成） |
+| `lua/pinyin_keymaps.lua` | 五打法键位转换表（**生成文件**，勿手改；`tools/export_pinyin_tables.py` 重生成） |
 | `models/` | 五阶模型（LFS）+ 词先验 |
+| `pinyin.qp.codes.txt` | 拼音反查引擎码表（**生成文件**，~28 万条；同上脚本重生成） |
 | `dicts/`、`zuci/`、`tiger_dicts/` | 词库 |
 | `docs/` | 上游技术文档 + 本地更新说明；`docs/项目日志.md` 是交接主文档 |
 | `tools/` | 测试、打包、基准脚本（不进发行包） |
@@ -86,6 +90,7 @@
 | **造词桥接** | `zaoci_bridge` 在 `tiger_sentence.lua` 里，负责自造词参与组句/调频；合并上游时**必须保留** |
 | **主题/个人配置** | `squirrel.custom.yaml`、`docs/CORRECTION_*.md`、`docs/EARLY_EVIDENCE_GATE.md` 被 `.gitignore` 排除，不要提交 |
 | **开关记忆** | 「要记住」的开关**不能写 `reset`**（librime 每个新会话都会按 reset 强制复位，且热键 toggle 不写 user.yaml）。虎整句存 `tiger_sentence.options.yaml`（`M.options`），虎单/虎词存 `tiger.options.yaml` / `tigress.options.yaml`（`lua/option_persist.lua`）。`ascii_mode` / `ascii_punct` / `full_shape` 保留 reset 属有意行为 |
+| **拼音反查双实例** | `lua/tiger_sentence_pinyin.lua` dofile 同一主 chunk 得到第二实例：词库/beam/解码缓存与虎码主实例完全独立（`lexicon_state` 绑定单码表，不能共表）。改主 chunk 的 `read_data_file`/`rebuild_lexicon`/`M.translator` 时必须同时验证两条路径；负向控制锚点严禁改动 |
 | **中文文件名** | 打包脚本已处理 UTF-8 标志位；手动 `zip` 会导致 Windows 乱码 |
 
 ## 6. 升级上游的正确姿势
@@ -118,18 +123,24 @@
    `gh release upload vX.Y.Z <zip> <zip.sha256>`；核对 assets 状态为 `uploaded`。
 7. 把包复制到 `~/Desktop/输入法/芝士虎整/`（用户的发布目录）。
 
-## 8. 当前状态（2026-10-31）
+## 8. 当前状态（2026-11-02）
 
-- `main` = tag `v0.3.2`，最新 Release = v0.3.2（Latest）
-- 测试：契约 112 checks 通过；`run_regressions.py` 全绿（learning 23,063 / backspace 805 checks）
-- 与上游文件对比：29 个文件里 24 个逐字节一致，5 个有意不同（整合 schema、带集成的
-  `tiger_sentence.lua`、`default.custom.yaml`、`rime.lua`、`symbols.yaml`）
+- `main` = v0.4.0 工作区（拼音反查引擎化已落地；标签/Release 待发）
+- 测试：契约 21 cases / 127 checks；`run_regressions.py --lua lua` 全绿
+  （pinyin 23 / learning 23,063 / backspace 805 checks）；`--negative-control` 全部
+  detected（v0.4.0 修复了三处预存测试腐烂后恢复可用，见 docs/项目日志.md §10.5）
+- 与上游文件对比：24 个逐字节一致 + 5 个有意不同（同 v0.3.2）；拼音反查为纯本地功能
 - 上游 `M.*` 导出：100% 覆盖；上游 schema 元素：100% 覆盖
 
 ## 9. 已知事项
 
 - 上游**不提供测试**。行为对不对，用「纯净上游模块」跑同一用例作为裁判
   （`TIGER_SENTENCE_MODULE=/path/to/upstream/lua/tiger_sentence.lua`）。
+- 拼音反查（v0.4.0）：`auto_select_min_code_length=3`（虎码默认）在拼音表上有病态
+  行为（P5 表近零短路、P4 表慢 45×），生产拼音实例固定 min=0，机理未查
+  （docs/项目日志.md §10.4）。动 `eligible_candidates` 前先复现。
+- 拼音反查首用建库 ~2.5s、常驻 +135 MiB；简拼只经词首字母码（引擎排除单键边）；
+  反查不再写 zc 用户词典。
 - 上游已移除 fusion-v1 / exact-correction-v1 硬排序；对应本地测试覆盖已删除，改为断言「旧记录被忽略」。
 - `tools/test_lexical_prior.lua` 直接在仓库根跑会生成临时模型夹具
   `sentence-fivegram-mobile.bin`（已在 `.gitignore`）。

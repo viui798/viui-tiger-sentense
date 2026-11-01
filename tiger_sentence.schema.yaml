@@ -8,6 +8,11 @@
 #       虎整句-Rime-20260925）。
 # 10.30：虎整句引擎升级到上游 1.6.20261030.1（字集切换、三档回删、
 #       Windows 学习文件修复；模型未变）。
+# 11.1：拼音反查改走五阶模型整句引擎（lua/tiger_sentence_pinyin.lua 第二实例 +
+#       pinyin.qp.codes.txt 全拼码表 + lua/pinyin_keymaps.lua 键位转换）。
+#       输入方式与候选呈现不变（' 前缀 / 拼音+` 后缀、五打法 radio、
+#       〔拆分·虎码〕注释、` 后缀剥除）；全拼打法支持简拼（jsj→计算机）。
+#       wanxiang_pro 词库保留给虎单/虎词的反查。
 schema:
   schema_id: tiger_sentence
   name: 虎整句
@@ -29,10 +34,8 @@ schema:
     - tigress  # 造词检索用的虎词词表
     - kf  # 快符
     - tiger_lookup  # 拆分注释
-    - wanxiang_pro_qp  # 拼音反查：全拼拼写索引（与小鹤双拼并存，免切换）
-    - wanxiang_pro_zrm  # 拼音反查：自然码拼写索引（与其它打法并存，免切换）
-    - wanxiang_pro_mspy  # 拼音反查：微软双拼拼写索引（与其它打法并存，免切换）
-    - wanxiang_pro_sogou  # 拼音反查：搜狗双拼拼写索引（与其它打法并存，免切换）
+    # v0.4.0：拼音反查改走五阶模型引擎（pinyin.qp.codes.txt），不再依赖
+    # wanxiang_pro 拼写索引；那四份 prism 保留给虎单/虎词的反查使用。
 
 switches: # 0 默认关，1 默认开
   - options: [ tiger_sentence_characters_common, tiger_sentence_characters_full ]
@@ -124,7 +127,7 @@ engine:
     - fallback_segmentor
   translators:
     - punct_translator
-    - script_translator@yin_add_user  # 拼音反查
+    - lua_translator@tiger_sentence_pinyin_translator  # 拼音反查：五阶模型整句引擎（v0.4.0 起，替代 script_translator 万象词库路径）
     - table_translator@kf  # 快符
     - table_translator@zaoci           # `` ` `` 造词候选
     - lua_translator@tiger_zaoci_translator  # 加词模块：内存词库即时出候选
@@ -242,6 +245,50 @@ zaoci:
 
 tiger_zaoci:
   table_path: "custom_phrase.txt"   # 相对用户目录，也可填绝对路径
+
+# ==================== 拼音反查（五阶模型整句引擎） ====================
+# v0.4.0：反查候选由 lua/tiger_sentence_pinyin.lua 的第二引擎实例生成
+#   （pinyin.qp.codes.txt 全拼码表 + 五阶模型），键位映射 lua/pinyin_keymaps.lua
+#   从 wanxiang_algebra 同源派生（小鹤/全拼/自然码/微软/搜狗）。
+# 五个 affix_segmentor 只负责剥前缀/后缀、挂 tips 与 extra_tags（chaifen 的
+# 〔拆分·虎码〕注释与 db.lua 剥 ` 后缀都依赖 extra_tags 的 yin_add_user 标记）；
+# 翻译统一走 engine/translators 里的一个 lua_translator@tiger_sentence_pinyin_translator。
+# 小鹤的 tag 叫 yin_flypy 而非 yin_add_user：见 lua/yin_pick.lua 顶部注释。
+# 输入体验不变：' 前缀或 拼音+` 后缀；简拼（jsj→计算机）在全拼打法下可用。
+yin_add_user:
+  tag: yin_flypy
+  prefix: "'"
+  suffix: "`"
+  tips: "〔音〕"
+  extra_tags: [ yin_add_user ]
+
+yin_qp:
+  tag: yin_qp
+  prefix: "'"
+  suffix: "`"
+  tips: "〔音·全拼〕"
+  extra_tags: [ yin_add_user ]
+
+yin_zrm:
+  tag: yin_zrm
+  prefix: "'"
+  suffix: "`"
+  tips: "〔音·自然码〕"
+  extra_tags: [ yin_add_user ]
+
+yin_mspy:
+  tag: yin_mspy
+  prefix: "'"
+  suffix: "`"
+  tips: "〔音·微软〕"
+  extra_tags: [ yin_add_user ]
+
+yin_sogou:
+  tag: yin_sogou
+  prefix: "'"
+  suffix: "`"
+  tips: "〔音·搜狗〕"
+  extra_tags: [ yin_add_user ]
 
 recognizer:
   import_preset: default

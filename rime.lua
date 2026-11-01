@@ -17,6 +17,10 @@ tiger_sentence_processor = tiger_sentence.processor_component
 tiger_sentence_translator = tiger_sentence.translator
 tiger_sentence_ascii = tiger_sentence.ascii_component
 tiger_sentence_buffer_filter = tiger_sentence.buffer_filter
+
+-- 拼音反查：五阶模型整句引擎（第二实例 + 键位转换，见 lua/tiger_sentence_pinyin.lua）
+tiger_sentence_pinyin_translator = require("tiger_sentence_pinyin").translator
+
 input_statistics = require("input_statistics")
 
 -- Shift 大写直出：中文态下 Shift+字母 → 直接上屏大写（见 lua/shift_upper.lua）

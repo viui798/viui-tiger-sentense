@@ -208,7 +208,16 @@ local function data_directories()
     return directories
 end
 
+-- 数据文件覆盖钩子（M.set_data_file_override）：拼音反查引擎的第二实例把
+-- tiger_sentence.codes.txt 换成 pinyin.qp.codes.txt，char_ranks/whitelist/
+-- supplement 置 false 跳过（那些文件的语义绑定虎码）。值为 false 表示「不读」，
+-- 字符串表示「读同名替代文件」（同一数据目录解析）。
+local data_file_override = nil
+
 local function read_data_file(name)
+    local override = data_file_override and data_file_override[name]
+    if override == false then return nil, nil end
+    if override then name = override end
     for _, directory in ipairs(data_directories()) do
         local path = directory .. "/" .. name
         local ok, handle = pcall(io.open, path, "rb")
@@ -4851,6 +4860,15 @@ M.decoder_parameters = function()
         canonical_isolation_min_code_length = ranking_prior.canonical_isolation_min_code_length
     }
 end
+-- 拼音反查引擎（lua/tiger_sentence_pinyin.lua）在本文件第二实例上换用
+-- pinyin.qp.codes.txt 时设置；清除词库与解码缓存后于下次解码重建。
+M.set_data_file_override = function(map)
+    data_file_override = (map and next(map)) and map or nil
+    lexicon_state.built = false -- 强制 ensure_lexicon 按新映射重建
+    clear_model_dependent_caches()
+end
+-- 语义化别名：拼音实例初始化时设置与形码不同的 beam 参数。
+M.configure_decoder_parameters = M.set_decoder_parameters_for_test
 -- Host opt-in hook; call between key events on the owning Lua thread. Do not
 -- close the model or drop active Beam/locks/evidence/learning transactions.
 -- A full collection is deliberately explicit, never performed on every key.
