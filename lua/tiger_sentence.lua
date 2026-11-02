@@ -4538,7 +4538,16 @@ local function processor(key_event, env)
     end
     if repr == "Return" or repr == "KP_Enter" then
         learned.pending, learned.baseline = {}, nil
-        env.engine:commit_text(state.buffered_text .. live_input(context))
+        -- 有候选时走和空格一致的上屏路径（提交解码后的文字），
+        -- 否则提前上屏后回车会把剩余原始编码（甚至 "~"）直接上屏。
+        if context:has_menu() then
+            context:confirm_current_selection()
+        else
+            -- 无候选时才退回直接提交；去掉内部缓冲标记 "~"，绝不让它上屏
+            local remaining = live_input(context)
+            if remaining:sub(1, 1) == "~" then remaining = remaining:sub(2) end
+            env.engine:commit_text(state.buffered_text .. remaining)
+        end
         context:clear()
         reset_sentence_state(context, env)
         return 1
