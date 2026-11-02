@@ -122,6 +122,13 @@ local keyTouchCnt = 0 --记录编码键按下次数
 --   proc_* 由链首 processor 累计；capture 从 commit_history 差量结算上屏单元。
 local proc_keys, proc_code = 0, 0
 local round_start_ts, last_key_ts = nil, nil
+local round_active = false
+
+-- 毫秒时间：os.time() 只有秒精度，机器速度的输入会被算成 720+ 字/分
+local function now_ms()
+	if rime_api and rime_api.get_time_ms then return rime_api.get_time_ms() end
+	return os.time() * 1000
+end
 local pending_raw_chars = 0
 local capture_snapshot = nil
 -- 标记log版本
@@ -693,6 +700,7 @@ local function update_stats(input_length, codeLen, codeLenWithoutSpace, avgAvail
 			end
 
 			-- 更新最大分速值
+			if latestSpd > 400 then latestSpd = 0 end -- 非人类速度，丢弃
 			if latestSpd > input_stats.daily.fastest.spd then
 				input_stats.daily.fastest.spd = latestSpd
 				input_stats.daily.fastest.keyTouchSpd = latestKeyTouchSpd
@@ -1191,6 +1199,36 @@ local function format_shengzi()
 end
 
 -- 加载保存的统计数据（input_stats.lua）
+-- 清洗历史脏数据：机器速度（探针测试）留下的 >400 字/分记录
+local function sanitize_period(p)
+	if type(p) ~= "table" then return end
+	if type(p.fastest) == "table" and (p.fastest.spd or 0) > 400 then
+		p.fastest.spd, p.fastest.keyTouchSpd, p.fastest.avgCodeLen = 0, 0, 0
+	end
+	if type(p.avgGaps) == "table" and type(p.avgCnts) == "table" then
+		local gaps, cnts, lens = {}, {}, {}
+		for i = 1, #p.avgGaps do
+			local gap, cnt = p.avgGaps[i], p.avgCnts[i] or 0
+			local spd = (gap and gap > 0) and (cnt / gap * 60) or 0
+			if spd <= 400 then
+				gaps[#gaps + 1] = gap
+				cnts[#cnts + 1] = cnt
+				if type(p.avgCodeLen) == "table" then
+					lens[#lens + 1] = p.avgCodeLen[i] or 0
+				end
+			end
+		end
+		p.avgGaps, p.avgCnts = gaps, cnts
+		if type(p.avgCodeLen) == "table" then p.avgCodeLen = lens end
+	end
+end
+
+local function sanitize_stats()
+	for _, key in ipairs({ "daily", "weekly", "monthly", "yearly" }) do
+		sanitize_period(input_stats[key])
+	end
+end
+
 local function load_stats_from_lua_file(schema_id)
 	local path = rime_api.get_user_data_dir() .. "/lua/input_stats_" .. schema_id .. ".lua"
 	local ok, result = pcall(function()
@@ -1439,9 +1477,9 @@ end
 
 local function commit_unit(env, chars, text)
 	if chars <= 0 then return end
-	local now = os.time()
+	local now = now_ms()
 	local start = round_start_ts or now
-	local delt = now - start
+	local delt = (now - start) / 1000
 	local keys, code = proc_keys, proc_code
 	proc_keys, proc_code = 0, 0
 	local gap = now - avgSpdInfo.commitTime
@@ -1454,15 +1492,15 @@ local function commit_unit(env, chars, text)
 	else
 		input_stats.newWords.words[text] = nil
 	end
-	avgSpdInfo.startTime = start
-	avgSpdInfo.commitTime = now
+	avgSpdInfo.startTime = math.floor(start / 1000)
+	avgSpdInfo.commitTime = math.floor(now / 1000)
 	avgSpdInfo.count = chars
 	avgSpdInfo.codeLen = code
 	keyTouchCnt = keys
 	local avgAvailable = (delt >= 1 and chars > 0) and 1 or 0
 	update_stats(chars, code, code, avgAvailable)
 	request_save(env.engine.schema.schema_id, false)
-	round_start_ts = now
+	round_active = false
 end
 
 local function capture_history(env)
@@ -1510,8 +1548,11 @@ local function processor(key_event, env)
 	if key_event:ctrl() or key_event:alt() or key_event:super() then return 2 end
 	local kc = key_event.keycode
 	if kc == 0 then return 2 end
-	local now = os.time()
-	if not round_start_ts then round_start_ts = now end
+	local now = now_ms()
+	if not round_active then
+		round_start_ts = now
+		round_active = true
+	end
 	last_key_ts = now
 	local is_commit = (kc == 0x20 or kc == 0x0d or kc == 0xff0d or kc == 0xff09)
 	local is_backspace = (kc == 0xff08 or kc == 0x08)
@@ -1526,6 +1567,9 @@ local function init(env)
 	local ctx = env.engine.context
 	-- 加载指定输入方案的历史统计数据
 	load_stats_from_lua_file(env.engine.schema.schema_id)
+	sanitize_stats()
+	-- 清洗结果立即落盘，避免磁盘里继续留着 700+ 的极速
+	pcall(function() flush_save(env.engine.schema.schema_id) end)
 	-- 更新皮肤
 	progressBarField_word = skinList[input_stats.progressBarSkinIdx_word].field
 	progressBarEmpty_word = skinList[input_stats.progressBarSkinIdx_word].empty
