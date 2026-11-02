@@ -7,8 +7,8 @@
 快符收敛为单一实现，符号表改为 YAML。
 
 - 删除 `kf.dict.yaml`、`kf.schema.yaml`，以及三个方案里的 `dependencies: kf`、`table_translator@kf`、`kf:` 配置段。
-- 快符符号表移到 `tiger.schema.yaml` / `tigress.schema.yaml` / `tiger_sentence.schema.yaml` 的 `kf_symbols:`，
-  `lua/tiger_kf.lua` 启动时读取（改符号只改 YAML，无需改 Lua）；`;;` → ；、`;1` → ：、`;2` → ； 仍是代码规则。
+- 快符符号表统一放在 `default.custom.yaml` 的 `kf_symbols`（三方案共用，改一个文件即可），
+  `lua/tiger_kf.lua` 启动时读取；`;;` → ；、`;1` → ：、`;2` → ； 仍是代码规则。
 - 行为不变：`;a` → ！、`;z` → “、`;;` → ；、`;1` → ：（三个方案均用 librime 探针验证）。
 
 ## v0.3.14（2026-11-02）

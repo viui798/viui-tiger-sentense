@@ -17,26 +17,32 @@ local DEFAULT_SYMBOLS = {
 
 local punctuation = { [1] = "：", [2] = "；" }
 
--- 启动时读取一次：schema 的 kf_symbols 覆盖内置默认值（改符号只改 YAML）。
+-- 启动时读取一次，优先级：内置默认 < 共享 kf_symbols.schema.yaml < 方案内 kf_symbols。
+local LETTERS = {}
+for code = string.byte("a"), string.byte("z") do
+  LETTERS[#LETTERS + 1] = string.char(code)
+end
+
+-- 逐个字母读 kf_symbols/<letter>（不依赖 ConfigMap:keys，兼容当前 librime-lua）。
+local function merge_map(mapping, config)
+  if not config then return end
+  for _, key in ipairs(LETTERS) do
+    local ok, value = pcall(function() return config:get_string("kf_symbols/" .. key) end)
+    if ok and type(value) == "string" and value ~= "" then
+      mapping[key] = value
+    end
+  end
+end
+
 local function load_symbols(env)
   local mapping = {}
   for key, value in pairs(DEFAULT_SYMBOLS) do mapping[key] = value end
+  -- 共享符号表：三方案共用，改符号只改 default.custom.yaml 的 kf_symbols。
+  local ok_shared, shared = pcall(function() return Schema(".default") end)
+  if ok_shared and shared then merge_map(mapping, shared.config) end
+  -- 方案内 kf_symbols 仍然可以覆盖（可选）。
   local ok, config = pcall(function() return env.engine.schema.config end)
-  if ok and config then
-    local ok_map, map = pcall(function() return config:get_map("kf_symbols") end)
-    if ok_map and map then
-      local ok_keys, keys = pcall(function() return map:keys() end)
-      if ok_keys and keys then
-        for _, key in ipairs(keys) do
-          key = tostring(key)
-          local value = config:get_string("kf_symbols/" .. key)
-          if type(value) == "string" and value ~= "" then
-            mapping[key] = value
-          end
-        end
-      end
-    end
-  end
+  if ok and config then merge_map(mapping, config) end
   env.kf_mapping = mapping
 end
 
