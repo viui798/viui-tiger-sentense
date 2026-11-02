@@ -275,21 +275,27 @@
 | 路径 | 作用 |
 |---|---|
 | `custom_phrase.txt` | 自造词 |
+| `reverse_freq.txt` | 反查调频记录（≤8 字母的反查选词次数） |
+| `tiger.options.yaml` / `tigress.options.yaml` | 虎单 / 虎词开关和档位 |
 | `tiger_sentence.options.yaml` | 虎整句开关和档位 |
 | `自学习-tiger_sentence.txt` | 虎整句文本学习记录 |
 | `自学习锁-*.userdb` | 学习文件的跨进程锁 |
 | `lua/input_stats_*.lua` | 输入统计 |
 | `lua/kc_count.txt`、`lua/kc_total.txt`、`lua/kc_last.txt` | 击键计数 |
 | `lua/replacer.userdb` | 简繁转换缓存，可以安全删除并重建 |
+| `lua/quote.txt` | 输入统计末尾的名言（可选） |
+| `squirrel.custom.yaml` | 鼠须管主题/皮肤（不在发行包内） |
 
 旧版的 `tiger_sentence_learning_*.userdb` 不再被读取。新版学习记录在 `自学习-tiger_sentence.txt`。丢失学习库不会影响方案启动，但会失去已有的整句学习效果。
+
+快符符号表是**方案文件**（`default.custom.yaml` 的 `kf_symbols`），升级会覆盖；如果你改过它，升级后需要把这一段合并回去。完整的自定义说明与升级搬运清单见 [`docs/自定义与升级保留.md`](docs/自定义与升级保留.md)。
 
 ### 推荐升级流程
 
 1. 备份用户目录中的个人配置和上表列出的用户数据。
 2. 解压新 Release。
 3. 替换方案、`lua/`、`models/`、词表和其他运行依赖。
-4. 如果之前修改过 `rime.lua` 或 `.custom.yaml`，以新版为基础重新合并自己的改动。
+4. 如果之前修改过 `rime.lua` 或 `.custom.yaml`（包括 `default.custom.yaml` 里的 `kf_symbols`），以新版为基础重新合并自己的改动。
 5. 保留 `custom_phrase.txt`、`tiger_sentence.options.yaml`、`自学习-tiger_sentence.txt`、统计文件。
 6. 重新部署，并检查日志。
 

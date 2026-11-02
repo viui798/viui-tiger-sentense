@@ -77,7 +77,7 @@
 | `models/` | 五阶模型（LFS）+ 词先验 |
 | `pinyin.qp.codes.txt` | 拼音反查码表（**生成文件**，24.8 万条；`tools/export_reverse_codes.py` 重生成） |
 | `dicts/`、`zuci/`、`tiger_dicts/` | 词库 |
-| `docs/` | 上游技术文档 + 本地更新说明；`docs/项目日志.md` 是交接主文档 |
+| `docs/` | 上游技术文档 + 本地更新说明；`docs/项目日志.md` 是交接主文档，`docs/自定义与升级保留.md` 是自定义与升级搬运指南 |
 | `tools/` | 测试、打包、基准脚本（不进发行包） |
 | `validation/`、`sync/` | 上游校验记录与同步补丁（不进发行包） |
 | `README.md`、`芝士虎整说明.md` | 面向用户的中文文档 |
