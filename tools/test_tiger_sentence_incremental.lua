@@ -680,8 +680,8 @@ end
 assert_contains(sentence_schema, [[zaoci: "^'[a-z]*$"]], "虎整句 zaoci 前缀应为单引号")
 assert_contains(sentence_schema, [[yin_add_user: "^`[A-Za-z';`]*$"]],
     "虎整句反查应为反引号前缀且不再含后缀式")
-assert_contains(sentence_schema, [[  prefix: ""]], "虎整句反查 affix 应为空前缀（保留 preedit 的 `）")
-local _, yin_prefixes = sentence_schema:gsub('prefix: ""', "")
+assert_contains(sentence_schema, [[  prefix: "`"]], "虎整句反查 affix 应为空前缀（保留 preedit 的 `）")
+local _, yin_prefixes = sentence_schema:gsub('prefix: "`"', "")
 if yin_prefixes < 5 then fail("虎整句五个反查 affix 未全部改成反引号前缀") end
 if sentence_schema:find('suffix: "`"', 1, true) then fail("虎整句仍残留后缀式反查") end
 for _, name in ipairs({ "tiger", "tigress" }) do

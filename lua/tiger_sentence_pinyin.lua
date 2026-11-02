@@ -251,7 +251,7 @@ function M.translator(input, seg, env)
         local cand = Candidate("sentence", seg.start, seg._end, item.text,
             candidate_comment(env, item))
         -- 预编辑文本：始终显示用户实际输入的键（含音节 `），不做模型分词展示。
-        cand.preedit = input
+        cand.preedit = "`" .. input
         yield(cand)
     end
 end
