@@ -18,14 +18,6 @@
   现在混输遇到 `yin_*` 段直接跳过（`tools/test_tiger_mixed.lua` 覆盖 6 个 tag + 正向对照）。
 - 测试：`tools/test_pinyin_engine.lua` 增加简拼整段匹配、`fjia` 无拼接词、`` `fj`ia `` 展开等回归（29→36 checks）。
 
-### 新增：英文方案（english）
-
-- 新增 `english.schema.yaml` + `english.dict.yaml`：46,717 个英文单词，按词频排序（来源 FrequencyWords `en_50k`，MIT License），
-  输入 `hel` → hel / help / hell / held / helm …；ASCII 标点默认开启。
-- **切换方式**：方案菜单（`Ctrl+\``）选择「英文」。Shift 保持原有的西文直通行为（2026-11-02 实测后按用户要求还原，不再用 Shift 切方案）。
-- 方案菜单（`Ctrl+\``）同样可以选到「英文」。手机端能否使用取决于前端是否把英文键盘交给 Rime。
-- 切换时自动关闭 `ascii_mode`（西文直通），避免从「西文」按 Shift 后状态仍显示「西文」、英文方案不出候选。
-
 ## v0.3.12（2026-11-02）
 
 短输入反查调频改为「选过一次即置顶」。

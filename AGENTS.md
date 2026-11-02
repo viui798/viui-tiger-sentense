@@ -12,10 +12,10 @@
 以及一批辅助功能（造词、反查、简繁、快符、拆字、Emoji、Unicode、计算器、时间日期、输入统计）
 整合到同一套 Rime 用户目录里。
 
-- 当前版本：**v0.3.13**（另有未发布的英文方案 / 反查修复改动）
+- 当前版本：**v0.3.13**（另有未发布的反查/混输修复）
 - 虎整句上游：`1.6.20261030.1`（源码 `e86ceeb`）
 - 语言模型：TCSKNM03 五阶 Q8，405,663,171 字节，SHA-256 `756f6c92…ab8681`
-- 方案 ID：`tiger`（虎单）、`tigress`（虎词）、`tiger_sentence`（虎整句）、`english`（英文）；
+- 方案 ID：`tiger`（虎单）、`tigress`（虎词）、`tiger_sentence`（虎整句）；
   反查由三方案共用五阶模型引擎，旧 `wanxiang_pro` 独立方案自 v0.3.10 起移除
 
 ## 2. 铁律（违反会破坏项目）
@@ -67,7 +67,6 @@
 | `lua/` | 全部 Lua：虎整句引擎、学习、字集、回删、辅助功能 |
 | `lua/tiger_sentence*.lua` | 上游引擎模块（`tiger_sentence.lua` 有本地集成） |
 | `lua/shift_upper.lua` | Shift 大写直出（本地功能） |
-| `english.schema.yaml` / `english.dict.yaml` | 英文方案（46,717 词，词频补全；从方案菜单进入，Shift 不切方案） |
 | `lua/tiger_symbol_select.lua` | 虎单/虎词 `;` `'` 顶字（本地功能） |
 | `lua/tiger_zaoci.lua` | 造词模块（本地功能，与引擎桥接） |
 | `lua/tiger_sentence_pinyin.lua` | 拼音反查引擎（v0.3.3：主 chunk 第二实例 + 键位转换 + 分页码表索引，反查候选由五阶模型生成；v0.3.10 起虎单/虎词/虎整句共用） |
@@ -96,7 +95,6 @@
 | **造词桥接** | `zaoci_bridge` 在 `tiger_sentence.lua` 里，负责自造词参与组句/调频；合并上游时**必须保留** |
 | **主题/个人配置** | `squirrel.custom.yaml`、`docs/CORRECTION_*.md`、`docs/EARLY_EVIDENCE_GATE.md` 被 `.gitignore` 排除，不要提交 |
 | **开关记忆** | 「要记住」的开关**不能写 `reset`**（librime 每个新会话都会按 reset 强制复位，且热键 toggle 不写 user.yaml）。虎整句存 `tiger_sentence.options.yaml`（`M.options`），虎单/虎词存 `tiger.options.yaml` / `tigress.options.yaml`（`lua/option_persist.lua`）。`ascii_mode` / `ascii_punct` / `full_shape` 保留 reset 属有意行为 |
-| **英文方案** | 只能从方案菜单进入；曾用 Shift 切方案（`Engine:apply_schema(Schema(id))`，传 Schema 对象），2026-11-02 实测后按用户要求还原为西文直通。english 的 translator 必须用无名 `table_translator` + `translator:` 段（`table_translator@english` 会去找 `english/dictionary`） |
 | **简拼整段匹配** | 码表第三列 `A`（索引 flags bit2）标记简拼；引擎只在「整段匹配」时允许简拼边。改码表、索引或 `eligible_candidates` 时不要破坏，否则 `fancha` 会拆成 fa+nc+ha 出现「发内存哈」这类拼接词 |
 | **反查/造词前缀** | 反查是 `` ` `` 前缀、造词是 `'` 前缀；「拼音+`` ` ``」后缀式反查已移除（v0.3.3）。改 recognizer 时三个 schema 的 `zaoci` / `yin_add_user` 模式与 affix `prefix` 必须同步 |
 | **拼音反查双实例** | `lua/tiger_sentence_pinyin.lua` dofile 同一主 chunk 得到第二实例：词库/beam/解码缓存与虎码主实例完全独立（`lexicon_state` 绑定单码表，不能共表）。改主 chunk 的 `read_data_file`/`rebuild_lexicon`/`M.translator` 时必须同时验证两条路径；负向控制锚点严禁改动 |
@@ -134,7 +132,7 @@
 
 ## 8. 当前状态（2026-11-02）
 
-- `main` = tag `v0.3.13` + 未发布改动（反查简拼/混输修复、英文方案）
+- `main` = tag `v0.3.13` + 未发布改动（反查简拼/混输修复）
 - 拼音反查：虎单/虎词/虎整句共用五阶模型第二实例 + **分页码表索引**
   （`models/pinyin.codes.*`，稳定后每键约 8–14ms；首键约 20–30ms 换入模型页，常驻约 +20MB）；
   词库为 `dicts/pinyin_reverse.dict.yaml` 导出的 24.8 万条（全拼 + 多字词简拼，无辅助码）
@@ -143,8 +141,6 @@
 - 混输：`lua/tiger_mixed.lua`，支持 `;`/`'` 选重后接拼音块、句首单字母简码；纯反查段已短路
 - 测试：契约 21 cases / 132 checks；`tools/test_pinyin_engine.lua` 40 checks；
   `tools/test_tiger_mixed.lua` 7 checks；`run_regressions.py --lua lua` 全绿
-- 英文方案：`english.schema.yaml` + `english.dict.yaml`（46,717 词，FrequencyWords en_50k，MIT）；
-  从方案菜单进入（Shift 保持西文直通）
 - 万象词库：仓库保留 `dicts/*.pro.dict.yaml` 与 `wanxiang_pro*` 便于回滚，但
   `tools/make_release_zip.py` 已排除，不进发行包
 - 上游 `M.*` 导出：100% 覆盖；上游 schema 元素：100% 覆盖
