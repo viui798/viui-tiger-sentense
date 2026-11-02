@@ -37,7 +37,16 @@ local function switch_to(env, id)
     if type(env.engine.apply_schema) ~= "function" or type(Schema) ~= "function" then
         return false
     end
-    return pcall(function() env.engine:apply_schema(Schema(id)) end)
+    local ok = pcall(function() env.engine:apply_schema(Schema(id)) end)
+    if ok then
+        -- 切方案后必须关掉西文直通，否则 english 方案会被 ascii_mode 跳过，
+        -- 状态栏仍显示「西文」且不出候选（用户 2026-11-02 反馈）。
+        local ctx = env.engine.context
+        if ctx:get_option("ascii_mode") then
+            ctx:set_option("ascii_mode", false)
+        end
+    end
+    return ok
 end
 
 local function clear_shift_upper()
