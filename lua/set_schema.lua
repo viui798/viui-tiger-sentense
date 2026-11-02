@@ -23,7 +23,8 @@
 --      处理器根本收不到，命令永远不触发。因为排在前面，输入里还没有当前这个键，
 --      所以要用「已有输入 + 当前按键」预判，而不是直接看 ctx.input。
 --
--- 切换状态存在开关里，重新部署/重启后回到默认值（小鹤双拼）。
+-- 切换状态由 tiger_sentence.options.yaml 持久化（M.options 的 radio 组
+-- tiger_sentence_yin_scheme），重新部署/重启后保持上次选择；首次默认小鹤。
 -- 也可以按 Ctrl+`（或 F4）在菜单里选「小鹤/全拼/自然码/微软/搜狗」。
 
 local OPTIONS = { "yin_flypy", "yin_qp", "yin_zrm", "yin_mspy", "yin_sogou" }

@@ -699,6 +699,9 @@ assert_contains(sentence_schema, [[mixed: "^[a-z][a-z;']*`[a-z`]*$"]], "缺少�
 assert_contains(sentence_schema, "lua_translator@tiger_mixed_translator", "缺少混输 translator 接线")
 assert_contains(read_repo_file("rime.lua"),
     'tiger_mixed_translator = require("tiger_mixed").translator', "rime.lua 未注册混输 translator")
+assert_contains(read_repo_file("lua/tiger_mixed.lua"),
+    'if not input:match("^[a-z]") then return end',
+    "混输 translator 缺少纯反查段短路，反查会被重复解码")
 print("OK  mixed 虎码+pinyin reverse translator is wired")
 
 

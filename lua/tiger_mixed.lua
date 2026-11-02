@@ -6,8 +6,9 @@
 --   临时并入虎码整句 lattice（例如 `jiyu → 觊觎），由五阶模型和前后虎码一起选句。
 --   后续字母无法继续拼音解析时自动回到虎码（beuegmmup → 她 的 美 貌）。
 --
--- 实现：把拼音块替换成一个不会与虎码冲突的临时 4 字母编码，调用
--- tiger_sentence.decode_with_overlay 解码，结束后还原码表。
+-- 实现：把拼音块替换成一个不会与虎码冲突的临时 3 字母编码（避开真实码前缀，
+-- 因而不会被拆成 1+2 或 2+1 抢候选），调用 tiger_sentence.decode_with_overlay
+-- 解码，结束后还原码表。纯反查段（` 开头）直接跳过，不重复解码。
 
 local M = {}
 local keymaps = require("pinyin_keymaps")
@@ -139,6 +140,9 @@ local function translate(input, seg, env)
         end
         return
     end
+    -- 混输段必须以虎码字母开头（recognizer: ^[a-z][a-z;']*`）；纯反查段以 `
+    -- 开头，交给拼音反查翻译器，这里直接跳过，避免同一段被两条路径重复解码。
+    if not input:match("^[a-z]") then return end
     local ctx = env.engine.context
     local scheme = scheme_of(ctx)
     local sentence = require("tiger_sentence")
