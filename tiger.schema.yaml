@@ -21,6 +21,8 @@ switches: # 0 默认关，1 默认开
   # 热键 toggle 又不落盘；持久化由 lua/option_persist.lua 负责（见该文件注释）。
   - name: extended_char  #自定义字集
     states: [ 全字集, 常用字]
+  - name: repeat_z  # ;z 重复上次上屏（默认关）
+    states: [ 重复关, 重复开 ]
   - name: pinyin  #拼音滤镜
     states: [ 拼, pīn ]
   - name: emoji_cn  #emoji滤镜

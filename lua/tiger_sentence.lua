@@ -5127,7 +5127,8 @@ M.options = {};
         emoji_cn = false,
         charset_comment_filter = false,
         udpf_switch = false,
-        yin = true
+        yin = true,
+        repeat_z = false
     }
     -- radio 组按「选中档的 option 名」保存；首次默认见 default 字段。
     local groups = {

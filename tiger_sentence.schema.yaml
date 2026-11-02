@@ -77,6 +77,8 @@ switches: # 0 默认关，1 默认开
   # 在每个新会话 init 与每次按键前重放，与「提前上屏」同一机制。
   - options: [ s2s, s2t, s2hk, s2tw ]
     states: [ 简体, 通繁, 港繁, 臺繁 ]
+  - name: repeat_z  # ;z 重复上次上屏（默认关）
+    states: [ 重复关, 重复开 ]
   - name: pinyin  # 拼音滤镜
     states: [ 拼, pīn ]
   - name: chaifen  # 拆字滤镜

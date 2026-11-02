@@ -17,6 +17,9 @@ local DEFAULT_SYMBOLS = {
 
 local punctuation = { [1] = "：", [2] = "；" }
 
+-- 上一次上屏的完整文本（;z 重复用；含标点/英文）
+local last_commit = ""
+
 -- 启动时读取一次，优先级：内置默认 < 共享 kf_symbols.schema.yaml < 方案内 kf_symbols。
 local LETTERS = {}
 for code = string.byte("a"), string.byte("z") do
@@ -64,6 +67,12 @@ end
 
 -- 核心：命中则直接上屏并清空
 local function execute_quick_symbol(env, ctx, text)
+  -- ;z 重复上次上屏（开关 repeat_z，默认关；关着时 ;z 仍是普通符号）
+  if text == ";z" and ctx:get_option("repeat_z") and last_commit ~= "" then
+    env.engine:commit_text(last_commit)
+    ctx:clear()
+    return true
+  end
   local symbol = quick_symbol(env.kf_mapping or DEFAULT_SYMBOLS, text)
   if symbol and symbol ~= "" then
     env.engine:commit_text(symbol)
@@ -89,12 +98,20 @@ function M.init(env)
   env.conn_update = env.engine.context.update_notifier:connect(function(ctx)
     execute_quick_symbol(env, ctx, ctx.input or "")
   end)
+  env.conn_commit = env.engine.context.commit_notifier:connect(function(ctx)
+    local text = ctx:get_commit_text()
+    if type(text) == "string" and text ~= "" then last_commit = text end
+  end)
 end
 
 function M.fini(env)
   if env.conn_update then
     env.conn_update:disconnect()
     env.conn_update = nil
+  end
+  if env.conn_commit then
+    env.conn_commit:disconnect()
+    env.conn_commit = nil
   end
 end
 

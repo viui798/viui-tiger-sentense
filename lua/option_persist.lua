@@ -20,7 +20,8 @@ local NAMES = {
   charset_comment_filter = false,
   udpf_switch = false,
   yin = true,
-  extended_char = true
+  extended_char = true,
+  repeat_z = false
 }
 
 local GROUPS = {
