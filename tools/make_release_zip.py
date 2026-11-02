@@ -80,18 +80,27 @@ INSTALL_NOTE = """芝士虎整 {version} 安装说明
   4. 从方案菜单切换到虎单、虎词或虎整句。
 
 三、验收抽查
+  - 方案菜单：应只有虎单、虎词、虎整句三个方案（旧版万象拼音已移除）。
   - 虎整句：输入 ujkf 看候选；方案菜单把按键纠错调到“强”，
     点一次“捡”后再输入 ujkf，应变成“捡”排在第一位。
   - Shift 大写：中文态按 Shift 再打字母，直接上屏大写（如 Shift+a → A）。
   - 顶字：虎单/虎词输入 rjk; 应输出“符；”（rjk 只有唯一候选时）。
-  - 自造词：反引号 + 编码造词；编码后加 / 删词。
-  - 拼音反查：`nihao（虎单/虎词/虎整句通用）；快符：;a；输入统计：//1。
+  - 拼音反查：虎单/虎词/虎整句输入 `nihao 都应出现“你好”；切换打法用
+    /flypy（小鹤，默认）/pinyin（全拼）/zrm（自然码）/mspy（微软）/sogou（搜狗）。
+  - 混输：虎整句输入 je`jiyubeuegmmup，首选应为“他觊觎她的美貌”。
+  - 短输入反查调频：反查 `jiyu 时用 Tab 选一个非首选词上屏；再次输入 `jiyu，
+    该词应排第一（记录在用户目录 reverse_freq.txt，删除即清空）。
+  - 自造词：单引号 + 编码造词（如 'uawl）；编码后加 / 删词。
+  - 快符：;a；输入统计：//1。
 
 四、说明
   - 本包不含个人数据。学习库、方案选项（tiger_sentence.options.yaml）、
-    custom_phrase.txt、各前端皮肤配置都属于用户数据，升级时请自行保留。
+    custom_phrase.txt、reverse_freq.txt、各前端皮肤配置都属于用户数据，升级时请自行保留。
+  - 包内体积主要来自 models/sentence-fivegram-mobile.bin（约 387MB），
+    虎整句与拼音反查都需要它；请勿删除 models/。
+  - 旧版万象反查词库自 v0.3.10 起不再随包发布，升级后无需再编译 wanxiang_pro 拼写索引；
+    用户目录里残留的 wanxiang_pro*.yaml 与 dicts/*.pro.dict.yaml 可手动删除。
   - 更新内容见 CHANGELOG.md 与 docs/ 下的更新说明。
-  - 手机 / Android 前端若空间紧张，请使用仓库里的 手机精简版/ 目录（不进本发行包）。
 """
 
 

@@ -8,14 +8,15 @@
 **芝士虎整**：面向 [Rime](https://rime.im) 的虎码输入方案整合包，私有仓库
 <https://github.com/viui798/viui-tiger-sentense>（GPL-3.0）。
 
-它在**上游虎整句**（lvyww/tiger-sentense-rime）的基础上，把虎单、虎词、虎整句、万象拼音反查
-和一批辅助功能（造词、反查、简繁、快符、拆字、Emoji、Unicode、计算器、时间日期、输入统计）
+它在**上游虎整句**（lvyww/tiger-sentense-rime）的基础上，把虎单、虎词、虎整句和统一的拼音反查
+以及一批辅助功能（造词、反查、简繁、快符、拆字、Emoji、Unicode、计算器、时间日期、输入统计）
 整合到同一套 Rime 用户目录里。
 
-- 当前版本：**v0.3.1**
+- 当前版本：**v0.3.12**
 - 虎整句上游：`1.6.20261030.1`（源码 `e86ceeb`）
 - 语言模型：TCSKNM03 五阶 Q8，405,663,171 字节，SHA-256 `756f6c92…ab8681`
-- 方案 ID：`tiger`（虎单）、`tigress`（虎词）、`tiger_sentence`（虎整句）、`wanxiang_pro`（拼音反查）
+- 方案 ID：`tiger`（虎单）、`tigress`（虎词）、`tiger_sentence`（虎整句）；
+  反查由三方案共用五阶模型引擎，旧 `wanxiang_pro` 独立方案自 v0.3.10 起移除
 
 ## 2. 铁律（违反会破坏项目）
 
@@ -53,14 +54,15 @@
 
 - 鼠须管用户目录：`~/Library/Rime`
 - 发行包不包含：`tools/`、`sync/`、`validation/`、`手机精简版/`、`RELEASE.json`、`SHA256SUMS.txt`、
-  `SOURCE_BASELINE.md`、`RIME_CORRECTNESS.md`、`IOS_TEST_README.md`（见 `tools/make_release_zip.py`）
+  `SOURCE_BASELINE.md`、`RIME_CORRECTNESS.md`、`IOS_TEST_README.md`，以及旧版万象词库
+  （`wanxiang_pro*`、`dicts/*.pro.dict.yaml`、`zuci/moegirl`、`zuci/ext`，见 `tools/make_release_zip.py`）
 - 包内顶层目录名：`芝士虎整-vX.Y.Z/`
 
 ## 4. 仓库地图
 
 | 路径 | 内容 |
 |---|---|
-| `tiger_sentence.schema.yaml` | **整合版**虎整句方案（15KB，核心） |
+| `tiger_sentence.schema.yaml` | **整合版**虎整句方案（约 19KB，核心） |
 | `tiger.schema.yaml` / `tigress.schema.yaml` | 虎单 / 虎词 |
 | `lua/` | 全部 Lua：虎整句引擎、学习、字集、回删、辅助功能 |
 | `lua/tiger_sentence*.lua` | 上游引擎模块（`tiger_sentence.lua` 有本地集成） |
@@ -68,6 +70,8 @@
 | `lua/tiger_symbol_select.lua` | 虎单/虎词 `;` `'` 顶字（本地功能） |
 | `lua/tiger_zaoci.lua` | 造词模块（本地功能，与引擎桥接） |
 | `lua/tiger_sentence_pinyin.lua` | 拼音反查引擎（v0.3.3：主 chunk 第二实例 + 键位转换 + 分页码表索引，反查候选由五阶模型生成；v0.3.10 起虎单/虎词/虎整句共用） |
+| `lua/tiger_mixed.lua` | 虎码 + 拼音混输（词块外挂解码、3 字母合成码、纯反查短路） |
+| `lua/reverse_freq.lua` | 短输入反查调频（`reverse_freq.txt`、选非首选一次即置顶） |
 | `models/pinyin.codes.*` | 拼音反查分页索引（**生成文件**，`tools/build_pinyin_codes_index.py` 重生成） |
 | `lua/pinyin_keymaps.lua` | 五打法键位转换表（**生成文件**，勿手改；`tools/export_pinyin_tables.py` 重生成） |
 | `models/` | 五阶模型（LFS）+ 词先验 |
@@ -127,11 +131,17 @@
 
 ## 8. 当前状态（2026-11-02）
 
-- `main` = tag `v0.3.3`（修复 v0.4.0 反查卡顿；v0.4.0 标签待撤销）
-- 拼音反查：五阶模型第二实例 + **分页码表索引**（`models/pinyin.codes.*`，每键 ~20ms）；
+- `main` = tag `v0.3.12`（v0.4.0 已标记废弃，Latest 指向 v0.3.12）
+- 拼音反查：虎单/虎词/虎整句共用五阶模型第二实例 + **分页码表索引**
+  （`models/pinyin.codes.*`，稳定后每键约 8–14ms；首键约 20–30ms 换入模型页，常驻约 +20MB）；
   词库为 `dicts/pinyin_reverse.dict.yaml` 导出的 24.8 万条（全拼 + 多字词简拼，无辅助码）
-- 测试：契约 21 cases / 126 checks；`run_regressions.py --lua lua` 全绿
-- 与上游文件对比：24 个逐字节一致 + 5 个有意不同（同 v0.3.2）；拼音反查为纯本地功能
+- 短输入反查调频：≤8 字母的反查选过一次非首选词即置顶，记录在 `reverse_freq.txt`
+  （`lua/reverse_freq.lua` + `lua_processor@*reverse_freq`；开关 `tiger_sentence/reverse_frequency`）
+- 混输：`lua/tiger_mixed.lua`，支持 `;`/`'` 选重后接拼音块、句首单字母简码；纯反查段已短路
+- 测试：契约 21 cases / 132 checks；`tools/test_pinyin_engine.lua` 29 checks；
+  `run_regressions.py --lua lua` 全绿
+- 万象词库：仓库保留 `dicts/*.pro.dict.yaml` 与 `wanxiang_pro*` 便于回滚，但
+  `tools/make_release_zip.py` 已排除，不进发行包
 - 上游 `M.*` 导出：100% 覆盖；上游 schema 元素：100% 覆盖
 
 ## 9. 已知事项
@@ -141,8 +151,9 @@
 - 拼音反查（v0.4.0）：`auto_select_min_code_length=3`（虎码默认）在拼音表上有病态
   行为（P5 表近零短路、P4 表慢 45×），生产拼音实例固定 min=0，机理未查
   （docs/项目日志.md §10.4）。动 `eligible_candidates` 前先复现。
-- 拼音反查首用建库 ~2.5s、常驻 +135 MiB；简拼只经词首字母码（引擎排除单键边）；
-  反查不再写 zc 用户词典。
+- 拼音反查首用不再全量建库（分页索引 + 模型按需映射），首键约 20–30ms、常驻约 +20MB；
+  简拼只经词首字母码（引擎排除单键边）；反查不再写 zc 用户词典，改为
+  `reverse_freq.txt` 的短输入选择记录（≤8 字母，选非首选一次即置顶）。
 - 上游已移除 fusion-v1 / exact-correction-v1 硬排序；对应本地测试覆盖已删除，改为断言「旧记录被忽略」。
 - `tools/test_lexical_prior.lua` 直接在仓库根跑会生成临时模型夹具
   `sentence-fivegram-mobile.bin`（已在 `.gitignore`）。
