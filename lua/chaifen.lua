@@ -97,6 +97,12 @@ function ZH.init(env)
     local preedit = context:get_preedit().text
     env.chaifen_enabled = false
 
+    -- 优先级0：虎码 + 拼音混输候选不显示拆分（省 ReverseLookup 开销，也避免长句注释噪音）
+    local seg = context.composition:back()
+    if seg and seg:has_tag("mixed") then
+        return
+    end
+
     -- 优先级1：直接检查开关选项（最快路径）
     if context:get_option("chaifen") then
         env.chaifen_enabled = true
@@ -104,7 +110,6 @@ function ZH.init(env)
     end
 
     -- 优先级2：检查激进词模式
-    local seg = context.composition:back()
     if seg and (seg:has_tag("yin_add_user") or seg:has_tag("rvlk1") or seg:has_tag("rvlk2")) then
         env.chaifen_enabled = true
         return
