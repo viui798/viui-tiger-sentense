@@ -3,7 +3,7 @@
 -- 背景：五份拼写索引（小鹤 / 全拼 / 自然码 / 微软 / 搜狗）在部署时都已生成，
 --       但用户要求「同一时间只有一种反查」，用 /flypy /pinyin /zrm /mspy /sogou 切换。
 --
--- 原理：recognizer 把反查输入（' 开头 或 ` 结尾）打成 tag "yin_add_user"，
+-- 原理：recognizer 把反查输入（` 开头）打成 tag "yin_add_user"，
 --       matcher 据此建好分段。本分段器排在 matcher 之后、各 affix_segmentor 之前，
 --       把该分段的 tag 换成当前选中打法的 tag，于是只有对应的那一个
 --       affix_segmentor（切前缀）+ script_translator（查索引）会响应。

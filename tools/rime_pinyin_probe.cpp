@@ -5,12 +5,12 @@
 // Usage: rime_pinyin_probe <user-data-dir> <shared-data-dir> <librime-lua-plugin>
 //
 // 覆盖（对应 docs/项目日志.md §10.6 实机清单的自动化部分）：
-//   1. 小鹤反查：'nihc → 你好（五阶模型引擎候选）+〔拆分·虎码〕注释在位
-//   2. 全拼反查：'nihao → 你好；全拼简拼 'jsj → 计算机、'nh → 你好
-//   3. 反查后缀式：nihao` 选首 → 上屏「你好」且反引号被剥除（db.lua 契约）
-//   4. 音码总开关：yin 关 → 'nihao 零候选；开 → 恢复
+//   1. 小鹤反查：`nihc → 你好（五阶模型引擎候选）+〔拆分·虎码〕注释在位
+//   2. 全拼反查：`nihao → 你好；全拼简拼 'jsj → 计算机、'nh → 你好
+//   3. （v0.3.3 起后缀式反查已移除） 选首 → 上屏「你好」且反引号被剥除（db.lua 契约）
+//   4. 音码总开关：yin 关 → `nihao 零候选；开 → 恢复
 //   5. 虎码主路径回归：vp → 刘（提前上屏）
-//   6. 虎单反查（万象词库路径）不受影响：'nihao 有候选
+//   6. 虎单反查（万象词库路径）不受影响：`nihao 有候选
 #include <rime_api.h>
 #include <dlfcn.h>
 #include <iostream>
@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
         // ---- 1. 小鹤反查：'nihc → 你好 + 拆分·虎码注释 ----
         clear_all();
         radio("yin_flypy");
-        type("'nihc");
+        type("`nihc");
         auto cands = candidates();
         check(!cands.empty(), "flypy reverse lookup produced no candidates");
         check(has_candidate(cands, "你好"), "flypy 'nihc missing 你好 (engine candidates)");
@@ -153,49 +153,40 @@ int main(int argc, char** argv) {
 
         // ---- 2. 全拼反查 + 简拼 ----
         radio("yin_qp");
-        type("'nihao");
+        type("`nihao");
         cands = candidates();
         check(has_candidate(cands, "你好"), "qp 'nihao missing 你好");
         api->clear_composition(session);
         drain();
 
-        type("'jsj");
+        type("`jsj");
         cands = candidates();
         check(has_candidate(cands, "计算机"), "qp 'jsj missing 计算机 (word-initial code)");
         api->clear_composition(session);
         drain();
 
-        type("'nh");
+        type("`nh");
         cands = candidates_all_pages();
         check(has_candidate(cands, "你好"), "qp 'nh missing 你好 (word-initial code)");
         drain();
 
-        // ---- 3. 后缀式反查：nihao` 选首 → 上屏你好、` 被剥除 ----
-        // 注：提前上屏开启时，裸字母 nihao 会被虎码主路径吃掉（README 记载的
-        // 多音节后缀式已知限制，v0.3.x 即如此）——这里关掉提前上屏，测反查本身。
-        api->set_option(session, "tiger_sentence_early_commit", False);
+        // ---- 3. 后缀式反查（v0.3.3 已移除）：nihao` 不再出拼音候选 ----
         clear_all();
         type("nihao`");
-        cands = candidates();
-        check(!cands.empty(), "suffix-form reverse lookup produced no candidates");
-        check(has_candidate(cands, "你好"), "suffix form missing 你好");
-        key(0x20);  // 空格选首（db.lua select_notifier 剥 ` 并提交）
-        check(committed.find("你好") != std::string::npos,
-              "suffix-form selection did not commit 你好");
-        check(input().find('`') == std::string::npos, "backtick not stripped after commit");
-        api->set_option(session, "tiger_sentence_early_commit", True);
+        check(!has_candidate(candidates(), "你好"), "suffix-form reverse lookup should be gone");
+        clear_all();
 
         // ---- 4. 音码总开关 ----
         api->set_option(session, "yin", False);
         clear_all();
-        type("'nihao");
+        type("`nihao");
         check(candidates().empty(), "yin=off must silence the reverse lookup");
         api->set_option(session, "yin", True);
 
         // ---- 6. 虎单反查（万象词库路径）不受影响 ----
         check(api->select_schema(session, "tiger"), "Cannot select tiger schema");
         clear_all();
-        type("'nihao");
+        type("`nihc");  // 切 schema 会按 tiger.options.yaml 恢复小鹤打法
         cands = candidates();
         check(!cands.empty() && has_candidate(cands, "你好"),
               "tiger (wanxiang path) reverse lookup regressed");

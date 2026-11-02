@@ -75,8 +75,7 @@ patch:
     enable_user_dict: true
     spelling_hints: 50
     comment_format:
-    prefix: "'"
-    suffix: "`"
+    prefix: "`"
     tips: "〔音〕"
     extra_tags: [ yin_add_user ]
 
@@ -103,8 +102,7 @@ patch:
     enable_user_dict: true
     spelling_hints: 50
     comment_format:
-    prefix: "'"
-    suffix: "`"
+    prefix: "`"
     tips: "〔音·全拼〕"
     extra_tags: [ yin_add_user ]
 
@@ -119,8 +117,7 @@ patch:
     enable_user_dict: true
     spelling_hints: 50
     comment_format:
-    prefix: "'"
-    suffix: "`"
+    prefix: "`"
     tips: "〔音·自然码〕"
     extra_tags: [ yin_add_user ]
 
@@ -135,8 +132,7 @@ patch:
     enable_user_dict: true
     spelling_hints: 50
     comment_format:
-    prefix: "'"
-    suffix: "`"
+    prefix: "`"
     tips: "〔音·微软〕"
     extra_tags: [ yin_add_user ]
 
@@ -151,7 +147,6 @@ patch:
     enable_user_dict: true
     spelling_hints: 50
     comment_format:
-    prefix: "'"
-    suffix: "`"
+    prefix: "`"
     tips: "〔音·搜狗〕"
     extra_tags: [ yin_add_user ]

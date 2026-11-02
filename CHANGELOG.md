@@ -21,6 +21,8 @@
 - **反查词库换为** `dicts/pinyin_reverse.dict.yaml`（第三方拼音词库，13.4 万词条），
   导出 24.8 万条（全拼 + 多字词首字母简拼），**不再导出辅助码**。
 - 双拼（小鹤/自然码/微软/搜狗）与全拼共用同一索引；简拼仅全拼可用（双拼码位冲突）。
+- **前缀语义调整**：反查改为 `` ` `` 前缀，造词改为 `'` 前缀；「拼音+`` ` ``」后缀式反查暂时移除
+  （`db.lua` 的尾随反引号拦截同步删除）。
 - 新增 `tools/export_reverse_codes.py`（可复现导出）与 `tools/build_pinyin_codes_index.py`。
 - `tools/export_pinyin_tables.py` 增加 `--no-aux`（本次正式表已用它生成）。
 

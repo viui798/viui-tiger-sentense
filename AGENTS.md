@@ -67,10 +67,11 @@
 | `lua/shift_upper.lua` | Shift 大写直出（本地功能） |
 | `lua/tiger_symbol_select.lua` | 虎单/虎词 `;` `'` 顶字（本地功能） |
 | `lua/tiger_zaoci.lua` | 造词模块（本地功能，与引擎桥接） |
-| `lua/tiger_sentence_pinyin.lua` | 拼音反查引擎（v0.4.0：主 chunk 第二实例 + 键位转换，反查候选由五阶模型生成） |
+| `lua/tiger_sentence_pinyin.lua` | 拼音反查引擎（v0.3.3：主 chunk 第二实例 + 键位转换 + 分页码表索引，反查候选由五阶模型生成） |
+| `models/pinyin.codes.*` | 拼音反查分页索引（**生成文件**，`tools/build_pinyin_codes_index.py` 重生成） |
 | `lua/pinyin_keymaps.lua` | 五打法键位转换表（**生成文件**，勿手改；`tools/export_pinyin_tables.py` 重生成） |
 | `models/` | 五阶模型（LFS）+ 词先验 |
-| `pinyin.qp.codes.txt` | 拼音反查引擎码表（**生成文件**，~28 万条；同上脚本重生成） |
+| `pinyin.qp.codes.txt` | 拼音反查码表（**生成文件**，24.8 万条；`tools/export_reverse_codes.py` 重生成） |
 | `dicts/`、`zuci/`、`tiger_dicts/` | 词库 |
 | `docs/` | 上游技术文档 + 本地更新说明；`docs/项目日志.md` 是交接主文档 |
 | `tools/` | 测试、打包、基准脚本（不进发行包） |
@@ -90,6 +91,7 @@
 | **造词桥接** | `zaoci_bridge` 在 `tiger_sentence.lua` 里，负责自造词参与组句/调频；合并上游时**必须保留** |
 | **主题/个人配置** | `squirrel.custom.yaml`、`docs/CORRECTION_*.md`、`docs/EARLY_EVIDENCE_GATE.md` 被 `.gitignore` 排除，不要提交 |
 | **开关记忆** | 「要记住」的开关**不能写 `reset`**（librime 每个新会话都会按 reset 强制复位，且热键 toggle 不写 user.yaml）。虎整句存 `tiger_sentence.options.yaml`（`M.options`），虎单/虎词存 `tiger.options.yaml` / `tigress.options.yaml`（`lua/option_persist.lua`）。`ascii_mode` / `ascii_punct` / `full_shape` 保留 reset 属有意行为 |
+| **反查/造词前缀** | 反查是 `` ` `` 前缀、造词是 `'` 前缀；「拼音+`` ` ``」后缀式反查已移除（v0.3.3）。改 recognizer 时三个 schema 的 `zaoci` / `yin_add_user` 模式与 affix `prefix` 必须同步 |
 | **拼音反查双实例** | `lua/tiger_sentence_pinyin.lua` dofile 同一主 chunk 得到第二实例：词库/beam/解码缓存与虎码主实例完全独立（`lexicon_state` 绑定单码表，不能共表）。改主 chunk 的 `read_data_file`/`rebuild_lexicon`/`M.translator` 时必须同时验证两条路径；负向控制锚点严禁改动 |
 | **中文文件名** | 打包脚本已处理 UTF-8 标志位；手动 `zip` 会导致 Windows 乱码 |
 

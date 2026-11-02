@@ -673,6 +673,29 @@ if read_repo_file("lua/yin_pick.lua"):find('get_option("yin")', 1, true) == nil 
 end
 print("OK  auxiliary switches persist without reset across sessions")
 
+-- v0.3.3 前缀语义：` 前缀反查、' 前缀造词、后缀式反查移除。
+local function assert_contains(content, needle, message)
+    if not content:find(needle, 1, true) then fail(message) end
+end
+assert_contains(sentence_schema, [[zaoci: "^'[a-z]*$"]], "虎整句 zaoci 前缀应为单引号")
+assert_contains(sentence_schema, [[yin_add_user: "^`[A-Za-z';]*$"]],
+    "虎整句反查应为反引号前缀且不再含后缀式")
+assert_contains(sentence_schema, [[  prefix: "`"]], "虎整句反查 affix 前缀应为反引号")
+local _, yin_prefixes = sentence_schema:gsub('prefix: "`"', "")
+if yin_prefixes < 5 then fail("虎整句五个反查 affix 未全部改成反引号前缀") end
+if sentence_schema:find('suffix: "`"', 1, true) then fail("虎整句仍残留后缀式反查") end
+for _, name in ipairs({ "tiger", "tigress" }) do
+    local content = read_repo_file(name .. ".schema.yaml")
+    assert_contains(content, [[zaoci: "^'[a-z]*$"]], name .. " zaoci 前缀应为单引号")
+    assert_contains(content, [[yin_add_user: "^`[A-Za-z';]*$"]],
+        name .. " 反查应为反引号前缀且不再含后缀式")
+    assert_contains(content, [[  prefix: "'"]], name .. " zaoci prefix 应为单引号")
+    local custom = read_repo_file(name .. ".custom.yaml")
+    if custom:find('suffix: "`"', 1, true) then fail(name .. " 仍残留后缀式反查") end
+end
+print("OK  reverse lookup uses ` prefix, zaoci uses ' prefix, suffix form removed")
+
+
 local env_tab, context_tab, _, _, menu_tab, segment_tab = fake_environment(false)
 context_tab.input = "rl"
 menu_tab.count = 3

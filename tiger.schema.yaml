@@ -92,7 +92,7 @@ engine:
     - affix_segmentor@yin_zrm #拼音反查：自然码
     - affix_segmentor@yin_mspy #拼音反查：微软双拼
     - affix_segmentor@yin_sogou #拼音反查：搜狗双拼
-    - affix_segmentor@zaoci # `` ` `` 造词（前缀剥离）
+    - affix_segmentor@zaoci # ' 造词（前缀剥离）
     - abc_segmentor
     - punct_segmentor
     - fallback_segmentor
@@ -100,7 +100,7 @@ engine:
     - punct_translator
     - script_translator@yin_add_user #拼音反查
     - table_translator@kf  # 快符号码表 kf.dict 编码输入后直接上屏
-    - table_translator@zaoci           # `` ` `` 造词候选
+    - table_translator@zaoci           # ' 造词候选
     - lua_translator@tiger_zaoci_translator  # 加词模块：内存词库即时出候选
     - table_translator
     - history_translator@historyDM # 昨日记忆 按首字母
@@ -202,13 +202,13 @@ key_binder:
     #- { when: always, accept: "Shift+space" , toggle: full_shape } # 全角半角切换
 
 # ==================== 加词模块（`` ` `` + 编码造词） ====================
-# 用法：`` ` `` + 虎码编码 → 候选与平时输入一致 → 选中上屏，即写入用户词库
+# 用法：' + 虎码编码 → 候选与平时输入一致 → 选中上屏，即写入用户词库
 #   · custom_phrase.txt：用户词库（纯文本，只读加载，输入法永不改写）
 #     每行 词<TAB>编码[<TAB>权重]；改完在鼠须管里「重新部署」生效
-#   · 不开自动调频：主码表照旧，只有 `` ` `` 前缀这一条路上屏的词会入库
+#   · 不开自动调频：主码表照旧，只有 ' 前缀这一条路上屏的词会入库
 zaoci:
   tag: zaoci          # 与 recognizer/patterns 名字一致
-  prefix: "`"
+  prefix: "'"
   tips: "〔造词〕"
   dictionary: tigress.extended   # 造词检索用词表（词组，够全）
   initial_quality: 1
@@ -228,8 +228,8 @@ recognizer:
     punct: "^/(/[0-9A-Za-z]*|[0-9]{1,3}|[A-Za-z]+)$"  # 标点/符号菜单 + 统计指令
     # 三段分支：//1 //6xx1（统计，2026-07-18 版）｜/0~/9、/10、/001（符号菜单）｜/xh /rtj（符号/统计）
     # uppercase: "" #英文大写输入
-    zaoci: "^`[a-z]*$"  # `` ` `` 前缀造词（单按 `` ` `` 即进造词模式，preedit 显示 `` `〔造词〕 ``）
-    yin_add_user: "^[A-Za-z';]+`$|^'[A-Za-z';]*$"  # 拼音反查：前缀 ' 或「拼音+`」；单按 ` 让给造词；含 ;（微软/搜狗双拼的 ing 键）
+    zaoci: "^'[a-z]*$"  # 单引号前缀造词
+    yin_add_user: "^`[A-Za-z';]*$"  # 拼音反查：反引号前缀（后缀式已移除）
     expression: "^=.*$"
 
 # menu:

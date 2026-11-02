@@ -458,36 +458,11 @@ function merged_dict.init(e)
     zhuyin.init(e); e.zhuyin = zhuyin
     e.engine_ctx = e.engine.context
 
-    e.search_key = '`'
-    e.code_pattern = '[a-z]'
-
-    e.select_notifier = e.engine_ctx.select_notifier:connect(function(ctx)
-        local input = ctx.input
-        local code = input:match('^(.-)' .. e.search_key)
-        if not code or #code == 0 then return end
-        
-        local preedit = ctx:get_preedit()
-        local no_search_string = input:match('^(.-)' .. e.search_key)
-        local edit = preedit.text:match('^(.-)' .. e.search_key)
-        
-        if edit and edit:match(e.code_pattern) then
-            ctx.input = no_search_string .. e.search_key
-        else
-            ctx:set_property("is_removing_suffix", "true")
-            ctx.input = no_search_string
-            ctx:commit()
-            ctx:set_property("is_removing_suffix", "false")
-        end
-    end)
+    -- v0.3.3：反查改为 ` 前缀；后缀式（拼音+`）暂时移除，这里不再拦截尾随反引号。
 end
 
 function merged_dict.func(input, env)
     local ctx = env.engine_ctx; if not ctx then for c in input:iter() do yield(c) end return end
-
-    if ctx:get_property("is_removing_suffix") == "true" then
-        for c in input:iter() do yield(c) end
-        return
-    end
 
     local s = ctx.input:gsub("%s+", ""); if #s == 0 then for c in input:iter() do yield(c) end return end
     
