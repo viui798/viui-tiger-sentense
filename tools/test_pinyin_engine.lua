@@ -105,8 +105,13 @@ check(#cands == 0, "yin 总开关关闭（段留 yin_add_user）时静默")
 
 cands = translate("yin_qp", "fancha")
 check(texts(cands):find("反查", 1, true), "全拼 fancha 出反查")
+check(texts(cands):find("发内存哈", 1, true),
+    "全拼反查保留简拼边（fa+nc+ha 可以组成发内存哈）")
+
+cands = translate("yin_flypy", "fjia")
+check(texts(cands):find("反查", 1, true), "小鹤 fjia 出反查")
 check(not texts(cands):find("发内存哈", 1, true),
-    "简拼不能作为长输入中的边（fa+nc+ha 不应组成发内存哈）")
+    "双拼反查不出现简拼拼接词（fancha 只有音节组合）")
 
 cands = translate("yin_qp", "jsj")
 check(texts(cands):find("计算机", 1, true), "整段简拼 jsj 仍出计算机")
@@ -175,8 +180,15 @@ if real_file then
         "真实码表 fjia 不含简拼拼接词")
     local marked = real_translate("yin_flypy", "fj`ia")
     check(#marked >= 10, "真实码表 fj`ia 一个音节标记即展开多候选")
-    local ygpan = real_translate("yin_qp", "ygpan")
-    check(#ygpan == 0, "真实码表 ygpan 不应拼出「一个盘」")
+    local qp_fancha = real_translate("yin_qp", "fancha")
+    check(table.concat(qp_fancha, "|"):find("发内存哈", 1, true),
+        "全拼真实码表保留简拼拼接词（fa+nc+ha）")
+    local flypy_fancha = real_translate("yin_flypy", "fjia")
+    check(not table.concat(flypy_fancha, "|"):find("发内存哈", 1, true),
+        "双拼真实码表不出现简拼拼接词")
+    local qp_ygpan = real_translate("yin_qp", "ygpan")
+    check(table.concat(qp_ygpan, "|"):find("一个盘", 1, true),
+        "全拼真实码表保留简拼拼接（yg+pan 可以是一个盘）")
 end
 
 print(string.format('{"status":"passed","pinyin_checks":%d,"real_model":false}', checks))

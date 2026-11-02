@@ -228,6 +228,10 @@ function M.translator(input, seg, env)
 
     apply_parameters(env)
     local engine = ensure_instance()
+    -- 全拼保留简拼边（fa+nc+ha 合法）；双拼只允许音节组合。
+    if engine.set_allow_abbreviation_edges then
+        engine.set_allow_abbreviation_edges(scheme == "qp")
+    end
     -- 音节级标记（内部 `）：短输入时允许全部同音单字参与，给出多条候选；
     -- 长输入仍走单条最优句，避免解码爆炸。阈值：字母数 ≤16 且内部标记 ≤4。
     -- 字母数用「删除非字母后的长度」统计（gsub 的第二个返回值是被替换的次数，

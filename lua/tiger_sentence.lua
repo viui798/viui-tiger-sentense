@@ -290,6 +290,9 @@ local lexicon_state = {
     built = false,
     high_freq_limit = nil,
     auto_select_min_code_length = 3,
+    -- 简拼（首字母码）能否作为长输入里的一个边：全拼反查要保留（fa+nc+ha），
+    -- 双拼反查关闭（fjia 只应出 fancha 的音节组合）。
+    allow_abbreviation_edges = true,
     auto_selection_generation = 0,
     codes = {},
     lengths = {},
@@ -1419,7 +1422,7 @@ local function eligible_candidates(candidates, selected_rank, whole_input_edge, 
     -- 简拼（首字母码，如 nc=内存、yg=一个）只能整段匹配。若允许它出现在长输入
     -- 中间，fancha 会被拆成 fa+nc+ha 组成「发内存哈」、ygpan 组成「一个盘」。
     -- 过滤结果缓存在原候选表上（_no_abbrev），避免每次查询重建。
-    if not whole_input_edge then
+    if not whole_input_edge and not lexicon_state.allow_abbreviation_edges then
         local source = candidates
         if source._no_abbrev then
             candidates = source._no_abbrev
@@ -4996,6 +4999,14 @@ M.set_allow_duplicate_single = function(enabled)
     if active_allow_duplicate_single ~= value then
         active_allow_duplicate_single = value
         lexicon_state.auto_selection_generation = lexicon_state.auto_selection_generation + 1
+        if reset_decode_cache then reset_decode_cache() end
+    end
+end
+-- 反查简拼边开关：全拼允许、双拼关闭（见 lexicon_state.allow_abbreviation_edges）。
+M.set_allow_abbreviation_edges = function(enabled)
+    local value = not not enabled
+    if lexicon_state.allow_abbreviation_edges ~= value then
+        lexicon_state.allow_abbreviation_edges = value
         if reset_decode_cache then reset_decode_cache() end
     end
 end
