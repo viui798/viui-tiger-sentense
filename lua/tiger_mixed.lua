@@ -143,6 +143,20 @@ local function translate(input, seg, env)
     -- 混输段必须以虎码字母开头（recognizer: ^[a-z][a-z;']*`）；纯反查段以 `
     -- 开头，交给拼音反查翻译器，这里直接跳过，避免同一段被两条路径重复解码。
     if not input:match("^[a-z]") then return end
+    -- 反查段的 affix 已剥掉开头的 `，段内容会变成「字母 + `」，同样要跳过：
+    -- 否则 `fj`ia 会被混输把解析不了的 ia 当虎码字母折回去，拼出「一个盘」。
+    local function reverse_segment(tag)
+        return seg.has_tag and seg:has_tag(tag)
+    end
+    if reverse_segment("yin_add_user") or reverse_segment("yin_flypy") or
+        reverse_segment("yin_qp") or reverse_segment("yin_zrm") or
+        reverse_segment("yin_mspy") or reverse_segment("yin_sogou") then
+        if cache.active then
+            require("tiger_sentence").decode_with_overlay("", nil, true)
+            cache.active, cache.signature = false, ""
+        end
+        return
+    end
     local ctx = env.engine.context
     local scheme = scheme_of(ctx)
     local sentence = require("tiger_sentence")
