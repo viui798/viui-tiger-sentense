@@ -32,7 +32,6 @@ schema:
     Unicode 提示/编码、数字转大写、简易计算器、时间/日期。
   dependencies:
     - tigress  # 造词检索用的虎词词表
-    - kf  # 快符
     - tiger_lookup  # 拆分注释
     # v0.4.0：拼音反查改走五阶模型引擎（pinyin.qp.codes.txt），不再依赖
     # wanxiang_pro 拼写索引；那四份 prism 保留给虎单/虎词的反查使用。
@@ -130,7 +129,6 @@ engine:
     - punct_translator
     - lua_translator@tiger_sentence_pinyin_translator  # 拼音反查：五阶模型整句引擎（v0.4.0 起，替代 script_translator 万象词库路径）
     - lua_translator@tiger_mixed_translator  # 虎码 + 拼音反查混输（原型）
-    - table_translator@kf  # 快符
     - table_translator@zaoci           # ' 造词候选
     - lua_translator@tiger_zaoci_translator  # 加词模块：内存词库即时出候选
     - lua_translator@tiger_sentence_translator
@@ -303,15 +301,6 @@ recognizer:
     yin_add_user: "^`[A-Za-z';`]*$"  # 拼音反查：反引号前缀（暂时只保留前缀式，后缀式已移除）；含 ;（微软/搜狗双拼的 ing 键）
     expression: "^=.*$"  # 简易计算器
 
-kf:
-  tag: kf
-  dictionary: kf
-  enable_completion: false
-  enable_sentence: false
-  enable_encoder: false
-  enable_user_dict: false
-  initial_quality: 1
-
 # ==================== 简繁转换（10.2 移植自万象虎 super_replacer）====================
 # 开关：s2s 简体 / s2t 通繁 / s2hk 港繁 / s2tw 臺繁（radio 组，见 switches）
 # 实现：lua/wanxiang/super_replacer.lua（自研 OpenCC 替代品）+ 转换表 lua/data/
@@ -409,3 +398,33 @@ ascii_composer:
 
 enum:
   chaifen: all     # 拆分显示范围：char 单字 | all 完全拆分
+
+# 快符符号表（lua/tiger_kf.lua 启动时读取）：改这里即可，无需改 Lua。
+# 键 = ; 后面的字母，值 = 上屏符号；;;、;1、;2 由 Lua 规则处理。
+kf_symbols:
+  a: "！"
+  b: "_"
+  c: "”"
+  d: "、"
+  e: "("
+  f: "%"
+  g: "·"
+  h: "="
+  i: "-"
+  j: "+"
+  k: "（"
+  l: "）"
+  m: "」"
+  n: "「"
+  o: "["
+  p: "]"
+  q: "：“"
+  r: ")"
+  s: "……"
+  t: "@"
+  u: "》"
+  v: "——"
+  w: "？"
+  x: "→"
+  y: "《"
+  z: "“"

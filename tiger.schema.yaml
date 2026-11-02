@@ -5,7 +5,6 @@ schema:
     - tigress  # 造词检索用的虎词词表
     - core2022  #自定义字集工具方案
     - tiger_lookup  # 拆分注释
-    - kf  # 快符
   description: |
     虎码官方单字
     ` 反查输入拼音反查
@@ -96,7 +95,6 @@ engine:
   translators:
     - punct_translator
     - lua_translator@tiger_sentence_pinyin_translator  # 拼音反查：与虎整句共用五阶模型引擎
-    - table_translator@kf  # 快符号码表 kf.dict 编码输入后直接上屏
     - table_translator@zaoci           # ' 造词候选
     - lua_translator@tiger_zaoci_translator  # 加词模块：内存词库即时出候选
     - table_translator
@@ -149,15 +147,6 @@ translator:
   comment_format:  #候选注释
     - "xform/~/ /" #去补全提示隐藏读音
     # - "xform/^/ /" #候选注释 +拼音
-
-kf:
-  tag: kf
-  dictionary: kf
-  enable_completion: false
-  enable_sentence: false
-  enable_encoder: false
-  enable_user_dict: false
-  initial_quality: 1
 
 key_binder:
   #  import_preset: default
@@ -221,7 +210,7 @@ tiger_zaoci:
 recognizer:
   import_preset: default
   patterns:
-    kf: "^;[a-z]?$"  # 快符号
+    kf: "^;[a-z]?$"  # 快符
     punct: "^/(/[0-9A-Za-z]*|[0-9]{1,3}|[A-Za-z]+)$"  # 标点/符号菜单 + 统计指令
     # 三段分支：//1 //6xx1（统计，2026-07-18 版）｜/0~/9、/10、/001（符号菜单）｜/xh /rtj（符号/统计）
     # uppercase: "" #英文大写输入
@@ -344,3 +333,33 @@ punctuator:
 
 enum:
   chaifen: all     # 拆分显示范围：char 单字 | all 完全拆分
+
+# 快符符号表（lua/tiger_kf.lua 启动时读取）：改这里即可，无需改 Lua。
+# 键 = ; 后面的字母，值 = 上屏符号；;;、;1、;2 由 Lua 规则处理。
+kf_symbols:
+  a: "！"
+  b: "_"
+  c: "”"
+  d: "、"
+  e: "("
+  f: "%"
+  g: "·"
+  h: "="
+  i: "-"
+  j: "+"
+  k: "（"
+  l: "）"
+  m: "」"
+  n: "「"
+  o: "["
+  p: "]"
+  q: "：“"
+  r: ")"
+  s: "……"
+  t: "@"
+  u: "》"
+  v: "——"
+  w: "？"
+  x: "→"
+  y: "《"
+  z: "“"

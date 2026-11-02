@@ -2,6 +2,15 @@
 
 本文件记录「芝士虎整」方案包的主要更新。虎整句方案版本见 `tiger_sentence.schema.yaml` 中 `schema.version`（当前 `1.6.20261030.1`，基于上游 `1.6.20261030.1` / `e86ceeb` 发布）。
 
+## 未发布（2026-11-02）
+
+快符收敛为单一实现，符号表改为 YAML。
+
+- 删除 `kf.dict.yaml`、`kf.schema.yaml`，以及三个方案里的 `dependencies: kf`、`table_translator@kf`、`kf:` 配置段。
+- 快符符号表移到 `tiger.schema.yaml` / `tigress.schema.yaml` / `tiger_sentence.schema.yaml` 的 `kf_symbols:`，
+  `lua/tiger_kf.lua` 启动时读取（改符号只改 YAML，无需改 Lua）；`;;` → ；、`;1` → ：、`;2` → ； 仍是代码规则。
+- 行为不变：`;a` → ！、`;z` → “、`;;` → ；、`;1` → ：（三个方案均用 librime 探针验证）。
+
 ## v0.3.14（2026-11-02）
 
 修复拼音反查的简拼拼接与音节标记问题。

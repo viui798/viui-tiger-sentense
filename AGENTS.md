@@ -95,6 +95,7 @@
 | **造词桥接** | `zaoci_bridge` 在 `tiger_sentence.lua` 里，负责自造词参与组句/调频；合并上游时**必须保留** |
 | **主题/个人配置** | `squirrel.custom.yaml`、`docs/CORRECTION_*.md`、`docs/EARLY_EVIDENCE_GATE.md` 被 `.gitignore` 排除，不要提交 |
 | **开关记忆** | 「要记住」的开关**不能写 `reset`**（librime 每个新会话都会按 reset 强制复位，且热键 toggle 不写 user.yaml）。虎整句存 `tiger_sentence.options.yaml`（`M.options`），虎单/虎词存 `tiger.options.yaml` / `tigress.options.yaml`（`lua/option_persist.lua`）。`ascii_mode` / `ascii_punct` / `full_shape` 保留 reset 属有意行为 |
+| **快符** | 符号表在各方案 schema 的 `kf_symbols:`（26 个字母），`lua/tiger_kf.lua` 启动时读取；`;;`/`;1`/`;2` 是 Lua 规则。`kf.dict.yaml`/`kf.schema.yaml`/`table_translator@kf` 已删除（2026-11-02 收敛），不要加回来 |
 | **简拼整段匹配** | 码表第三列 `A`（索引 flags bit2）标记简拼；引擎只在「整段匹配」时允许简拼边。改码表、索引或 `eligible_candidates` 时不要破坏，否则 `fancha` 会拆成 fa+nc+ha 出现「发内存哈」这类拼接词 |
 | **反查/造词前缀** | 反查是 `` ` `` 前缀、造词是 `'` 前缀；「拼音+`` ` ``」后缀式反查已移除（v0.3.3）。改 recognizer 时三个 schema 的 `zaoci` / `yin_add_user` 模式与 affix `prefix` 必须同步 |
 | **拼音反查双实例** | `lua/tiger_sentence_pinyin.lua` dofile 同一主 chunk 得到第二实例：词库/beam/解码缓存与虎码主实例完全独立（`lexicon_state` 绑定单码表，不能共表）。改主 chunk 的 `read_data_file`/`rebuild_lexicon`/`M.translator` 时必须同时验证两条路径；负向控制锚点严禁改动 |
