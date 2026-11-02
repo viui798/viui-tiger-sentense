@@ -62,6 +62,7 @@ switches: # 0 默认关，1 默认开
 
 engine:
   processors:
+    - lua_processor@*input_statistics_proc  # 统计：链首计键（提前上屏会清空 input）
     - lua_processor@*set_schema #拼音反查打法切换 /flypy /pinyin /zrm /mspy /sogou
     - lua_processor@*option_persist  # 辅助开关记忆：跨会话保存 pinyin/chaifen/emoji/U区/U编/音码/字集
     - lua_processor@tiger_zaoci_processor  # 加词模块：造词写入用户词库

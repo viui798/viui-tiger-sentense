@@ -118,6 +118,12 @@ local splitor = string.rep(splitorChar, splitorLen)
 -- 记录前一次的code字符
 local lastCode = ''
 local keyTouchCnt = 0 --记录编码键按下次数
+-- 精确计数（提前上屏会清空 input，不能用 input 反推）：
+--   proc_* 由链首 processor 累计；capture 从 commit_history 差量结算上屏单元。
+local proc_keys, proc_code = 0, 0
+local round_start_ts, last_key_ts = nil, nil
+local pending_raw_chars = 0
+local capture_snapshot = nil
 -- 标记log版本
 local verOfStatsFormat = 4
 -- 报告风格， 0: 短款（默认），1: 长款
@@ -1236,7 +1242,7 @@ local function translator(input, seg, env)
 		-- 如果距离上次按键超时了，即输入已经中断，这是重新开始的输入行为
 		if avgSpdInfo.commitTime - avgSpdInfo.startTime >= 1 and avgSpdInfo.count > 0 then
 			-- 此时的统计数据是有效
-			update_stats(0, 0, 0, 1)
+			-- 上屏单元已由 capture_history 结算
 		end
 
 		-- 清除计时
@@ -1245,38 +1251,7 @@ local function translator(input, seg, env)
 	end
 	avgSpdInfo.clickTime = timeNow
 
-	-- 判断用户是否按下的新的按键
-	if lastCode ~= input and input:sub(1, 1) ~= "/" then
-		local inputLen = string.len(input)
-		local lastLen = string.len(lastCode)
-
-		if inputLen > lastLen then
-			-- 如果编码变长了，则肯定是用户按下了新的按键了
-			keyTouchCnt = keyTouchCnt + 1
-		elseif inputLen == 1 then
-			-- 如果按键没有变长，而且这是第一个编码，则根据情况做如下处理
-			if lastLen == 1 then
-				-- 如果前一码长为1，本次码长也是1，则认为前一编码被取消了（通过BackSpace 或者 esc），本次的编码是新按下的
-				keyTouchCnt = keyTouchCnt + 1
-			elseif lastLen > 2 then
-				-- 如果前一码长大于2，本次码长只有1，则认为这是前一编码通过esc取消了，本次的编码是新按下的
-				keyTouchCnt = keyTouchCnt + 1
-			else
-				-- 如果前一码长为2，本次码长为1，则存在两种不同的情况
-				-- 情况1、前一码长为2，按了BackSpace使码长缩减为1，此情况下，当前的编码是上一编码的残留
-				-- 情况2、前一码长为2，按了esc使编码归零，用户重新按了一个键，此情况下，本次的一个码是用户新按的按键
-				-- 以上两种情况，只有第2种情况下，需要使 keyTouchCnt 做 +1 处理
-				-- 但是目前的输入法框架无法获取到BackSpace和esc的输入，所以只能在以下特殊情况下猜测出用户做了情况2的操作：
-				if lastCode:sub(1, 1) ~= input then
-					-- 如果前一编码的第1个字符与当前编码不相等，则可以肯定用户是操作了情况2
-					keyTouchCnt = keyTouchCnt + 1
-				else
-					-- 如果前一编码的第1个字符与当前编码相等，则无法判断是BackSpace还是esc后重输，暂不计数
-				-- keyTouchCnt 保持不变
-				end
-			end
-		end
-	end
+	lastCode = input
 
 	if input:sub(1, 1) ~= "/" then
 		lastCode = input
@@ -1292,7 +1267,7 @@ local function translator(input, seg, env)
 
 	if reportCommands[input] then
 		if avgAvailable == 1 then -- 如果此时已经有统计数据，则记录该统计数据
-			update_stats(0, 0, 0, 1)
+			-- 上屏单元已由 capture_history 结算
 			-- 清除计时
 			avgSpdInfo.startTime = timeNow
 			avgSpdInfo.commitTime = timeNow
@@ -1323,7 +1298,7 @@ local function translator(input, seg, env)
 		end
 	elseif input == "//5" or input == "/sztj" then
 		if avgAvailable == 1 then -- 如果此时已经有统计数据，则记录该统计数据
-			update_stats(0, 0, 0, 1)
+			-- 上屏单元已由 capture_history 结算
 
 			-- 清除计时
 			avgSpdInfo.startTime = timeNow
@@ -1462,6 +1437,89 @@ local function quoteLoad()
 	end
 end
 
+local function commit_unit(env, chars, text)
+	if chars <= 0 then return end
+	local now = os.time()
+	local start = round_start_ts or now
+	local delt = now - start
+	local keys, code = proc_keys, proc_code
+	proc_keys, proc_code = 0, 0
+	local gap = now - avgSpdInfo.commitTime
+	if gap >= boggleThd_s then
+		if not input_stats.newWords.startTime or input_stats.newWords.startTime < 1
+			or #input_stats.newWords.words < 1 then
+			input_stats.newWords.startTime = now
+		end
+		input_stats.newWords.words[text] = 1
+	else
+		input_stats.newWords.words[text] = nil
+	end
+	avgSpdInfo.startTime = start
+	avgSpdInfo.commitTime = now
+	avgSpdInfo.count = chars
+	avgSpdInfo.codeLen = code
+	keyTouchCnt = keys
+	local avgAvailable = (delt >= 1 and chars > 0) and 1 or 0
+	update_stats(chars, code, code, avgAvailable)
+	request_save(env.engine.schema.schema_id, false)
+	round_start_ts = now
+end
+
+local function capture_history(env)
+	local ok, tbl = pcall(function()
+		return env.engine.context.commit_history:to_table()
+	end)
+	if not ok or type(tbl) ~= "table" then return end
+	local sig = {}
+	for i = 1, #tbl do
+		sig[i] = tostring(tbl[i].type) .. "\0" .. tostring(tbl[i].text)
+	end
+	local prev = capture_snapshot
+	capture_snapshot = sig
+	if not prev then return end
+	local n, m = #sig, #prev
+	local overlap = 0
+	for j = math.min(n, m), 0, -1 do
+		local match = true
+		for i = 1, j do
+			if prev[m - j + i] ~= sig[i] then match = false break end
+		end
+		if match then overlap = j break end
+	end
+	local added = n - overlap
+	if added <= 0 or added > 8 then return end
+	for i = overlap + 1, n do
+		local r = tbl[i]
+		local text = r.text or ""
+		if text ~= "" and text:sub(1, 1) ~= "/" and r.type ~= "thru" and r.type ~= "stat" then
+			local count = utf8.len(text) or #text
+			if r.type == "raw" then
+				pending_raw_chars = pending_raw_chars + count
+			else
+				local unit = pending_raw_chars + count
+				pending_raw_chars = 0
+				commit_unit(env, unit, text)
+			end
+		end
+	end
+end
+
+local function processor(key_event, env)
+	if key_event:release() then return 2 end
+	if key_event:ctrl() or key_event:alt() or key_event:super() then return 2 end
+	local kc = key_event.keycode
+	if kc == 0 then return 2 end
+	local now = os.time()
+	if not round_start_ts then round_start_ts = now end
+	last_key_ts = now
+	local is_commit = (kc == 0x20 or kc == 0x0d or kc == 0xff0d or kc == 0xff09)
+	local is_backspace = (kc == 0xff08 or kc == 0x08)
+	local is_printable = (kc >= 0x20 and kc <= 0x7e)
+	if is_printable or is_backspace or is_commit then proc_keys = proc_keys + 1 end
+	if is_printable and not is_commit then proc_code = proc_code + 1 end
+	return 2
+end
+
 local function init(env)
 	schema_name = env.engine.schema.schema_name or '未知'
 	local ctx = env.engine.context
@@ -1480,81 +1538,24 @@ local function init(env)
 
 	-- 注册提交通知回调
 	env.notifier = env.engine.context.commit_notifier:connect(function(ctx)
-		-- 提交的时候，把 lastCode 清除
-		lastCode = ''
-
-		local commit_text = ctx:get_commit_text()
-		local returnFlg = 0
-		if not commit_text or commit_text == "" then returnFlg = 1 end
-
-		-- 如果输入与上屏内容一致，例如编码上屏，则不统计此项
-		if ctx.input == commit_text then returnFlg = 1 end
-
-		-- 如果输入是以 / 引导的，则不统计这个输入项
-		if ctx.input:find("^/") then returnFlg = 1 end
-
-		-- 如果上屏的字符串中存在非汉字，则放弃统计这一次的提交
-		if not isAllChineseCharacter(commit_text) then returnFlg = 1 end
-
-		if 1 == returnFlg then
-			keyTouchCnt = 0
-			return
-		end
-
-		-- 如果是标点符号，则不进行统计
-		if commit_text:match("^[！!@#$％^&?,.;？，。；/0123456789]+$") then return end
-
-		local codeLen = string.len(ctx.input)
-		local input_length = utf8.len(commit_text) or string.len(commit_text)
-		-- 统计平均分速
-		local timeNow = os.time()
-		local delt = timeNow - avgSpdInfo.commitTime
-
-		-- 修正码长
-		local codeLenMatched = 0
-		for i = 1, #codeLenOfAutoCommit do
-			if codeLenOfAutoCommit[i] == codeLen then
-				codeLenMatched = 1
-				break
-			end
-		end
-		if codeLenMatched ~= 1 then
-			codeLen = codeLen + 1
-		end
-
-		-- 更新上屏时间
-		avgSpdInfo.commitTime = timeNow
-		-- 记录输入字数
-		avgSpdInfo.count = avgSpdInfo.count + input_length
-		-- 记录编码数量
-		avgSpdInfo.codeLen = avgSpdInfo.codeLen + codeLen
-
-		-- 如果卡壳了(间隔时间大于门限)，记录这个字/词
-		if delt >= boggleThd_s then
-			-- 只要 startTime 无效或词表为空，就重置 startTime
-			if not input_stats.newWords.startTime
-				or input_stats.newWords.startTime < 1
-				or #input_stats.newWords.words < 1 then
-				input_stats.newWords.startTime = timeNow
-			end
-
-			input_stats.newWords.words[commit_text] = 1
-		else
-			input_stats.newWords.words[commit_text] = nil
-		end
-
-		-- 上屏统计
-		update_stats(input_length, codeLen, string.len(ctx.input), 0)
-		request_save(env.engine.schema.schema_id, false)
+		capture_history(env)
 	end)
+	env.update_notifier = env.engine.context.update_notifier:connect(function(ctx)
+		capture_history(env)
+	end)
+	capture_history(env)
 end
 function finit(env)
 	if env.notifier then
 		env.notifier:disconnect()
 		env.notifier = nil
 	end
+	if env.update_notifier then
+		env.update_notifier:disconnect()
+		env.update_notifier = nil
+	end
 	-- 正常退出（卸载环境/切方案）时把尚未节流落盘的统计补写，不丢数据
 	flush_save(env.engine.schema.schema_id)
 end
 
-return { init = init, fini = finit, func = translator }
+return { init = init, fini = finit, func = translator, processor = processor }

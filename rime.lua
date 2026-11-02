@@ -43,3 +43,6 @@ tiger_mixed_translator = require("tiger_mixed").translator
 
 -- 双引号全字集反查前缀（见 lua/yin_full.lua）
 yin_full = require("yin_full")
+
+-- 统计的链首计键处理器（见 lua/input_statistics_proc.lua）
+input_statistics_proc = require("input_statistics_proc")
