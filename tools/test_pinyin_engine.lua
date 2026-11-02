@@ -82,13 +82,16 @@ local reverse_freq = require("reverse_freq")
 check(reverse_freq.short_enough(8) and not reverse_freq.short_enough(9),
     "短输入阈值：8 字母参与调频，9 字母不参与")
 local base = { { text = "A" }, { text = "B" }, { text = "C" }, { text = "D" } }
-local ranked = reverse_freq.rank(base, { D = 3 }, 3)
+local ranked = reverse_freq.rank(base, { D = 1 })
 check(#ranked == 4, "调频不改变候选数量")
-check(ranked[1].text == "D", "选过的 D 前移到第一")
-local ranked2 = reverse_freq.rank(base, { B = 1 }, 6)
+check(ranked[1].text == "D", "选过一次即置顶")
+local ranked2 = reverse_freq.rank(base, { B = 1 })
 check(ranked2[1].text == "B" and ranked2[2].text == "A" and ranked2[3].text == "C",
-    "小次数只前移一位，其余保持稳定")
-local ranked3 = reverse_freq.rank(base, { Z = 9 }, 6)
+    "只前移选过的词，其余保持稳定")
+local ranked4 = reverse_freq.rank(base, { C = 2, B = 1 })
+check(ranked4[1].text == "C" and ranked4[2].text == "B" and ranked4[3].text == "A",
+    "多个已选词按次数降序，未选词保持模型顺序")
+local ranked3 = reverse_freq.rank(base, { Z = 9 })
 check(ranked3[1].text == "A" and ranked3[4].text == "D", "未知词条不影响原有顺序")
 
 -- ---- 2. wrapper 行为（微型码表，无模型） -----------------------------------

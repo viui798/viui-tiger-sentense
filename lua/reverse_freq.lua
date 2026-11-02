@@ -15,7 +15,6 @@
 local M = {}
 
 local SHORT_LETTERS = 8
-local MAX_BOOST = 8
 local MAX_COUNT = 8
 local freq, freq_path, freq_loaded = nil, nil, false
 local pending_by_engine = {}
@@ -77,21 +76,22 @@ local function record(code, text)
     save_frequency()
 end
 
--- 把次数折算成「前移名次」：稳定排序，次数封顶，避免长期偏好压过模型。
-local function rank(items, counts, boost)
+-- 选过一次即置顶（与虎整句「选过就记住」的体感一致）：有过选择记录的词
+-- 排在最前，按次数降序；没选过的仍按模型顺序。次数封顶，避免无限累积。
+local function rank(items, counts)
     if not counts or not next(counts) then return items end
     local ranked = {}
     for i = 1, #items do
         local count = counts[items[i].text] or 0
         ranked[i] = {
             item = items[i],
-            rank = i - math.min(count, boost or MAX_BOOST),
+            promoted = count > 0,
             count = count,
             order = i,
         }
     end
     table.sort(ranked, function(a, b)
-        if a.rank ~= b.rank then return a.rank < b.rank end
+        if a.promoted ~= b.promoted then return a.promoted end
         if a.count ~= b.count then return a.count > b.count end
         return a.order < b.order
     end)
@@ -114,10 +114,11 @@ end
 -- translator 侧：登记本次反查段，返回排好序的候选。
 function M.rank_for(env, code, items)
     local counts = load_frequency()[code]
+    local first = items[1] and items[1].text
     local ranked = counts and rank(items, counts) or items
     local texts = {}
     for i = 1, #ranked do texts[ranked[i].text] = true end
-    pending_by_engine[engine_key(env)] = { code = code, texts = texts }
+    pending_by_engine[engine_key(env)] = { code = code, texts = texts, first = first }
     return ranked
 end
 
@@ -138,7 +139,11 @@ function M.init(env)
         if not input:find("`", 1, true) then return end
         local committed = ""
         pcall(function() committed = ctx:get_commit_text() or "" end)
-        if pending.texts[committed] then record(pending.code, committed) end
+        -- 只有「主动选了非首选」才记一次：直接空格选首选不需要调频，
+        -- 也避免把「打拼音看虎码」的随手首选误记成偏好。
+        if pending.texts[committed] and committed ~= pending.first then
+            record(pending.code, committed)
+        end
     end)
 end
 
