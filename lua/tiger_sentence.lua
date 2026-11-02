@@ -3673,6 +3673,10 @@ local function live_input(context)
 end
 
 local function restore_composition_input(context, value)
+    if value == "" and buffered_text(context) == "" then
+        context:clear()
+        return
+    end
     if buffered_text(context) ~= "" then value = "~" .. value end
     if context.input == value and buffered_text(context) ~= "" and
         type(context.refresh_non_confirmed_composition) == "function" then
@@ -4538,16 +4542,7 @@ local function processor(key_event, env)
     end
     if repr == "Return" or repr == "KP_Enter" then
         learned.pending, learned.baseline = {}, nil
-        -- 有候选时走和空格一致的上屏路径（提交解码后的文字），
-        -- 否则提前上屏后回车会把剩余原始编码（甚至 "~"）直接上屏。
-        if context:has_menu() then
-            context:confirm_current_selection()
-        else
-            -- 无候选时才退回直接提交；去掉内部缓冲标记 "~"，绝不让它上屏
-            local remaining = live_input(context)
-            if remaining:sub(1, 1) == "~" then remaining = remaining:sub(2) end
-            env.engine:commit_text(state.buffered_text .. remaining)
-        end
+        env.engine:commit_text(state.buffered_text .. live_input(context))
         context:clear()
         reset_sentence_state(context, env)
         return 1
@@ -4585,8 +4580,18 @@ local function processor(key_event, env)
             if repr == "BackSpace" and raw == "" then
                 local letters = utf_chars(state.buffered_text)
                 local removed = table.remove(letters)
+                if not removed then
+                    -- 缓冲已空却还走到这里：直接清掉，避免留下孤立的 "~"
+                    reset_sentence_state(context, env)
+                    context:clear()
+                    return 1
+                end
                 state.buffered_text = table.concat(letters)
-                state.committed_text = state.committed_text:sub(1, #state.committed_text - #removed)
+                if #state.committed_text < #removed then
+                    state.committed_text = ""
+                else
+                    state.committed_text = state.committed_text:sub(1, #state.committed_text - #removed)
+                end
                 if state.buffered_text == "" then
                     reset_sentence_state(context, env)
                 else
