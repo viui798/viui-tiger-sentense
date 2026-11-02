@@ -153,7 +153,7 @@ engine:
     - uniquifier  # 过滤重码
 
 speller:
-  alphabet: "zyxwvutsrqponmlkjihgfedcba;';\"0123456789~/"  # 含 /：统计指令 //1 //60 需要第二个 / 进编码区；" 为全字集反查前缀
+  alphabet: "zyxwvutsrqponmlkjihgfedcba;';0123456789~/\\"  # 含 /：统计指令 //1 //60 需要第二个 / 进编码区；\\ 为全字集反查前缀
   initials: "abcdefghijklmnopqrstuvwxyz~/"  # 含 /：统计指令 //1 //60 的第二个 / 需由 speller 接收
   delimiter: " '"  # 拼音/音码音节分隔符
   auto_select: true
@@ -241,7 +241,7 @@ punctuator:
 yin_full:
   tag: yin_full
   dictionary: tiger_full
-  prefix: '"'
+  prefix: '\'
   tips: "〔全字集〕"
   initial_quality: -1
   enable_charset_filter: false
@@ -317,7 +317,7 @@ recognizer:
     zaoci: "^'[a-z]*$"  # 单引号前缀造词（单按 ' 即进造词模式，preedit 显示 '〔造词〕）
     mixed: "^[a-z][a-z;']*`[a-z`]*$"  # 虎码 + 拼音反查混输（如 je`jiyubeue…、j;`iimwwhll…）
     yin_add_user: "^`[A-Za-z';`]*$"  # 拼音反查：反引号前缀（暂时只保留前缀式，后缀式已移除）；含 ;（微软/搜狗双拼的 ing 键）
-    yin_full: '^"[A-Za-z]*$'  # 虎码全字集反查：双引号前缀（临时查生僻字，不切方案）
+    yin_full: '^\\[A-Za-z]*$'  # 虎码全字集反查：反斜杠前缀（临时查生僻字，不切方案）
     expression: "^=.*$"  # 简易计算器
 
 # ==================== 简繁转换（10.2 移植自万象虎 super_replacer）====================

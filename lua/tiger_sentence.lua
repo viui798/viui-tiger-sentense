@@ -4374,9 +4374,9 @@ local function processor(key_event, env)
     learned.submitted_raw = nil
     local state = sentence_state(context, env)
     local repr = key_event:repr()
-    -- 双引号全字集反查（前缀由 lua/yin_full.lua 放进输入串）：输入以 " 开头时
+    -- 反斜杠全字集反查（前缀由 lua/yin_full.lua 放进输入串）：输入以 \ 开头时
     -- 整句处理器一律放行，交给 matcher / affix_segmentor@yin_full。
-    if context:is_composing() and (context.input or ""):sub(1, 1) == '"' then
+    if context:is_composing() and (context.input or ""):sub(1, 1) == "\\" then
         return 2
     end
     if state.buffered_text ~= "" and live_input(context) == "" and
