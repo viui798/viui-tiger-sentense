@@ -1041,8 +1041,13 @@ local decode_cache = {
     result = nil,
     includes_early_commit = false,
     required_text_prefix = "",
-    allow_duplicate = true
+    allow_duplicate = true,
+    allow_short_key = ""
 }
+-- 虎码 + 拼音混输：拼音块前若是单字母简码（我 t / 的 u / 是 o / 不 c …），
+-- 允许它作为 1 字母分段参与组句。位置以 0 为起点，只在 decode_with_overlay
+-- 期间生效；普通虎码解码仍然拒绝 1 字母分段（否则 wo 会被拆成 得+是）。
+-- 主 chunk 的 local 已到上限（200），这里挂在 lexicon_state 上，不新增 local。
 local state_separator = "\31"
 local locked_decode_cache = {}
 
@@ -2069,7 +2074,9 @@ local function expand_range(raw, states, from_pos, length, minimum_consumed_end)
                             local whole_input_edge = position == 0 and consumed_end == length
                             if consumed_end > minimum_consumed_end and
                                 not (variant and selected_rank > 0) and
-                                not (length > 1 and consumed_end - position < 2) then
+                                not (length > 1 and consumed_end - position < 2 and
+                                    not (lexicon_state.allow_short_positions and
+                                        lexicon_state.allow_short_positions[position])) then
                                 local selected_candidates = eligible_candidates(
                                     candidates, selected_rank, whole_input_edge,
                                     active_allow_duplicate_single, code_length)
@@ -2971,10 +2978,12 @@ local function decode(raw_code, include_early_commit, required_text_prefix, lock
         decode_cache.includes_early_commit = include_early_commit or false
         decode_cache.required_text_prefix = required_text_prefix
         decode_cache.allow_duplicate = active_allow_duplicate_single
+        decode_cache.allow_short_key = lexicon_state.allow_short_key
         return decode_cache.result
     end
     if decode_cache.raw == raw and decode_cache.result and
         decode_cache.allow_duplicate == active_allow_duplicate_single and
+        decode_cache.allow_short_key == lexicon_state.allow_short_key and
         (not include_early_commit or
          (decode_cache.includes_early_commit and
           decode_cache.required_text_prefix == required_text_prefix)) then
@@ -2987,7 +2996,8 @@ local function decode(raw_code, include_early_commit, required_text_prefix, lock
     local old_raw = decode_cache.raw
     local old_states = decode_cache.states
     if old_states and old_raw == raw and
-        decode_cache.allow_duplicate == active_allow_duplicate_single then
+        decode_cache.allow_duplicate == active_allow_duplicate_single and
+        decode_cache.allow_short_key == allow_short_key then
         -- The translator normally cached this exact composition without
         -- confidence metadata. The processor may immediately request the same
         -- lattice with early-commit evidence before accepting the next key.
@@ -3007,7 +3017,8 @@ local function decode(raw_code, include_early_commit, required_text_prefix, lock
             return result
         end
         states = old_states
-    elseif old_states and type(old_raw) == "string" and old_raw ~= "" then
+    elseif old_states and type(old_raw) == "string" and old_raw ~= "" and
+        decode_cache.allow_short_key == allow_short_key then
         local old_n = #old_raw
         -- Whole-input rewards/eligibility depend on the *current* end of input.
         -- TXT tables may have more than four letters; a rank selector can also
@@ -3052,6 +3063,7 @@ local function decode(raw_code, include_early_commit, required_text_prefix, lock
     decode_cache.includes_early_commit = include_early_commit or false
     decode_cache.required_text_prefix = required_text_prefix
     decode_cache.allow_duplicate = active_allow_duplicate_single
+    decode_cache.allow_short_key = lexicon_state.allow_short_key
     record_decode(started)
     return result
 end
@@ -3569,6 +3581,7 @@ reset_decode_cache = function()
     decode_cache.includes_early_commit = false
     decode_cache.required_text_prefix = ""
     decode_cache.allow_duplicate = active_allow_duplicate_single
+    decode_cache.allow_short_key = lexicon_state.allow_short_key
 end
 
 function correction.set_enabled(enabled)
@@ -4949,9 +4962,20 @@ M.set_allow_duplicate_single = function(enabled)
     end
 end
 -- 混输原型：临时把外挂词条并入当前码表解码，结束后还原（不污染虎码词库）。
-M.decode_with_overlay = function(raw, overlay, reset)
+M.decode_with_overlay = function(raw, overlay, reset, short_positions)
     if not overlay or not next(overlay) then
         return decode(raw, false, "", nil)
+    end
+    local saved_allow_positions = lexicon_state.allow_short_positions
+    local saved_allow_key = lexicon_state.allow_short_key
+    lexicon_state.allow_short_positions, lexicon_state.allow_short_key = short_positions, ""
+    if short_positions then
+        local parts = {}
+        for position in pairs(short_positions) do
+            parts[#parts + 1] = tostring(position)
+        end
+        table.sort(parts)
+        lexicon_state.allow_short_key = table.concat(parts, ",")
     end
     local saved_codes, saved_lengths = {}, lexicon_state.lengths
     local lengths, have = {}, {}
@@ -4979,6 +5003,7 @@ M.decode_with_overlay = function(raw, overlay, reset)
     end
     lexicon_state.lengths = saved_lengths
     if reset ~= false then reset_decode_cache() end
+    lexicon_state.allow_short_positions, lexicon_state.allow_short_key = saved_allow_positions, saved_allow_key
     if not ok then return {} end
     return result
 end

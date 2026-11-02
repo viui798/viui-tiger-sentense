@@ -104,11 +104,15 @@ function M.index_handle()
     return M.index
 end
 
-local function allocate_code(sentence)
-    local candidates = { "qzqz", "vqvq", "qzvq", "vqzq", "qzqzq", "vqvqv" }
+local function allocate_code(sentence, used)
+    -- 合成码用 3 字母且不是任何真实编码的前缀：3 码只能拆成 1+2 或 2+1，
+    -- 而 1 字母分段在整句里被禁止，所以不会像 4 码那样被拆成「考虑+考虑」抢候选。
+    local candidates = { "qac", "qai", "qaj", "qam", "qap", "qar" }
     sentence.ensure_lexicon(nil)
     for _, code in ipairs(candidates) do
-        if sentence.lexicon_probe(code) == nil then return code end
+        if not (used and used[code]) and sentence.lexicon_probe(code) == nil then
+            return code
+        end
     end
     return nil
 end
@@ -143,6 +147,15 @@ local function translate(input, seg, env)
 
     local out, overlay = {}, {}
     local signature_parts = {}
+    local short_positions = {}
+    local used = {}
+    local cursor = 0
+    local literal_tail = false  -- 上一个输入字符是否按虎码原样进入 raw
+    local function push(piece)
+        if piece == "" then return end
+        out[#out + 1] = piece
+        cursor = cursor + #piece
+    end
     local i = 1
     while i <= #input do
         local ch = input:sub(i, i)
@@ -158,29 +171,46 @@ local function translate(input, seg, env)
                     if utf8.len(entries[k].t) > 1 then words[#words + 1] = entries[k].t end
                 end
                 if #words > 0 then
-                    local key = cache.synthetic[i] or allocate_code(sentence)
+                    local key = cache.synthetic[i]
+                    if key and used[key] then key = nil end
+                    if not key then key = allocate_code(sentence, used) end
                     if key then
+                        used[key] = true
                         cache.synthetic[i] = key
                         overlay[key] = build(words)
-                        signature_parts[#signature_parts + 1] = key .. "=" .. code
-                        out[#out + 1] = key
+                        -- 合成码前若是单字母简码（我 t / 的 u / 是 o …），允许它作为
+                        -- 1 字母分段参与组句；否则会因「1 字母不分段」规则整句无候选。
+                        -- literal_tail 保证这个字母是虎码原样输入，而不是上一个拼音块。
+                        if literal_tail and cursor >= 1 and input:sub(i - 1, i - 1):match("[a-z]") then
+                            short_positions[cursor - 1] = true
+                        end
+                        signature_parts[#signature_parts + 1] = i .. ":" .. key .. "=" .. code
+                        push(key)
+                        literal_tail = false
                         local rest = chunk:sub(consumed + 1)
-                        if rest ~= "" then out[#out + 1] = rest end
+                        if rest ~= "" then
+                            push(rest)
+                            literal_tail = true
+                        end
                         i = j
                     else
-                        out[#out + 1] = chunk
+                        push(chunk)
+                        literal_tail = #chunk > 0
                         i = j
                     end
                 else
-                    out[#out + 1] = chunk
+                    push(chunk)
+                    literal_tail = #chunk > 0
                     i = j
                 end
             else
-                out[#out + 1] = chunk
+                push(chunk)
+                literal_tail = #chunk > 0
                 i = j
             end
         else
-            out[#out + 1] = ch
+            push(ch)
+            literal_tail = true
             i = i + 1
         end
     end
@@ -192,7 +222,8 @@ local function translate(input, seg, env)
         (cache.active ~= (next(overlay) ~= nil))
     cache.signature = signature
     cache.active = next(overlay) ~= nil
-    local results = sentence.decode_with_overlay(raw, overlay, reset)
+    local results = sentence.decode_with_overlay(raw, overlay, reset,
+        next(short_positions) and short_positions or nil)
     if not results or #results == 0 then return end
     for k = 1, #results do
         local item = results[k]
