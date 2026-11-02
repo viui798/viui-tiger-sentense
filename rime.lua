@@ -36,3 +36,6 @@ option_persist = require("option_persist")
 local tiger_zaoci = require("tiger_zaoci")
 tiger_zaoci_processor = tiger_zaoci.processor
 tiger_zaoci_translator = tiger_zaoci.translator -- 跨统计窗口主动刷新统计数据
+
+-- 虎码 + 拼音反查混输（原型）
+tiger_mixed_translator = require("tiger_mixed").translator

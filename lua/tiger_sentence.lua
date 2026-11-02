@@ -4948,6 +4948,40 @@ M.set_allow_duplicate_single = function(enabled)
         if reset_decode_cache then reset_decode_cache() end
     end
 end
+-- 混输原型：临时把外挂词条并入当前码表解码，结束后还原（不污染虎码词库）。
+M.decode_with_overlay = function(raw, overlay, reset)
+    if not overlay or not next(overlay) then
+        return decode(raw, false, "", nil)
+    end
+    local saved_codes, saved_lengths = {}, lexicon_state.lengths
+    local lengths, have = {}, {}
+    for _, value in ipairs(saved_lengths) do
+        lengths[#lengths + 1] = value
+        have[value] = true
+    end
+    for code, entries in pairs(overlay) do
+        local previous = lexicon_state.codes[code]
+        saved_codes[code] = previous == nil and false or previous
+        lexicon_state.codes[code] = entries
+        local code_length = #code
+        if not have[code_length] then
+            lengths[#lengths + 1] = code_length
+            table.sort(lengths)
+            have[code_length] = true
+        end
+    end
+    lexicon_state.lengths = lengths
+    if reset ~= false then reset_decode_cache() end
+    local ok, result = pcall(decode, raw, false, "", nil)
+    for code in pairs(overlay) do
+        local previous = saved_codes[code]
+        lexicon_state.codes[code] = previous == false and nil or previous
+    end
+    lexicon_state.lengths = saved_lengths
+    if reset ~= false then reset_decode_cache() end
+    if not ok then return {} end
+    return result
+end
 -- 语义化别名：拼音实例初始化时设置与形码不同的 beam 参数。
 M.configure_decoder_parameters = M.set_decoder_parameters_for_test
 -- Host opt-in hook; call between key events on the owning Lua thread. Do not

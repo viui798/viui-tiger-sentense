@@ -91,7 +91,7 @@ check(type(cands[1].preedit) == "string" and cands[1].preedit:find("ni", 1, true
 
 cands = translate("yin_flypy", "fjia")
 check(texts(cands):find("反差", 1, true), "小鹤 fjia 出反差（词边）")
-check(cands[1].preedit == "fj ia", "小鹤 preedit 按键分组")
+check(cands[1].preedit == "`fjia", "小鹤 preedit 保持原始按键（含反引号前缀）")
 
 cands = translate("yin_qp", "jsj")
 check(texts(cands):find("计算机", 1, true), "简拼 jsj 出计算机（词首字母码）")
