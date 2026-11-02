@@ -609,9 +609,17 @@ symbols_file:close()
 -- / 只要求存在映射（列表或 commit 均可）。
 local function has_commit(symbol, text)
     local escaped = symbol:gsub("(%W)", "%%%1")
-    return symbols_content:find("'" .. escaped .. "'%s*:%s*{%s*commit:%s*" .. text) ~=
-        nil or
-        symbols_content:find('"' .. escaped .. '"%s*:%s*{%s*commit:%s*' .. text) ~= nil
+    local function direct(quoted)
+        return symbols_content:find(quoted .. "%s*:%s*{%s*commit:%s*" .. text) ~=
+            nil
+    end
+    -- 候选列表形式（如 ';' : [ ：, ； ]）也算提供了该标点：取该键的列表内容做包含判断。
+    local function in_list(quoted)
+        local body = symbols_content:match(quoted .. "%s*:%s*%[([^%]]*)%]")
+        return body ~= nil and body:find(text, 1, true) ~= nil
+    end
+    local single, double = "'" .. escaped .. "'", '"' .. escaped .. '"'
+    return direct(single) or direct(double) or in_list(single) or in_list(double)
 end
 for _, pair in ipairs({
         { ",", "，" },
