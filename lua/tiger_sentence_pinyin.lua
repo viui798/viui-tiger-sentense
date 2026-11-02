@@ -52,6 +52,17 @@ local function ensure_instance()
         ["tiger_sentence.full_code_whitelist.txt"] = false,
         ["tiger_sentence.supplement.txt"] = false,
     })
+    -- 原型：优先用分页索引（models/pinyin.codes.*）；缺失则回退旧的全量解析路径。
+    local directory = rime_api and type(rime_api.get_user_data_dir) == "function" and
+        rime_api.get_user_data_dir() or "."
+    local ok, pinyin_index = pcall(require, "tiger_sentence_pinyin_index")
+    if ok and pinyin_index then
+        local handle = pinyin_index.open(
+            directory .. "/models/pinyin.codes.idx",
+            directory .. "/models/pinyin.codes.dat",
+            directory .. "/models/pinyin.codes.pool")
+        if handle then engine.set_codes_index_override(handle) end
+    end
     instance = engine
     return engine
 end

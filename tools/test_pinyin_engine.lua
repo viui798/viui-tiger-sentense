@@ -5,6 +5,8 @@
 local repo = arg[1] or "."
 package.path = repo .. "/lua/?.lua;" .. package.path
 rime_api = { get_user_data_dir = function() return repo end }
+-- 本测试用微型码表夹具，禁用分页索引（否则会读到仓库 models/ 下的真实索引）。
+package.loaded["tiger_sentence_pinyin_index"] = { open = function() return nil end }
 
 local checks = 0
 local function check(ok, msg)

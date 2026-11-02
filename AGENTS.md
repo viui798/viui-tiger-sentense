@@ -125,10 +125,10 @@
 
 ## 8. 当前状态（2026-11-02）
 
-- `main` = tag `v0.4.0`，最新 Release = v0.4.0（Latest）：拼音反查接入五阶模型整句引擎
-- 测试：契约 21 cases / 127 checks；`run_regressions.py --lua lua` 全绿
-  （pinyin 23 / learning 23,063 / backspace 805 checks）；`--negative-control` 全部
-  detected（v0.4.0 修复了三处预存测试腐烂后恢复可用，见 docs/项目日志.md §10.5）
+- `main` = tag `v0.3.3`（修复 v0.4.0 反查卡顿；v0.4.0 标签待撤销）
+- 拼音反查：五阶模型第二实例 + **分页码表索引**（`models/pinyin.codes.*`，每键 ~20ms）；
+  词库为 `dicts/pinyin_reverse.dict.yaml` 导出的 24.8 万条（全拼 + 多字词简拼，无辅助码）
+- 测试：契约 21 cases / 126 checks；`run_regressions.py --lua lua` 全绿
 - 与上游文件对比：24 个逐字节一致 + 5 个有意不同（同 v0.3.2）；拼音反查为纯本地功能
 - 上游 `M.*` 导出：100% 覆盖；上游 schema 元素：100% 覆盖
 

@@ -11,3 +11,7 @@
 
 # 词先验/五阶模型测试的临时夹具（tools/test_lexical_prior.lua 直接在仓库根跑时会生成）
 /sentence-fivegram-mobile.bin
+
+# 本地工具目录与输入统计运行时数据（不进仓库）
+/.zcode/
+/lua/input_stats_*.lua

@@ -2,7 +2,8 @@
 # 导出拼音反查引擎数据（五阶模型整句引擎用）。
 #
 # 产出（仓库根 / lua/）：
-#   pinyin.qp.codes.txt     全拼码表（text<TAB>code，行序 = 组内 rank）
+#   pinyin.qp.codes.txt     旧版全拼码表（v0.3.3 起正式反查表改由
+#                           tools/export_reverse_codes.py 生成；本脚本的 codes 输出仅作对照）
 #                           字：每音节 top --char-cap（权重降序）
 #                           辅助码：全部字的 音节+辅1 / 音节+辅1辅2（top 外的生僻字可达）
 #                           简拼：首字母组（字 + 词首字母码）
@@ -19,6 +20,7 @@ import sys
 import unicodedata
 
 REPO = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else ".")
+NO_AUX = "--no-aux" in sys.argv  # 反查不需要辅助码时跳过「音节+辅助码」条目
 CHAR_CAP = 32          # 每音节单字上限（性能实验 P4 实测可用值）
 INITIAL_CAP = 32       # 每个首字母/词首字母码的候选上限
 MIN_WORD_WEIGHT = 145  # 词权重下限：覆盖常用词与常见成语（买椟还珠=145 为锚点）
@@ -258,12 +260,13 @@ def main():
 
     # 辅助码：全部可见字（含 top 外生僻字）
     aux_count = 0
-    for (ch, syl), (w, aux) in sorted(char_aux.items()):
-        if aux and visible(ch):
-            before = len(entries)
-            add(syl + aux[0], ch)
-            add(syl + aux, ch)
-            aux_count += len(entries) - before
+    if not NO_AUX:
+        for (ch, syl), (w, aux) in sorted(char_aux.items()):
+            if aux and visible(ch):
+                before = len(entries)
+                add(syl + aux[0], ch)
+                add(syl + aux, ch)
+                aux_count += len(entries) - before
 
     # 简拼首字母（字）
     by_initial = collections.defaultdict(list)

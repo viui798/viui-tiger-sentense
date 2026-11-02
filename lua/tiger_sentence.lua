@@ -475,6 +475,69 @@ local isolation_cache_keys = {}
 local isolation_cache_next = 1
 
 local function rebuild_lexicon(limit)
+    -- 原型：拼音反查实例可改用分页索引（不把 43 万条建成 Lua 小表）。
+    -- 见 lua/tiger_sentence_pinyin_index.lua 与 tools/build_pinyin_codes_index.py。
+    local override = data_file_override and data_file_override.__pinyin_index__
+    if override then
+        local cache, order, count = {}, {}, 0
+        local function fetch(code)
+            local hit = cache[code]
+            if hit ~= nil then return hit or nil end
+            local raw = override.lookup(code)
+            local allowed, rank = nil, 0
+            if raw then
+                for i = 1, #raw do
+                    local entry = raw[i]
+                    if characters.allows(entry.t) then
+                        rank = rank + 1
+                        allowed = allowed or {}
+                        allowed[rank] = {
+                            t = entry.t, r = rank, user = false,
+                            optimal_single = entry.optimal,
+                            whole_single_reward_eligible = true,
+                            primary_single = entry.primary
+                        }
+                    end
+                end
+            end
+            local result = allowed or false
+            cache[code] = result
+            count = count + 1
+            order[count] = code
+            if count > 4096 then cache, order, count = {}, {}, 0 end
+            return result or nil
+        end
+        local codes = setmetatable({}, { __index = function(_, code) return fetch(code) end })
+        local prefixes = setmetatable({}, {
+            __index = function(_, tail) return override.has_prefix(tail) end
+        })
+        lexicon_state.built = true
+        lexicon_state.character_revision = characters.revision
+        lexicon_state.high_freq_limit = limit
+        lexicon_state.codes = codes
+        lexicon_state.lengths = override.lengths
+        lexicon_state.max_code_len = override.max_code_len
+        lexicon_state.proper_code_prefixes = prefixes
+        lexicon_state.character_ranks = nil
+        lexicon_state.ranks_count = 0
+        lexicon_state.unknown_character_rank = 20001
+        lexicon_state.isolation_enabled = false
+        lexicon_state.codes_path = override.path
+        lexicon_state.codes_entries = override.entry_count
+        lexicon_state.user_words = 0
+        lexicon_state.user_version = zaoci_bridge.version()
+        if lexicon_state.refresh_supplement then
+            lexicon_state.refresh_supplement()
+        end
+        lexicon_state.codes_count = override.code_count
+        lexicon_state.ranks_path = nil
+        lexicon_state.whitelist_path = nil
+        lexicon_state.whitelist_count = 0
+        lexicon_state.errors = {}
+        lexicon_state.learning_rules = ""
+        clear_model_dependent_caches()
+        return
+    end
     local errors = {}
     local entries = {}
     local codes_content, codes_path = read_data_file("tiger_sentence.codes.txt")
@@ -4865,6 +4928,14 @@ end
 M.set_data_file_override = function(map)
     data_file_override = (map and next(map)) and map or nil
     lexicon_state.built = false -- 强制 ensure_lexicon 按新映射重建
+    clear_model_dependent_caches()
+end
+-- 原型：切换为分页拼音码表索引（handle 来自 lua/tiger_sentence_pinyin_index.lua）。
+M.set_codes_index_override = function(handle)
+    if not handle then return end
+    data_file_override = data_file_override or {}
+    data_file_override.__pinyin_index__ = handle
+    lexicon_state.built = false
     clear_model_dependent_caches()
 end
 -- 语义化别名：拼音实例初始化时设置与形码不同的 beam 参数。
