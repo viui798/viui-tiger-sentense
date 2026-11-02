@@ -16,7 +16,7 @@
 - **混输翻译器不再接管反查段**：反查 affix 会剥掉开头的 `` ` ``，段内容变成「字母 + `` ` ``」，
   混输只看字符形状会把它当混输，把解析不了的拼音块折成虎码字母，拼出「一个盘」等候选。
   现在混输遇到 `yin_*` 段直接跳过（`tools/test_tiger_mixed.lua` 覆盖 6 个 tag + 正向对照）。
-- 测试：`tools/test_pinyin_engine.lua` 增加简拼整段匹配、`fjia` 无拼接词、`` `fj`ia `` 展开等回归（29→36 checks）。
+- 测试：`tools/test_pinyin_engine.lua` 增加简拼整段匹配、`fjia` 无拼接词、`` `fj`ia `` 展开等回归（29→40 checks）；新增 `tools/test_tiger_mixed.lua`（7 checks）。
 
 ## v0.3.12（2026-11-02）
 
