@@ -41,14 +41,16 @@ def main():
         if not syllables or not all(s.isascii() and s.isalpha() for s in syllables):
             continue
         full = "".join(syllables)
-        codes = [full]
+        codes = [(full, False)]
         if len(syllables) >= 2:
             initials = "".join(s[0] for s in syllables)
             if initials != full:
-                codes.append(initials)
-        for code in codes:
+                # 简拼（首字母码）只允许整段匹配：不能作为长输入里的一个边，
+                # 否则像 fancha 会被拆成 fa + nc(内存) + ha 组成「发内存哈」。
+                codes.append((initials, True))
+        for code, abbrev in codes:
             if len(code) <= KEY_LEN:
-                rows.append((word, code))
+                rows.append((word, code, abbrev))
             else:
                 dropped_long += 1
     if not in_body:
@@ -57,19 +59,19 @@ def main():
     seen = set()
     entries = []
     dropped_long = 0
-    for word, code in rows:
+    for word, code, abbrev in rows:
         key = (word, code)
         if key in seen:
             continue
         seen.add(key)
-        entries.append(f"{word}\t{code}")
+        entries.append(f"{word}\t{code}" + ("\tA" if abbrev else ""))
     # 上面已在生成时过滤超长 code；这里只是统计来源规模。
     total = len(rows)
 
     header = [
         "# 拼音反查引擎码表（tools/export_reverse_codes.py 生成，勿手改）",
         "# 来源：dicts/pinyin_reverse.dict.yaml（第三方拼音词库）",
-        "# 全拼（音节拼接）+ 多字词首字母简拼；不含辅助码。行序 = 组内 rank。",
+        "# 全拼（音节拼接）+ 多字词首字母简拼；不含辅助码。行序 = 组内 rank。\n# 第三列 A 表示该行是简拼（只允许整段匹配，不能作为长输入内的边）。",
     ]
     OUTPUT.write_text("\n".join(header + entries) + "\n", encoding="utf-8")
     print(f"source rows: {total} | unique entries: {len(entries)} | "

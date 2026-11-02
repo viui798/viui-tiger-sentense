@@ -6,7 +6,7 @@
   models/pinyin.codes.dat   每条 8 字节：text_off(u32) text_len(u16) flags(u8)
   models/pinyin.codes.pool  所有候选文本拼接（UTF-8）
 
-flags: bit0 = optimal_single，bit1 = primary_single。拼音实例没有 char_ranks /
+flags: bit0 = optimal_single，bit1 = primary_single，bit2 = 简拼码（只允许整段匹配）。拼音实例没有 char_ranks /
 whitelist，因此 whole_single_reward_eligible 恒为 true，不占位。
 
 idx 格式：
@@ -45,18 +45,19 @@ def main():
         if len(parts) < 2:
             continue
         word, code = parts[0], parts[1].lower()
+        abbrev = len(parts) > 2 and parts[2].strip().lower() == "a"
         if not code.isascii() or not code.isalpha():
             continue
         if len(code) > KEY_LEN:
             continue
-        lines.append((word, code))
+        lines.append((word, code, abbrev))
     if not lines:
         sys.exit("empty code table")
 
     by_code = {}
     dict_first = {}
     codes_by_character = {}
-    for word, code in lines:
+    for word, code, abbrev in lines:
         by_code.setdefault(code, []).append(word)
         if dict_first.get(code) is None:
             dict_first[code] = word
@@ -84,10 +85,11 @@ def main():
         if shortest:
             optimal[character] = shortest
 
-    assert max(len(code) for _, code in lines) <= KEY_LEN, "code longer than key slot"
+    assert max(len(code) for _, code, _ in lines) <= KEY_LEN, "code longer than key slot"
 
     codes = sorted(by_code)
     lengths = sorted({len(code) for code in codes})
+    abbrev_marks = {(w, c) for w, c, a in lines if a}
     dat = bytearray()
     pool = bytearray()
     records = []
@@ -100,6 +102,8 @@ def main():
                 flags |= 1
             if primary.get(word) == code:
                 flags |= 2
+            if (word, code) in abbrev_marks:
+                flags |= 4
             dat += struct.pack("<IHBx", len(pool), len(word.encode("utf-8")), flags)
             pool += word.encode("utf-8")
 

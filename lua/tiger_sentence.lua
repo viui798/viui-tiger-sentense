@@ -236,14 +236,20 @@ local function parse_codes_content(content)
     local entries = {}
     local seen = {}
     each_content_line(normalize_text_content(content), function(line)
-        local word, code = line:match("^(%S+)%s+(%S+)")
+        local word, code, flag = line:match("^(%S+)%s+(%S+)%s*(%S*)")
         if word and code then
             code = code:lower()
             if code:match("^[a-z]+$") then
                 local key = word .. "\0" .. code
                 if not seen[key] then
                     seen[key] = true
-                    entries[#entries + 1] = { word = word, code = code }
+                    entries[#entries + 1] = {
+                        word = word,
+                        code = code,
+                        -- 第三列 A：简拼（首字母码），只允许整段匹配，
+                        -- 不能作为长输入里的一个边（否则 fa+nc+ha 会组成「发内存哈」）。
+                        abbrev = flag ~= "" and flag:lower() == "a",
+                    }
                 end
             end
         end
@@ -315,10 +321,14 @@ local function build_lexicon_index(entries, character_ranks, high_freq_limit, wh
     -- 自造词标记：造词条目要当「组句边」而不是「整段直配边」，
     -- 这样整句的 Tab 纠错学习才会把它纳入调频（见下面的 direct_edge）。
     local user_marks
+    local abbrev_marks
     for index = 1, #entries do
         if entries[index].user then
             user_marks = user_marks or {}
             user_marks[entries[index].code .. "\0" .. entries[index].word] = true
+        elseif entries[index].abbrev then
+            abbrev_marks = abbrev_marks or {}
+            abbrev_marks[entries[index].code .. "\0" .. entries[index].word] = true
         end
     end
     -- 自造词插在词典条目之前（行序 = rank），但不能因此改掉词典自己的 rank
@@ -431,6 +441,7 @@ local function build_lexicon_index(entries, character_ranks, high_freq_limit, wh
                     t = text,
                     r = rank,
                     user = is_user,
+                    abbrev = abbrev_marks and abbrev_marks[code .. "\0" .. text] or nil,
                     optimal_single = optimal_input[text] == code,
                     -- Only the configured common, non-whitelisted characters
                     -- must use their shortest spelling for the whole-input bonus.
@@ -493,6 +504,7 @@ local function rebuild_lexicon(limit)
                         allowed = allowed or {}
                         allowed[rank] = {
                             t = entry.t, r = rank, user = false,
+                            abbrev = entry.abbrev,
                             optimal_single = entry.optimal,
                             whole_single_reward_eligible = true,
                             primary_single = entry.primary
@@ -1404,6 +1416,32 @@ local function candidate_is_single(candidate)
 end
 
 local function eligible_candidates(candidates, selected_rank, whole_input_edge, allow_duplicate_single, code_length)
+    -- 简拼（首字母码，如 nc=内存、yg=一个）只能整段匹配。若允许它出现在长输入
+    -- 中间，fancha 会被拆成 fa+nc+ha 组成「发内存哈」、ygpan 组成「一个盘」。
+    -- 过滤结果缓存在原候选表上（_no_abbrev），避免每次查询重建。
+    if not whole_input_edge then
+        local source = candidates
+        if source._no_abbrev then
+            candidates = source._no_abbrev
+        else
+            local kept, found = {}, false
+            for index = 1, #source do
+                local candidate = source[index]
+                if candidate.abbrev then
+                    found = true
+                else
+                    kept[#kept + 1] = candidate
+                end
+            end
+            if found then
+                source._no_abbrev = kept
+                candidates = kept
+            else
+                source._no_abbrev = source
+            end
+        end
+        if #candidates == 0 then return candidates end
+    end
     allow_duplicate_single = allow_duplicate_single and
         code_length >= lexicon_state.auto_select_min_code_length
     -- Most code lists contain one entry. Reuse that immutable list instead of

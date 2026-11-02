@@ -232,9 +232,12 @@ function M.translator(input, seg, env)
     -- 长输入仍走单条最优句，避免解码爆炸。阈值：字母数 ≤16 且内部标记 ≤4。
     -- 字母数用「删除非字母后的长度」统计（gsub 的第二个返回值是被替换的次数，
     -- 不是剩余长度；v0.3.4 的长度闸门曾因此失效）。
-    local marks = select(2, input:gsub("`", ""))
+    -- 末尾的 ` 是旧后缀式习惯，不算音节分隔标记；只要有 1 个内部 ` 就展开
+    -- （两字词「fj`ia」只有一个音节边界，旧阈值 >=2 让两字词永远不展开）。
+    local body = input:gsub("`$", "")
+    local marks = select(2, body:gsub("`", ""))
     local letters = #(input:gsub("[^A-Za-z]", ""))
-    local marked = marks >= 2
+    local marked = marks >= 1
     local expand = marked and marks <= 5 and letters <= 16
     if engine.set_allow_duplicate_single then
         engine.set_allow_duplicate_single(expand)

@@ -78,7 +78,8 @@ function M.open(index_path, data_path, pool_path)
       entries[j] = {
         t = pool:sub(text_off + 1, text_off + text_len),
         optimal = flags % 2 == 1,
-        primary = flags >= 2,
+        primary = flags % 4 >= 2,
+        abbrev = flags >= 4,
       }
     end
     return entries

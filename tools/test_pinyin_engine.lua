@@ -20,7 +20,9 @@ local MOCK_TABLE = table.concat({
     "的\tde",
     "反\tfan", "查\tcha", "差\tcha", "反查\tfancha", "反差\tfancha",
     "计\tji", "算\tsuan", "机\tji", "计算机\tjisuanji",
-    "计\tj", "机\tj", "算\ts", "计算机\tjsj", "你好\tnh",
+    "计\tj", "机\tj", "算\ts", "计算机\tjsj\tA", "你好\tnh\tA",
+    -- 简拼整段匹配回归：fancha 不能拆成 fa + nc(内存) + ha
+    "发\tfa", "哈\tha", "内存\tnc\tA",
 }, "\n") .. "\n"
 
 local original_open = io.open
@@ -101,6 +103,14 @@ check(#cands == 0, "虎码 abc 段不出拼音候选")
 cands = translate("yin_add_user", "nihao")
 check(#cands == 0, "yin 总开关关闭（段留 yin_add_user）时静默")
 
+cands = translate("yin_qp", "fancha")
+check(texts(cands):find("反查", 1, true), "全拼 fancha 出反查")
+check(not texts(cands):find("发内存哈", 1, true),
+    "简拼不能作为长输入中的边（fa+nc+ha 不应组成发内存哈）")
+
+cands = translate("yin_qp", "jsj")
+check(texts(cands):find("计算机", 1, true), "整段简拼 jsj 仍出计算机")
+
 cands = translate("yin_qp", "nihao")
 check(cands[1] and cands[1].text == "你好", "全拼 nihao -> 你好（词边）")
 check(type(cands[1].preedit) == "string" and cands[1].preedit:find("ni", 1, true),
@@ -148,6 +158,25 @@ if real_file then
         if item.text == "反差" then found = true break end
     end
     check(found, "真实码表 fancha 含反差")
+    local real_texts = {}
+    pinyin._reset_for_test()
+    real_engine = pinyin._engine_for_test()
+    real_engine.set_model_enabled(false)
+    local function real_translate(tag, input)
+        yielded = {}
+        pinyin.translator(input, seg_with_tag(tag), fake_env())
+        local out = {}
+        for i, c in ipairs(yielded) do out[i] = c.text end
+        return out
+    end
+    local fjia = real_translate("yin_flypy", "fjia")
+    check(fjia[1] == "反查", "真实码表 fjia 首选反查")
+    check(not table.concat(fjia, "|"):find("发内存哈", 1, true),
+        "真实码表 fjia 不含简拼拼接词")
+    local marked = real_translate("yin_flypy", "fj`ia")
+    check(#marked >= 10, "真实码表 fj`ia 一个音节标记即展开多候选")
+    local ygpan = real_translate("yin_qp", "ygpan")
+    check(#ygpan == 0, "真实码表 ygpan 不应拼出「一个盘」")
 end
 
 print(string.format('{"status":"passed","pinyin_checks":%d,"real_model":false}', checks))
