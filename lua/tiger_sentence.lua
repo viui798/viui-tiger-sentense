@@ -4938,6 +4938,16 @@ M.set_codes_index_override = function(handle)
     lexicon_state.built = false
     clear_model_dependent_caches()
 end
+-- 反查多候选：允许码表里的全部同音单字参与组句（与 auto_select_min_code_length 解耦）。
+-- 只应由拼音反查实例在「音节标记 + 短输入」时打开；虎码主路径保持原行为。
+M.set_allow_duplicate_single = function(enabled)
+    local value = not not enabled
+    if active_allow_duplicate_single ~= value then
+        active_allow_duplicate_single = value
+        lexicon_state.auto_selection_generation = lexicon_state.auto_selection_generation + 1
+        if reset_decode_cache then reset_decode_cache() end
+    end
+end
 -- 语义化别名：拼音实例初始化时设置与形码不同的 beam 参数。
 M.configure_decoder_parameters = M.set_decoder_parameters_for_test
 -- Host opt-in hook; call between key events on the owning Lua thread. Do not

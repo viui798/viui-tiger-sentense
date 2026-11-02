@@ -226,6 +226,15 @@ function M.translator(input, seg, env)
 
     apply_parameters(env)
     local engine = ensure_instance()
+    -- 音节级标记（内部 `）：短输入时允许全部同音单字参与，给出多条候选；
+    -- 长输入仍走单条最优句，避免解码爆炸。阈值：字母数 ≤16 且内部标记 ≤4。
+    local marks = select(2, input:gsub("`", ""))
+    local letters = select(2, input:gsub("[^A-Za-z]", ""))
+    local marked = marks >= 2
+    local expand = marked and marks <= 5 and letters <= 16
+    if engine.set_allow_duplicate_single then
+        engine.set_allow_duplicate_single(expand)
+    end
     local ok_lexicon, _ = pcall(engine.ensure_lexicon, {
         engine = { schema = { config = fake_config() } },
     })
@@ -241,7 +250,9 @@ function M.translator(input, seg, env)
         local item = results[i]
         local cand = Candidate("sentence", seg.start, seg._end, item.text,
             candidate_comment(env, item))
-        if scheme == "qp" then
+        if marked then
+            cand.preedit = input
+        elseif scheme == "qp" then
             cand.preedit = item.segmented or converted
         else
             cand.preedit = double_preedit(input, scheme)
