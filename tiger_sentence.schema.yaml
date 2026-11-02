@@ -102,6 +102,7 @@ engine:
     - lua_processor@*shift_upper  # 中文态 Shift+字母 → 直接上屏大写（手机端大写键）
     - lua_processor@tiger_sentence_ascii  # 上游 1.6.20261030.1 同款：buffered（提前上屏至编码）状态下切西文提交显示候选
     - recognizer
+    - lua_processor@*reverse_freq  # 短输入反查调频（记录选择次数，长句不参与）
     - lua_processor@*tiger_kf  # 快符（立即上屏；init 在载入时连通知器）
     - lua_processor@tiger_sentence_processor
     # 20261008：整句处理器排在 key_binder 之前（与上游原版一致）。Tab 先由 Lua
@@ -164,6 +165,9 @@ tiger_sentence:
   character_set_shortcut_enabled: true
   character_set_shortcut: "Control+j"
   memory_profile: compact
+  # 短输入反查调频（原型）：≤8 字母的反查会记录选择次数，存 reverse_freq.txt；
+  # 长句不参与，避免局部偏好破坏整句通顺度。设为 false 可整体关闭。
+  reverse_frequency: true
   # 首次默认值；之后以保存的选择为准，存 tiger_sentence.options.yaml
   # 首次默认打开提前上屏；已保存的选择仍以 tiger_sentence.options.yaml 为准。
   option_defaults:

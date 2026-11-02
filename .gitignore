@@ -15,3 +15,6 @@
 # 本地工具目录与输入统计运行时数据（不进仓库）
 /.zcode/
 /lua/input_stats_*.lua
+# 反查调频运行时数据（用户目录生成，不进仓库/发行包）
+/reverse_freq.txt
+/reverse_freq.txt.tmp

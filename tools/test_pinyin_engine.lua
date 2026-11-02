@@ -77,6 +77,20 @@ check(pinyin.convert_keys("zz1", "flypy") == nil, "非法键序放弃转换")
 check(pinyin.double_preedit("fjia", "flypy") == "fj ia", "双拍 preedit 分组")
 check(pinyin.double_preedit("fj ia", "flypy") == "fj ia", "双拍 preedit 原分隔")
 
+-- ---- 1.5 短输入调频：稳定排序，只前移不改变候选集合 --------------------------
+local reverse_freq = require("reverse_freq")
+check(reverse_freq.short_enough(8) and not reverse_freq.short_enough(9),
+    "短输入阈值：8 字母参与调频，9 字母不参与")
+local base = { { text = "A" }, { text = "B" }, { text = "C" }, { text = "D" } }
+local ranked = reverse_freq.rank(base, { D = 3 }, 3)
+check(#ranked == 4, "调频不改变候选数量")
+check(ranked[1].text == "D", "选过的 D 前移到第一")
+local ranked2 = reverse_freq.rank(base, { B = 1 }, 6)
+check(ranked2[1].text == "B" and ranked2[2].text == "A" and ranked2[3].text == "C",
+    "小次数只前移一位，其余保持稳定")
+local ranked3 = reverse_freq.rank(base, { Z = 9 }, 6)
+check(ranked3[1].text == "A" and ranked3[4].text == "D", "未知词条不影响原有顺序")
+
 -- ---- 2. wrapper 行为（微型码表，无模型） -----------------------------------
 local cands = translate("abc", "nihao")
 check(#cands == 0, "虎码 abc 段不出拼音候选")

@@ -178,6 +178,8 @@ end
 -- ---- 解码与候选 ------------------------------------------------------------
 local last_converted = nil
 
+local reverse_freq = require("reverse_freq")
+
 local function decode_converted(converted)
     local engine = ensure_instance()
     -- 增量缓存只对「前缀延伸」安全；编辑/回删/换段（非前缀）必须重建。
@@ -228,8 +230,10 @@ function M.translator(input, seg, env)
     local engine = ensure_instance()
     -- 音节级标记（内部 `）：短输入时允许全部同音单字参与，给出多条候选；
     -- 长输入仍走单条最优句，避免解码爆炸。阈值：字母数 ≤16 且内部标记 ≤4。
+    -- 字母数用「删除非字母后的长度」统计（gsub 的第二个返回值是被替换的次数，
+    -- 不是剩余长度；v0.3.4 的长度闸门曾因此失效）。
     local marks = select(2, input:gsub("`", ""))
-    local letters = select(2, input:gsub("[^A-Za-z]", ""))
+    local letters = #(input:gsub("[^A-Za-z]", ""))
     local marked = marks >= 2
     local expand = marked and marks <= 5 and letters <= 16
     if engine.set_allow_duplicate_single then
@@ -244,6 +248,13 @@ function M.translator(input, seg, env)
     if not ok or type(results) ~= "table" then
         last_converted = nil
         return
+    end
+
+    -- 短输入才参与调频；长句完全交给模型，避免局部偏好破坏整句通顺度。
+    if reverse_freq.short_enough(letters) and reverse_freq.enabled(env) then
+        results = reverse_freq.rank_for(env, converted, results)
+    else
+        reverse_freq.clear_pending(env)
     end
 
     for i = 1, #results do
