@@ -11,8 +11,9 @@
 | `tiger` | 虎单 | 单字优先，适合逐字输入和精确选字 |
 | `tigress` | 虎词 | 词组优先，适合常用词组输入 |
 | `tiger_sentence` | 虎整句 | 连续输入，由五阶语言模型组句；主要辅助功能集中在这里 |
+| `english` | 英文 | 英文单词前缀补全（词频排序），裸按 Shift 从中文方案切入 |
 
-`default.custom.yaml` 默认把上述三个方案加入方案列表；旧版独立的 `wanxiang_pro` 万象拼音方案自 v0.3.10 起已从方案列表移除。三种虎码方案共用虎码编码、自造词、拼音反查、简繁转换和大部分辅助工具。`tiger_sentence_ascii` 是虎整句包内的内部 ASCII 配置，供 `lua_processor@tiger_sentence_ascii`（上游同款）在 buffered 状态下切换西文时使用，不应加入方案列表。
+`default.custom.yaml` 默认把上述四个方案加入方案列表（`english` 见「英文方案」一节）；旧版独立的 `wanxiang_pro` 万象拼音方案自 v0.3.10 起已从方案列表移除。三种虎码方案共用虎码编码、自造词、拼音反查、简繁转换和大部分辅助工具。`tiger_sentence_ascii` 是虎整句包内的内部 ASCII 配置，供 `lua_processor@tiger_sentence_ascii`（上游同款）在 buffered 状态下切换西文时使用，不应加入方案列表。
 
 ## 主要能力
 
@@ -204,6 +205,15 @@
 - **短输入反查调频（v0.3.12）**：≤8 字母的反查会记录选择次数（`reverse_freq.txt`），
   主动选过一次非首选词后，下次它直接排第一；直接空格选首选不记录。长句不参与。
   `tiger_sentence/reverse_frequency: false` 可关闭，删掉 `reverse_freq.txt` 即清空。
+
+## 英文方案（english）
+
+- **切换**：中文方案里裸按一次 Shift（没有正在输入的编码）→ 切到「英文」方案；再裸按 Shift → 切回上一个中文方案。输入编码过程中按 Shift 仍是原来的行为（虎整句的 buffered 提交 / 西文直通），不会切方案。
+- **补全**：输入 `hel` → `hel / help / hell / held / helm …`，按词频排序；空格/数字键上屏，Tab 或数字键选重。
+- **标点**：英文方案默认 ASCII 标点（`ascii_punct` 开启），`Ctrl+.` 可切换。
+- **大写**：大写字母（Shift+字母）按普通按键直接上屏，不参与补全。
+- **词库**：`english.dict.yaml`，46,717 个单词，词频来源 FrequencyWords `en_50k`（MIT License）。
+- **手机端**：方案列表里能看到「英文」；能否用上取决于前端是否把英文键盘交给 Rime（元书自带的英文键盘若不经过 Rime 就用不到）。
 
 ## 简体与繁体
 

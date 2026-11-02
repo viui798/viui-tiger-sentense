@@ -1,0 +1,59 @@
+# Rime schema
+# encoding: utf-8
+#
+# 英文方案：英文单词前缀补全（按词频排序）。
+# 由 Shift 键从中文方案切进来（见 lua/shift_schema.lua），再按 Shift 切回。
+
+schema:
+  schema_id: english
+  name: 英文
+  version: "1.0"
+  author: 芝士虎整
+  description: 英文单词补全（词频排序）
+  dependencies: []
+
+switches:
+  - name: ascii_punct
+    reset: 1
+
+engine:
+  processors:
+    - lua_processor@*shift_schema   # Shift：切回上一个中文方案
+    - key_binder
+    - speller
+    - punctuator
+    - selector
+    - navigator
+    - express_editor
+  segmentors:
+    - ascii_segmentor
+    - matcher
+    - abc_segmentor
+    - punct_segmentor
+    - fallback_segmentor
+  translators:
+    - table_translator
+  filters:
+    - uniquifier
+
+speller:
+  # 只收小写：大写字母（Shift+字母）按普通按键直接上屏，不参与补全。
+  alphabet: "zyxwvutsrqponmlkjihgfedcba"
+  delimiter: " '"
+  max_code_length: 40
+
+translator:
+  dictionary: english
+  enable_completion: true
+  enable_sentence: false
+  enable_user_dict: false
+  spelling_hints: 0
+
+punctuator:
+  import_preset: default
+
+key_binder:
+  import_preset: default
+
+menu:
+  page_size: 5
