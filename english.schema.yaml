@@ -2,7 +2,7 @@
 # encoding: utf-8
 #
 # 英文方案：英文单词前缀补全（按词频排序）。
-# 由 Shift 键从中文方案切进来（见 lua/shift_schema.lua），再按 Shift 切回。
+# 通过方案菜单（Ctrl+`）切换；Shift 保持各方案原有的西文直通行为。
 
 schema:
   schema_id: english
@@ -18,7 +18,6 @@ switches:
 
 engine:
   processors:
-    - lua_processor@*shift_schema   # Shift：切回上一个中文方案
     - key_binder
     - speller
     - punctuator

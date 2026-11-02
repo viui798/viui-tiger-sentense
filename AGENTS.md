@@ -67,8 +67,7 @@
 | `lua/` | 全部 Lua：虎整句引擎、学习、字集、回删、辅助功能 |
 | `lua/tiger_sentence*.lua` | 上游引擎模块（`tiger_sentence.lua` 有本地集成） |
 | `lua/shift_upper.lua` | Shift 大写直出（本地功能） |
-| `lua/shift_schema.lua` | 裸按 Shift 在中文方案与 english 方案间切换（`Engine:apply_schema(Schema(id))`） |
-| `english.schema.yaml` / `english.dict.yaml` | 英文方案（46,717 词，词频补全；Shift 切入） |
+| `english.schema.yaml` / `english.dict.yaml` | 英文方案（46,717 词，词频补全；从方案菜单进入，Shift 不切方案） |
 | `lua/tiger_symbol_select.lua` | 虎单/虎词 `;` `'` 顶字（本地功能） |
 | `lua/tiger_zaoci.lua` | 造词模块（本地功能，与引擎桥接） |
 | `lua/tiger_sentence_pinyin.lua` | 拼音反查引擎（v0.3.3：主 chunk 第二实例 + 键位转换 + 分页码表索引，反查候选由五阶模型生成；v0.3.10 起虎单/虎词/虎整句共用） |
@@ -97,7 +96,7 @@
 | **造词桥接** | `zaoci_bridge` 在 `tiger_sentence.lua` 里，负责自造词参与组句/调频；合并上游时**必须保留** |
 | **主题/个人配置** | `squirrel.custom.yaml`、`docs/CORRECTION_*.md`、`docs/EARLY_EVIDENCE_GATE.md` 被 `.gitignore` 排除，不要提交 |
 | **开关记忆** | 「要记住」的开关**不能写 `reset`**（librime 每个新会话都会按 reset 强制复位，且热键 toggle 不写 user.yaml）。虎整句存 `tiger_sentence.options.yaml`（`M.options`），虎单/虎词存 `tiger.options.yaml` / `tigress.options.yaml`（`lua/option_persist.lua`）。`ascii_mode` / `ascii_punct` / `full_shape` 保留 reset 属有意行为 |
-| **Shift 切方案** | 裸按 Shift（无编码）切到 `english`，再按切回；输入中不切。实现用 `Engine:apply_schema(Schema(id))`（传 Schema 对象，不是字符串）。english 方案的 translator 必须用无名 `table_translator` + `translator:` 段（`table_translator@english` 会去找 `english/dictionary`） |
+| **英文方案** | 只能从方案菜单进入；曾用 Shift 切方案（`Engine:apply_schema(Schema(id))`，传 Schema 对象），2026-11-02 实测后按用户要求还原为西文直通。english 的 translator 必须用无名 `table_translator` + `translator:` 段（`table_translator@english` 会去找 `english/dictionary`） |
 | **简拼整段匹配** | 码表第三列 `A`（索引 flags bit2）标记简拼；引擎只在「整段匹配」时允许简拼边。改码表、索引或 `eligible_candidates` 时不要破坏，否则 `fancha` 会拆成 fa+nc+ha 出现「发内存哈」这类拼接词 |
 | **反查/造词前缀** | 反查是 `` ` `` 前缀、造词是 `'` 前缀；「拼音+`` ` ``」后缀式反查已移除（v0.3.3）。改 recognizer 时三个 schema 的 `zaoci` / `yin_add_user` 模式与 affix `prefix` 必须同步 |
 | **拼音反查双实例** | `lua/tiger_sentence_pinyin.lua` dofile 同一主 chunk 得到第二实例：词库/beam/解码缓存与虎码主实例完全独立（`lexicon_state` 绑定单码表，不能共表）。改主 chunk 的 `read_data_file`/`rebuild_lexicon`/`M.translator` 时必须同时验证两条路径；负向控制锚点严禁改动 |
@@ -145,7 +144,7 @@
 - 测试：契约 21 cases / 132 checks；`tools/test_pinyin_engine.lua` 40 checks；
   `tools/test_tiger_mixed.lua` 7 checks；`run_regressions.py --lua lua` 全绿
 - 英文方案：`english.schema.yaml` + `english.dict.yaml`（46,717 词，FrequencyWords en_50k，MIT）；
-  裸按 Shift 在中文方案与 english 之间切换（`lua/shift_schema.lua`）
+  从方案菜单进入（Shift 保持西文直通）
 - 万象词库：仓库保留 `dicts/*.pro.dict.yaml` 与 `wanxiang_pro*` 便于回滚，但
   `tools/make_release_zip.py` 已排除，不进发行包
 - 上游 `M.*` 导出：100% 覆盖；上游 schema 元素：100% 覆盖

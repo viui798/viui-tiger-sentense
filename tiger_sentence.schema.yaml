@@ -99,7 +99,6 @@ engine:
     - lua_processor@*set_schema #拼音反查打法切换 /flypy /pinyin /zrm /mspy /sogou
     - lua_processor@tiger_zaoci_processor  # 加词模块：造词写入用户词库
     - lua_processor@*key_counter  # 击键计数（输入战报 4.2）
-    - lua_processor@*shift_schema  # 裸按 Shift：切到 english 方案（再按切回）
     - lua_processor@*shift_upper  # 中文态 Shift+字母 → 直接上屏大写（手机端大写键）
     - lua_processor@tiger_sentence_ascii  # 上游 1.6.20261030.1 同款：buffered（提前上屏至编码）状态下切西文提交显示候选
     - recognizer

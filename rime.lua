@@ -26,8 +26,6 @@ input_statistics = require("input_statistics")
 -- Shift 大写直出：中文态下 Shift+字母 → 直接上屏大写（见 lua/shift_upper.lua）
 shift_upper = require("shift_upper")
 
--- Shift 切换中/英方案（裸按 Shift 切到 english，再按切回；见 lua/shift_schema.lua）
-shift_schema = require("shift_schema")
 
 -- 虎单：候选不足时 ; / ' 顶字（见 lua/tiger_symbol_select.lua）
 tiger_symbol_select = require("tiger_symbol_select")

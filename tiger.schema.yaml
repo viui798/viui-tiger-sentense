@@ -67,7 +67,6 @@ engine:
     - lua_processor@*option_persist  # 辅助开关记忆：跨会话保存 pinyin/chaifen/emoji/U区/U编/音码/字集
     - lua_processor@tiger_zaoci_processor  # 加词模块：造词写入用户词库
     - lua_processor@*key_counter  # 击键计数（输入战报 4.2）
-    - lua_processor@*shift_schema  # 裸按 Shift：切到 english 方案（再按切回）
     - lua_processor@*shift_upper  # 中文态 Shift+字母 → 直接上屏大写（手机端大写键）
     - ascii_composer
     - recognizer

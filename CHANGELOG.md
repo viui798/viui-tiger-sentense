@@ -22,8 +22,7 @@
 
 - 新增 `english.schema.yaml` + `english.dict.yaml`：46,717 个英文单词，按词频排序（来源 FrequencyWords `en_50k`，MIT License），
   输入 `hel` → hel / help / hell / held / helm …；ASCII 标点默认开启。
-- **Shift 切换中/英**：中文方案里裸按 Shift（无编码时）切到 english，再按 Shift 切回上一个中文方案
-  （`lua/shift_schema.lua`）；输入编码时保持原有行为，Shift+字母的大写直出不受影响。
+- **切换方式**：方案菜单（`Ctrl+\``）选择「英文」。Shift 保持原有的西文直通行为（2026-11-02 实测后按用户要求还原，不再用 Shift 切方案）。
 - 方案菜单（`Ctrl+\``）同样可以选到「英文」。手机端能否使用取决于前端是否把英文键盘交给 Rime。
 - 切换时自动关闭 `ascii_mode`（西文直通），避免从「西文」按 Shift 后状态仍显示「西文」、英文方案不出候选。
 
