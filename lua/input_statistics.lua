@@ -1491,7 +1491,8 @@ local function capture_history(env)
 	for i = overlap + 1, n do
 		local r = tbl[i]
 		local text = r.text or ""
-		if text ~= "" and text:sub(1, 1) ~= "/" and r.type ~= "thru" and r.type ~= "stat" then
+		if text ~= "" and text:sub(1, 1) ~= "/" and r.type ~= "thru" and r.type ~= "stat"
+			and isAllChineseCharacter(text) then
 			local count = utf8.len(text) or #text
 			if r.type == "raw" then
 				pending_raw_chars = pending_raw_chars + count
