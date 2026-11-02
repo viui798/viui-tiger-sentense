@@ -63,90 +63,37 @@ patch:
   # 让【 】可以直接上屏（对应的重复上屏的功能也没了）
   #speller/alphabet: ";'zyxwvutsrqponmlkjihgfedcba"
 
-  # ---- 拼音反查模块（万象虎）----
-  # 小鹤双拼（默认打法）。tag 用 yin_flypy 而不是 yin_add_user：
-  # 见 lua/yin_pick.lua 顶部注释——否则小鹤翻译器会连其他打法的编码段一起响应。
+  # ---- 拼音反查（与虎整句共用五阶模型引擎）----
+  # 翻译器由 schema 里的 lua_translator@tiger_sentence_pinyin_translator 接管；
+  # 这里只保留五个 affix_segmentor 的命名空间（tag/prefix/tips/extra_tags）。
+  # tag 用 yin_flypy 而不是 yin_add_user：见 lua/yin_pick.lua 顶部注释。
+  # 切换命令：/flypy（小鹤，默认）/pinyin（全拼）/zrm（自然码）/mspy（微软）/sogou（搜狗）
   yin_add_user:
     tag: yin_flypy
-    dictionary: wanxiang_pro
-    initial_quality: -1
-    user_dict: zc
-    enable_completion: true
-    enable_user_dict: true
-    spelling_hints: 50
-    comment_format:
     prefix: "`"
     tips: "〔音〕"
     extra_tags: [ yin_add_user ]
 
-  # ---- 拼音反查：打法切换（同一时间只启用一种）----
-  # 五份拼写索引都在部署时一次生成，共用同一张词库表：
-  #   wanxiang_pro（小鹤双拼，带辅助码）/ _qp（全拼）/ _zrm（自然码）
-  #   / _mspy（微软双拼）/ _sogou（搜狗双拼）
-  # 运行时由 lua/yin_pick.lua 按 yin_scheme 开关，把反查分段的 tag 换成选中打法的 tag，
-  # 所以同一时间只有对应的那一个翻译器会响应；切换立即生效、**不需要重新部署**。
-  # 切换命令：/flypy（小鹤，默认）/pinyin（全拼）/zrm（自然码）/mspy（微软）/sogou（搜狗）
-  #
-  # 注意：翻译器与 affix_segmentor 共用同一个命名空间（都叫 yin_qp 等），
-  #      所以 tag/prefix/suffix/tips 与 dictionary/prism 写在同一个配置块里；
-  #      extra_tags 让切出来的编码段同时带上 yin_add_user，
-  #      供 lua/chaifen.lua、lua/db.lua 判断「这是反查」用。
-  engine/translators/@before1: script_translator@yin_qp
   yin_qp:
     tag: yin_qp
-    dictionary: wanxiang_pro
-    prism: wanxiang_pro_qp
-    initial_quality: -1
-    user_dict: zc
-    enable_completion: true
-    enable_user_dict: true
-    spelling_hints: 50
-    comment_format:
     prefix: "`"
     tips: "〔音·全拼〕"
     extra_tags: [ yin_add_user ]
 
-  engine/translators/@before2: script_translator@yin_zrm
   yin_zrm:
     tag: yin_zrm
-    dictionary: wanxiang_pro
-    prism: wanxiang_pro_zrm
-    initial_quality: -1
-    user_dict: zc
-    enable_completion: true
-    enable_user_dict: true
-    spelling_hints: 50
-    comment_format:
     prefix: "`"
     tips: "〔音·自然码〕"
     extra_tags: [ yin_add_user ]
 
-  engine/translators/@before3: script_translator@yin_mspy
   yin_mspy:
     tag: yin_mspy
-    dictionary: wanxiang_pro
-    prism: wanxiang_pro_mspy
-    initial_quality: -1
-    user_dict: zc
-    enable_completion: true
-    enable_user_dict: true
-    spelling_hints: 50
-    comment_format:
     prefix: "`"
     tips: "〔音·微软〕"
     extra_tags: [ yin_add_user ]
 
-  engine/translators/@before4: script_translator@yin_sogou
   yin_sogou:
     tag: yin_sogou
-    dictionary: wanxiang_pro
-    prism: wanxiang_pro_sogou
-    initial_quality: -1
-    user_dict: zc
-    enable_completion: true
-    enable_user_dict: true
-    spelling_hints: 50
-    comment_format:
     prefix: "`"
     tips: "〔音·搜狗〕"
     extra_tags: [ yin_add_user ]

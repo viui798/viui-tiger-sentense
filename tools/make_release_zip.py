@@ -48,6 +48,21 @@ EXCLUDE_DIRS = (
     "手机精简版/",      # 手机端附加内容，不进发行包
 )
 
+# 万象拼音词库已不再被虎单/虎词/虎整句使用（反查统一走五阶模型 +
+# pinyin.qp.codes.txt 分页索引），保留在仓库便于回滚，但不进发行包。
+EXCLUDE_SEGMENTS = (
+    "wanxiang_pro",            # wanxiang_pro / _qp / _zrm / _mspy / _sogou
+    "dicts/jichu.pro",         # 万象基础词库（约 61MB）
+    "dicts/lianxiang.pro",     # 联想词库（约 13MB）
+    "dicts/shici.pro",         # 诗词词库（约 22MB）
+    "dicts/diming.pro",        # 地名词库
+    "dicts/duoyin.pro",        # 多音兼容词库
+    "dicts/zi.pro",            # 万象字表
+    "dicts/cuoyin.pro",        # 错音错字
+    "zuci/moegirl",            # 萌娘词库（仅万象使用）
+    "zuci/ext",                # 扩展词库（仅万象使用）
+)
+
 INSTALL_NOTE = """芝士虎整 {version} 安装说明
 {underline}
 
@@ -70,14 +85,13 @@ INSTALL_NOTE = """芝士虎整 {version} 安装说明
   - Shift 大写：中文态按 Shift 再打字母，直接上屏大写（如 Shift+a → A）。
   - 顶字：虎单/虎词输入 rjk; 应输出“符；”（rjk 只有唯一候选时）。
   - 自造词：反引号 + 编码造词；编码后加 / 删词。
-  - 拼音反查：'nihao；快符：;a；输入统计：//1。
+  - 拼音反查：`nihao（虎单/虎词/虎整句通用）；快符：;a；输入统计：//1。
 
 四、说明
   - 本包不含个人数据。学习库、方案选项（tiger_sentence.options.yaml）、
     custom_phrase.txt、各前端皮肤配置都属于用户数据，升级时请自行保留。
   - 更新内容见 CHANGELOG.md 与 docs/ 下的更新说明。
-  - 手机 / Android 前端若因 wanxiang_pro 词库过大而部署失败，
-    请使用仓库里的 手机精简版/ 目录（不进本发行包）。
+  - 手机 / Android 前端若空间紧张，请使用仓库里的 手机精简版/ 目录（不进本发行包）。
 """
 
 
@@ -123,7 +137,8 @@ def main():
             version = described if described.startswith("v") else "v" + described
     files = [f for f in git("ls-tree", "-r", "--name-only", ref).splitlines() if f]
     kept = [f for f in files
-            if f not in EXCLUDE_FILES and not f.startswith(EXCLUDE_DIRS)]
+            if f not in EXCLUDE_FILES and not f.startswith(EXCLUDE_DIRS)
+            and not any(segment in f for segment in EXCLUDE_SEGMENTS)]
     dropped = sorted(set(files) - set(kept))
 
     lfs = lfs_paths(kept)

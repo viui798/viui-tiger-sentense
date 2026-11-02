@@ -2,6 +2,21 @@
 
 本文件记录「芝士虎整」方案包的主要更新。虎整句方案版本见 `tiger_sentence.schema.yaml` 中 `schema.version`（当前 `1.6.20261030.1`，基于上游 `1.6.20261030.1` / `e86ceeb` 发布）。
 
+## v0.3.10（2026-11-02）
+
+虎单/虎词反查统一走五阶模型引擎，移除万象词库。
+
+- 虎单、虎词的反查从 `script_translator`（万象词库 + 4 份拼写索引）改成与虎整句相同的
+  `lua_translator@tiger_sentence_pinyin_translator`：`` `nihao `` → 你好、`` `jsj `` → 计算机，
+  候选照旧带〔拆分·虎码〕注释。
+- 反查候选覆盖改用 `pinyin.qp.codes.txt`（13.4 万词条 / 24.8 万码）；生僻词、诗词、联想词
+  覆盖会比原万象词库少。
+- 发行包不再包含万象词库（`jichu.pro` / `shici.pro` / `lianxiang.pro` / `diming.pro` 等，
+  解压约 96MB、压缩约 35MB）；`wanxiang_pro` 独立方案同时从方案列表移除。
+  词库文件仍保留在仓库以便回滚，由 `tools/make_release_zip.py` 排除。
+- 代价：虎单/虎词首次使用反查会加载五阶模型（约 +135MB 常驻、首次约 2.5s），之后每键约 4–10ms；
+  反查选重不再写 `zc` 用户词典。
+
 ## v0.3.9（2026-11-02）
 
 混输翻译器不再重复解码纯反查段。

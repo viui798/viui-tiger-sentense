@@ -244,20 +244,26 @@ do
     custom:close()
     check(custom_content:find("dictionary: wanxiang_pro", 1, true) == nil,
         "tiger_sentence.custom.yaml still carries the wanxiang reverse-lookup patch")
-    -- 虎单/虎词的反查继续走万象词库，不得被波及
+    -- 虎单/虎词的反查也统一走五阶模型引擎，不再依赖万象词库
     for _, name in ipairs({"tiger", "tigress"}) do
         local f = assert(io.open(repo .. "/" .. name .. ".schema.yaml", "rb"))
         local other = f:read("*a")
         f:close()
-        check(other:find("- script_translator@yin_add_user", 1, true) ~= nil,
-            name .. " lost its wanxiang reverse-lookup translator")
+        check(other:find("- lua_translator@tiger_sentence_pinyin_translator", 1, true) ~= nil,
+            name .. " lost the shared pinyin engine translator")
+        check(other:find("- script_translator@yin_add_user", 1, true) == nil,
+            name .. " still keeps the wanxiang script_translator")
+        check(other:find("wanxiang_pro_qp", 1, true) == nil,
+            name .. " still depends on wanxiang_pro prisms")
     end
     for _, name in ipairs({"tiger.custom.yaml", "tigress.custom.yaml"}) do
         local f = assert(io.open(repo .. "/" .. name, "rb"))
         local other = f:read("*a")
         f:close()
-        check(other:find("dictionary: wanxiang_pro", 1, true) ~= nil,
-            name .. " lost the wanxiang reverse-lookup dictionary patch")
+        check(other:find("dictionary: wanxiang_pro", 1, true) == nil,
+            name .. " still carries the wanxiang reverse-lookup dictionary patch")
+        check(other:find("engine/translators/@before", 1, true) == nil,
+            name .. " still inserts wanxiang script translators")
     end
     -- 新增文件在位（tools/export_pinyin_tables.py 是开发工具，不在回归临时树，
     -- 由发布流程单独验证）

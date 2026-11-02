@@ -6,10 +6,6 @@ schema:
     - core2022  #自定义字集工具方案
     - tiger_lookup  # 拆分注释
     - kf  # 快符
-    - wanxiang_pro_qp  # 拼音反查：全拼拼写索引（与小鹤双拼并存，免切换）
-    - wanxiang_pro_zrm  # 拼音反查：自然码拼写索引（与其它打法并存，免切换）
-    - wanxiang_pro_mspy  # 拼音反查：微软双拼拼写索引（与其它打法并存，免切换）
-    - wanxiang_pro_sogou  # 拼音反查：搜狗双拼拼写索引（与其它打法并存，免切换）
   description: |
     虎码官方单字
     ` 反查输入拼音反查
@@ -98,7 +94,7 @@ engine:
     - fallback_segmentor
   translators:
     - punct_translator
-    - script_translator@yin_add_user #拼音反查
+    - lua_translator@tiger_sentence_pinyin_translator  # 拼音反查：与虎整句共用五阶模型引擎
     - table_translator@kf  # 快符号码表 kf.dict 编码输入后直接上屏
     - table_translator@zaoci           # ' 造词候选
     - lua_translator@tiger_zaoci_translator  # 加词模块：内存词库即时出候选
