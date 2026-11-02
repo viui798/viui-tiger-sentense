@@ -257,31 +257,31 @@ tiger_zaoci:
 # 输入体验（v0.3.3）：` 前缀反查；' 前缀造词；后缀式反查暂时移除。
 yin_add_user:
   tag: yin_flypy
-  prefix: "`"
+  prefix: ""
   tips: "〔音〕"
   extra_tags: [ yin_add_user ]
 
 yin_qp:
   tag: yin_qp
-  prefix: "`"
+  prefix: ""
   tips: "〔音·全拼〕"
   extra_tags: [ yin_add_user ]
 
 yin_zrm:
   tag: yin_zrm
-  prefix: "`"
+  prefix: ""
   tips: "〔音·自然码〕"
   extra_tags: [ yin_add_user ]
 
 yin_mspy:
   tag: yin_mspy
-  prefix: "`"
+  prefix: ""
   tips: "〔音·微软〕"
   extra_tags: [ yin_add_user ]
 
 yin_sogou:
   tag: yin_sogou
-  prefix: "`"
+  prefix: ""
   tips: "〔音·搜狗〕"
   extra_tags: [ yin_add_user ]
 
