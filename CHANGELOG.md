@@ -12,6 +12,9 @@
 - 新增 `lua/yin_full.lua`：speller 不接收反斜杠，由该处理器在 recognizer 之前把 `\` 放进输入串；
   整句处理器对 `\` 开头的输入放行。
 - 用法：`\` + 虎码编码，如 `\xwdk` → 𢈪、`\rrpf` → 幗/簂，不切方案；`'` 造词、`` ` `` 拼音反查不变。
+- **统计优化（提前上屏）**：`input_statistics.lua` 从 `ctx.commit_history` 的 `type=="raw"` 记录
+  补计提前上屏的字数（`Engine::CommitText` 不触发 `commit_notifier`），在用户提交时并入本轮字数；
+  击键/码长/速度口径不变，避免虚高。
 
 ## v0.3.15（2026-11-02）
 

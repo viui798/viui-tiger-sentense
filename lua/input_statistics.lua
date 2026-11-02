@@ -1462,6 +1462,45 @@ local function quoteLoad()
 	end
 end
 
+-- 提前上屏（Engine::CommitText）不触发 commit_notifier，字数会漏计。
+-- 这里从 commit_history 的 type=="raw" 记录把提前上屏的字数补回来，
+-- 在用户提交时并入本轮字数（不改变码长/速度的口径）。
+local function sync_raw_history(env)
+	if not env then return end
+	local ctx = env.engine and env.engine.context
+	if not ctx or not ctx.commit_history then return end
+	local ok, tbl = pcall(function() return ctx.commit_history:to_table() end)
+	if not ok or type(tbl) ~= "table" then return end
+	local sig = {}
+	for i = 1, #tbl do
+		sig[i] = tostring(tbl[i].type) .. "\0" .. tostring(tbl[i].text)
+	end
+	local prev = env.history_snapshot
+	env.history_snapshot = sig
+	if not prev then return end -- 首帧只记快照，不计数
+
+	local n, m = #sig, #prev
+	local overlap = 0
+	for j = math.min(n, m), 0, -1 do
+		local match = true
+		for i = 1, j do
+			if prev[m - j + i] ~= sig[i] then match = false break end
+		end
+		if match then overlap = j break end
+	end
+	local added = n - overlap
+	if added <= 0 or added > 8 then return end -- 异常跳变只更新快照
+	for i = overlap + 1, n do
+		local r = tbl[i]
+		if r.type == "raw" then
+			local text = r.text or ""
+			if text ~= "" and text:sub(1, 1) ~= "/" and isAllChineseCharacter(text) then
+				env.pending_raw = (env.pending_raw or 0) + (utf8.len(text) or #text)
+			end
+		end
+	end
+end
+
 local function init(env)
 	schema_name = env.engine.schema.schema_name or '未知'
 	local ctx = env.engine.context
@@ -1478,8 +1517,14 @@ local function init(env)
 	-- 初始化随机数种子
 	math.randomseed(os.time())
 
+	-- 提前上屏字数补计：首帧只记快照（必须在第一次提交前建立基准）
+	env.history_snapshot = nil
+	env.pending_raw = 0
+	sync_raw_history(env)
+
 	-- 注册提交通知回调
 	env.notifier = env.engine.context.commit_notifier:connect(function(ctx)
+		sync_raw_history(env)
 		-- 提交的时候，把 lastCode 清除
 		lastCode = ''
 
@@ -1506,6 +1551,11 @@ local function init(env)
 
 		local codeLen = string.len(ctx.input)
 		local input_length = utf8.len(commit_text) or string.len(commit_text)
+		-- 并入本轮提前上屏的字数（commit_history 的 raw 记录）
+		if env.pending_raw and env.pending_raw > 0 then
+			input_length = input_length + env.pending_raw
+			env.pending_raw = 0
+		end
 		-- 统计平均分速
 		local timeNow = os.time()
 		local delt = timeNow - avgSpdInfo.commitTime
