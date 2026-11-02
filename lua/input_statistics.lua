@@ -1545,6 +1545,11 @@ end
 
 local function processor(key_event, env)
 	if key_event:release() then return 2 end
+	-- 统计指令（//1、/qctj 等）的按键不计入击键/码长：以 / 开头的输入整段跳过
+	local ctx = env.engine.context
+	local inp = ctx.input or ""
+	if inp:sub(1, 1) == "/" then return 2 end
+	if key_event:repr() == "/" and not ctx:is_composing() then return 2 end
 	if key_event:ctrl() or key_event:alt() or key_event:super() then return 2 end
 	local kc = key_event.keycode
 	if kc == 0 then return 2 end
