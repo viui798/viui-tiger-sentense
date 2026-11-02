@@ -1,0 +1,97 @@
+# Rime schema settings
+# encoding: utf-8
+
+schema:
+  schema_id: tiger_full
+  name: "虎码全字集"
+  version: "2026.06.29"
+  author:
+    - 方案制作人 作曲家
+  description: |
+    虎码单字版
+
+
+switches:
+  - name: ascii_mode
+    reset: 0
+    states: [ 中文, 西文 ]
+  - name: full_shape
+    states: [ 半角, 全角 ]
+  - name: zh_trad
+    reset: 0
+    states: [ 简体, 繁體 ]
+  - name: ascii_punct
+    states: [ 。，, ．， ]
+
+
+
+engine:
+  processors:
+    - ascii_composer
+    - recognizer
+    - key_binder
+    - speller
+    - punctuator
+    - selector
+    - navigator
+    - express_editor
+  segmentors:
+    - ascii_segmentor
+    - matcher
+    - abc_segmentor
+    - punct_segmentor
+    - fallback_segmentor
+  translators:
+    - punct_translator
+    - table_translator
+
+  filters:
+    - simplifier@zh_trad
+    - uniquifier
+
+
+speller:
+  delimiter: " '"
+  max_code_length: 4
+  auto_select: true
+  auto_clear: auto #manual | auto | max_length 空码按下一键确认清屏|空码自动清|达到最长码时后码顶上清屏
+
+translator:
+  dictionary: tiger_full
+  enable_charset_filter: false
+  enable_encoder: false #是否开启自动造词
+  enable_sentence: false #是否开启自动造句
+  enable_completion: false #是否开启编码逐渐提示
+  encode_commit_history: false
+  max_phrase_length: 4
+  enable_user_dict: false
+#  disable_user_dict_for_patterns:
+#    - "^z.*$"
+
+
+punctuator: # 设定符号表，这里直接导入外部的symbols.yaml文件
+  import_preset: symbols
+
+key_binder:
+#  import_preset: default #方案切换相关
+  bindings:
+    - { accept: semicolon, send: 2, when: has_menu } # 分号次选
+    - { when: has_menu, accept: apostrophe, send: 3 } # 引号三选
+    - { when: composing, accept: Tab, send: Escape } # tab清屏
+    - { when: has_menu, accept: minus, send: Page_Up } # - 向后翻页
+    - { when: has_menu, accept: equal, send: Page_Down } # = 向前翻页
+
+
+
+
+recognizer:
+  import_preset: default
+  patterns:
+    punct: "^/([0-9]0?|[A-Za-z]+)$"
+    # uppercase: "" #中文状态大写锁
+
+
+
+zh_trad:
+  opencc_config: s2t.json
+  option_name: zh_trad

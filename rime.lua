@@ -40,3 +40,6 @@ tiger_zaoci_translator = tiger_zaoci.translator -- 跨统计窗口主动刷新�
 
 -- 虎码 + 拼音反查混输（原型）
 tiger_mixed_translator = require("tiger_mixed").translator
+
+-- 双引号全字集反查前缀（见 lua/yin_full.lua）
+yin_full = require("yin_full")

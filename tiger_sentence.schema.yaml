@@ -33,6 +33,7 @@ schema:
   dependencies:
     - tigress  # 造词检索用的虎词词表
     - tiger_lookup  # 拆分注释
+    - tiger_full  # " 引导的虎码全字集反查
     # v0.4.0：拼音反查改走五阶模型引擎（pinyin.qp.codes.txt），不再依赖
     # wanxiang_pro 拼写索引；那四份 prism 保留给虎单/虎词的反查使用。
 
@@ -99,6 +100,7 @@ engine:
     - lua_processor@tiger_zaoci_processor  # 加词模块：造词写入用户词库
     - lua_processor@*key_counter  # 击键计数（输入战报 4.2）
     - lua_processor@*shift_upper  # 中文态 Shift+字母 → 直接上屏大写（手机端大写键）
+    - lua_processor@*yin_full  # 双引号全字集反查前缀（要在 recognizer 之前）
     - lua_processor@tiger_sentence_ascii  # 上游 1.6.20261030.1 同款：buffered（提前上屏至编码）状态下切西文提交显示候选
     - recognizer
     - lua_processor@*reverse_freq  # 短输入反查调频（记录选择次数，长句不参与）
@@ -123,6 +125,7 @@ engine:
     - affix_segmentor@yin_mspy #拼音反查：微软双拼
     - affix_segmentor@yin_sogou #拼音反查：搜狗双拼
     - affix_segmentor@zaoci # ' 造词（前缀剥离）
+    - affix_segmentor@yin_full # " 全字集反查（前缀剥离）
     - punct_segmentor
     - fallback_segmentor
   translators:
@@ -130,6 +133,7 @@ engine:
     - lua_translator@tiger_sentence_pinyin_translator  # 拼音反查：五阶模型整句引擎（v0.4.0 起，替代 script_translator 万象词库路径）
     - lua_translator@tiger_mixed_translator  # 虎码 + 拼音反查混输（原型）
     - table_translator@zaoci           # ' 造词候选
+    - table_translator@yin_full        # " 全字集反查候选
     - lua_translator@tiger_zaoci_translator  # 加词模块：内存词库即时出候选
     - lua_translator@tiger_sentence_translator
     - lua_translator@number_translator  # 数字转大写
@@ -149,7 +153,7 @@ engine:
     - uniquifier  # 过滤重码
 
 speller:
-  alphabet: "zyxwvutsrqponmlkjihgfedcba;';0123456789~/"  # 含 /：统计指令 //1 //60 需要第二个 / 进编码区
+  alphabet: "zyxwvutsrqponmlkjihgfedcba;';\"0123456789~/"  # 含 /：统计指令 //1 //60 需要第二个 / 进编码区；" 为全字集反查前缀
   initials: "abcdefghijklmnopqrstuvwxyz~/"  # 含 /：统计指令 //1 //60 的第二个 / 需由 speller 接收
   delimiter: " '"  # 拼音/音码音节分隔符
   auto_select: true
@@ -234,6 +238,20 @@ punctuator:
 #   · custom_phrase.txt：用户词库（纯文本，只读加载，输入法永不改写）
 #     每行 词<TAB>编码[<TAB>权重]；改完在鼠须管里「重新部署」生效
 #   · 不开自动调频：主码表照旧，只有 ' 前缀这一条路上屏的词会入库
+yin_full:
+  tag: yin_full
+  dictionary: tiger_full
+  prefix: '"'
+  tips: "〔全字集〕"
+  initial_quality: -1
+  enable_charset_filter: false
+  enable_encoder: false
+  enable_sentence: false
+  enable_completion: false
+  encode_commit_history: false
+  max_phrase_length: 4
+  enable_user_dict: false
+
 zaoci:
   tag: zaoci          # 与 recognizer/patterns 名字一致
   prefix: "'"
@@ -299,6 +317,7 @@ recognizer:
     zaoci: "^'[a-z]*$"  # 单引号前缀造词（单按 ' 即进造词模式，preedit 显示 '〔造词〕）
     mixed: "^[a-z][a-z;']*`[a-z`]*$"  # 虎码 + 拼音反查混输（如 je`jiyubeue…、j;`iimwwhll…）
     yin_add_user: "^`[A-Za-z';`]*$"  # 拼音反查：反引号前缀（暂时只保留前缀式，后缀式已移除）；含 ;（微软/搜狗双拼的 ing 键）
+    yin_full: '^"[A-Za-z]*$'  # 虎码全字集反查：双引号前缀（临时查生僻字，不切方案）
     expression: "^=.*$"  # 简易计算器
 
 # ==================== 简繁转换（10.2 移植自万象虎 super_replacer）====================

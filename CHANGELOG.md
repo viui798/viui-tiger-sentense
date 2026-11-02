@@ -2,6 +2,17 @@
 
 本文件记录「芝士虎整」方案包的主要更新。虎整句方案版本见 `tiger_sentence.schema.yaml` 中 `schema.version`（当前 `1.6.20261030.1`，基于上游 `1.6.20261030.1` / `e86ceeb` 发布）。
 
+## 未发布（2026-11-02）
+
+新增 `"` 前缀的虎码全字集反查。
+
+- 新增 `tiger_full.dict.yaml`（10.3 万字全字集码表）与 `tiger_full.schema.yaml`，作为 `tiger_sentence` 的依赖。
+- `tiger_sentence.schema.yaml` 增加 `recognizer/patterns/yin_full`、`affix_segmentor@yin_full`、
+  `table_translator@yin_full`（`prefix: '"'`、`tips: 〔全字集〕`），speller alphabet 增加 `"`。
+- 新增 `lua/yin_full.lua`：librime 里双引号键的 repr 是 `quotedbl`、speller 不接收它，
+  由该处理器在 recognizer 之前把 `"` 放进输入串；整句处理器对 `"` 开头的输入放行。
+- 用法：`"` + 虎码编码，如 `"xwdk` → 𢈪、`"rrpf` → 幗/簂，不切方案；`'` 造词、`` ` `` 拼音反查不变。
+
 ## v0.3.15（2026-11-02）
 
 快符收敛为单一实现，符号表改为 YAML。

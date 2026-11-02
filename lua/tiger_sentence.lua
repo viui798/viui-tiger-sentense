@@ -4374,6 +4374,11 @@ local function processor(key_event, env)
     learned.submitted_raw = nil
     local state = sentence_state(context, env)
     local repr = key_event:repr()
+    -- 双引号全字集反查（前缀由 lua/yin_full.lua 放进输入串）：输入以 " 开头时
+    -- 整句处理器一律放行，交给 matcher / affix_segmentor@yin_full。
+    if context:is_composing() and (context.input or ""):sub(1, 1) == '"' then
+        return 2
+    end
     if state.buffered_text ~= "" and live_input(context) == "" and
         (repr == "Tab" or repr == "ISO_Left_Tab" or repr == "Shift+Tab" or
          repr == "Up" or repr == "Down" or repr == "Page_Up" or repr == "Page_Down") then
@@ -4723,7 +4728,7 @@ local function translator(input, seg, env)
     if seg:has_tag("yin_add_user") or seg:has_tag("yin_flypy") or
         seg:has_tag("yin_qp") or seg:has_tag("yin_zrm") or
         seg:has_tag("yin_mspy") or seg:has_tag("yin_sogou") or
-        seg:has_tag("zaoci") or seg:has_tag("kf") or
+        seg:has_tag("zaoci") or seg:has_tag("yin_full") or seg:has_tag("kf") or
         seg:has_tag("punct") or seg:has_tag("shijian2") or
         seg:has_tag("expression") then
         return
