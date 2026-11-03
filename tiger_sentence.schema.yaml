@@ -135,11 +135,9 @@ engine:
     - fallback_segmentor
   translators:
     - punct_translator
-    - lua_translator@tiger_sentence_dispatch  # 共用一次 Lua 翻译调用：反查/混输/数字/计算器/时间/统计
+    - lua_translator@tiger_sentence_dispatch  # 唯一 Lua 翻译入口：反查/混输/造词/主引擎/数字/计算器/时间/统计
     - table_translator@zaoci           # ' 造词候选
     - table_translator@yin_full        # " 全字集反查候选
-    - lua_translator@tiger_zaoci_translator  # 加词模块：内存词库即时出候选
-    - lua_translator@tiger_sentence_translator
   filters:
     - lua_filter@tiger_sentence_buffer_filter  # v1.3 暂存候选过滤
     - simplifier@pinyin  # 拼音滤镜
