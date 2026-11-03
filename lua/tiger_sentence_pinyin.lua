@@ -275,13 +275,32 @@ function M.translator(input, seg, env)
         reverse_freq.clear_pending(env)
     end
 
+    -- 双拼：候选字数不能超过用户输入的「音节数」。
+    -- 例：`bm 在双拼里是 bian 一个音节，不能因为把 bian 切成 bi+an 而冒出「比按」这类全拼词。
+    local max_chars
+    if scheme ~= "qp" then
+        local ok_pre, pre = pcall(double_preedit, input, scheme)
+        if ok_pre and type(pre) == "string" then
+            local groups = 0
+            for _ in pre:gmatch("%S+") do groups = groups + 1 end
+            if groups > 0 then max_chars = groups end
+        end
+    end
+
     for i = 1, #results do
         local item = results[i]
-        local cand = Candidate("sentence", seg.start, seg._end, item.text,
-            candidate_comment(env, item))
-        -- 预编辑文本：始终显示用户实际输入的键（含音节 `），不做模型分词展示。
-        cand.preedit = "`" .. input
-        yield(cand)
+        local ok_len = true
+        if max_chars then
+            local n = utf8.len(item.text) or #item.text
+            if n > max_chars then ok_len = false end
+        end
+        if ok_len then
+            local cand = Candidate("sentence", seg.start, seg._end, item.text,
+                candidate_comment(env, item))
+            -- 预编辑文本：始终显示用户实际输入的键（含音节 `），不做模型分词展示。
+            cand.preedit = "`" .. input
+            yield(cand)
+        end
     end
 end
 
