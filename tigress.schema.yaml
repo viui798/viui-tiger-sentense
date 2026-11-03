@@ -75,7 +75,6 @@ engine:
     - recognizer
     - lua_processor@*reverse_freq  # 短输入反查调频（记录选择次数，长句不参与）
     - lua_processor@*tiger_symbol_select  # 候选不足时 ; / ' 顶字（须在 key_binder 之前）
-    - lua_processor@*tiger_five_code  # 第五码顶屏（4 码后按第 5 码先上屏首选）
     - key_binder
     - lua_processor@*tiger_kf  # 快符（立即上屏；init 在载入时连通知器）
     - speller
@@ -132,7 +131,8 @@ engine:
     - uniquifier #过滤重码
 
 speller:
-  auto_clear: max_length # 3编码长度
+  auto_clear: max_length # 达到最长码时后码顶上清屏
+  max_code_length: 4  # 五码顶屏：4 码后按第 5 键，顶上首选并清屏（秃版同款）
   auto_select: true
   alphabet: "[;zyxwvutsrqponmlkjihgfedcba/]"  # 含 /：统计指令 //1 //60 需要第二个 / 进编码区
   # initials: "abcdefghijklmnopqrstuvwxyz;'"
