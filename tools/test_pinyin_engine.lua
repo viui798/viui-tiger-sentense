@@ -116,6 +116,11 @@ check(not texts(cands):find("发内存哈", 1, true),
 cands = translate("yin_qp", "jsj")
 check(texts(cands):find("计算机", 1, true), "整段简拼 jsj 仍出计算机")
 
+cands = translate("yin_flypy", "jsj")
+check(not texts(cands):find("计算机", 1, true), "双拼不出现整段简拼 jsj")
+cands = translate("yin_flypy", "nh")
+check(not texts(cands):find("你好", 1, true), "双拼不出现整段简拼 nh")
+
 cands = translate("yin_qp", "nihao")
 check(cands[1] and cands[1].text == "你好", "全拼 nihao -> 你好（词边）")
 check(type(cands[1].preedit) == "string" and cands[1].preedit:find("ni", 1, true),

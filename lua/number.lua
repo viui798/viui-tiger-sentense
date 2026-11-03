@@ -114,7 +114,7 @@ end
 
 function translator(input, seg)
 	local str,num,numberPart
-	if string.match(input,"^(S+%d+)(%.?)(%d*)$")~=nil then
+	if string.match(input,"^([Ss]+%d+)(%.?)(%d*)$")~=nil then
 		str = string.gsub(input,"^(%a+)", "")  numberPart=number_translatorFunc(str)
 		if #numberPart>0 then
 			for i=1,#numberPart do

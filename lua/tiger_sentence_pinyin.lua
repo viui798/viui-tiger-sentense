@@ -239,6 +239,10 @@ function M.translator(input, seg, env)
     if engine.set_allow_abbreviation_edges then
         engine.set_allow_abbreviation_edges(scheme == "qp")
     end
+    -- 双拼不出现简拼（含整段简拼 jsj=计算机、nh=你好）；全拼保留。
+    if engine.set_strict_abbreviation then
+        engine.set_strict_abbreviation(scheme ~= "qp")
+    end
     -- 音节级标记（内部 `）：短输入时允许全部同音单字参与，给出多条候选；
     -- 长输入仍走单条最优句，避免解码爆炸。阈值：字母数 ≤16 且内部标记 ≤4。
     -- 字母数用「删除非字母后的长度」统计（gsub 的第二个返回值是被替换的次数，

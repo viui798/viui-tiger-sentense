@@ -293,6 +293,7 @@ local lexicon_state = {
     -- 简拼（首字母码）能否作为长输入里的一个边：全拼反查要保留（fa+nc+ha），
     -- 双拼反查关闭（fjia 只应出 fancha 的音节组合）。
     allow_abbreviation_edges = true,
+    strict_abbreviation = false, -- 双拼：连整段简拼也不出（全拼 false）
     auto_selection_generation = 0,
     codes = {},
     lengths = {},
@@ -1422,7 +1423,8 @@ local function eligible_candidates(candidates, selected_rank, whole_input_edge, 
     -- 简拼（首字母码，如 nc=内存、yg=一个）只能整段匹配。若允许它出现在长输入
     -- 中间，fancha 会被拆成 fa+nc+ha 组成「发内存哈」、ygpan 组成「一个盘」。
     -- 过滤结果缓存在原候选表上（_no_abbrev），避免每次查询重建。
-    if not whole_input_edge and not lexicon_state.allow_abbreviation_edges then
+    if (not whole_input_edge or lexicon_state.strict_abbreviation)
+        and not lexicon_state.allow_abbreviation_edges then
         local source = candidates
         if source._no_abbrev then
             candidates = source._no_abbrev
@@ -5026,6 +5028,14 @@ M.set_allow_abbreviation_edges = function(enabled)
     local value = not not enabled
     if lexicon_state.allow_abbreviation_edges ~= value then
         lexicon_state.allow_abbreviation_edges = value
+        if reset_decode_cache then reset_decode_cache() end
+    end
+end
+-- 双拼严格模式：整段简拼（jsj=计算机、nh=你好）也过滤掉；全拼不启用。
+M.set_strict_abbreviation = function(enabled)
+    local value = not not enabled
+    if lexicon_state.strict_abbreviation ~= value then
+        lexicon_state.strict_abbreviation = value
         if reset_decode_cache then reset_decode_cache() end
     end
 end
