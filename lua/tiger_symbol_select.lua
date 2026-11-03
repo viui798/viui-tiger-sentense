@@ -42,8 +42,33 @@ local function candidate_at(seg, index)
   return seg.menu:get_candidate_at(index)
 end
 
-function M.init(env) end
-function M.fini(env) end
+-- 四码上屏（菜单开关，默认关）：4 个字母码完成后立即上屏首选。
+-- 用 update_notifier 在 4 码翻译完成后触发；只处理纯字母编码。
+local function commit_four_codes(env)
+  local ctx = env.engine.context
+  if not ctx:get_option("four_code_commit") then return end
+  if not ctx:is_composing() then return end
+  local input = ctx.input or ""
+  if #input ~= 4 or not input:match("^[a-z]+$") then return end
+  if not ctx:has_menu() then return end
+  local seg = ctx.composition:back()
+  local first = candidate_at(seg, 0)
+  if not first or first.text == input then return end
+  env.engine:commit_text(first.text)
+  ctx:clear()
+end
+
+function M.init(env)
+  env.conn_four_code = env.engine.context.update_notifier:connect(function()
+    commit_four_codes(env)
+  end)
+end
+function M.fini(env)
+  if env.conn_four_code then
+    env.conn_four_code:disconnect()
+    env.conn_four_code = nil
+  end
+end
 
 function M.processor(key, env)
   local keycode = key.keycode

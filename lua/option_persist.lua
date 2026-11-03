@@ -22,7 +22,8 @@ local NAMES = {
   yin = true,
   pinyin_no_model = false,
   extended_char = true,
-  repeat_z = false
+  repeat_z = false,
+  four_code_commit = false
 }
 
 local GROUPS = {
