@@ -227,8 +227,8 @@ do
     local schema = assert(io.open(repo .. "/tiger_sentence.schema.yaml", "rb"))
     local content = schema:read("*a")
     schema:close()
-    check(content:find("- lua_translator@tiger_sentence_pinyin_translator", 1, true) ~= nil,
-        "pinyin engine translator is not registered in tiger_sentence.schema.yaml")
+    check(content:find("- lua_translator@tiger_sentence_dispatch", 1, true) ~= nil,
+        "reverse/mixed dispatcher is not registered in tiger_sentence.schema.yaml")
     check(content:find("- script_translator@yin_add_user", 1, true) == nil,
         "tiger_sentence must not keep the wanxiang script_translator")
     check(content:find("tag: yin_flypy", 1, true) ~= nil and

@@ -1,0 +1,19 @@
+WARNING: Logging before InitGoogleLogging() is written to STDERR
+I20261103 18:58:27.295420 0x1ee6310c0 modules.cc:96] registering components from module 'lua'.
+DEEP_COST reload calls=1 ms=3.412
+DEEP_COST capture_commits calls=2 ms=0.013
+DEEP_COST capture_history calls=2 ms=0.009
+DEEP_COST reload calls=12 ms=4.185
+DEEP_COST capture_commits calls=343 ms=6.804
+DEEP_COST capture_history calls=343 ms=4.185
+DEEP_COST ascii calls=270 ms=1.034
+DEEP_COST reload calls=13 ms=4.241
+DEEP_COST capture_commits calls=345 ms=6.812
+DEEP_COST capture_history calls=345 ms=4.189
+DEEP_COST ascii calls=270 ms=1.034
+DEEP_COST reload calls=15 ms=4.298
+DEEP_COST capture_commits calls=347 ms=6.820
+DEEP_COST capture_history calls=347 ms=4.193
+DEEP_COST ascii calls=271 ms=1.055
+phase key_ms=22.339 context_ms=0.010 commit_ms=0.001 cpu_ms=6137.944 peak_rss_bytes=35291136
+model=on keys=189 cold_sequence_ms=746.915 mean_ms=22.349 p50_ms=18.428 p95_ms=40.324 max_ms=46.306 top=复杂

@@ -1590,7 +1590,16 @@ local function init(env)
 	env.notifier = env.engine.context.commit_notifier:connect(function(ctx)
 		capture_history(env)
 	end)
+	env._cap_len = 0
 	env.update_notifier = env.engine.context.update_notifier:connect(function(ctx)
+		-- 只在输入变短（提前上屏/回删）或组合结束时扫描历史；普通打字每键都在变长，
+		-- 每键都 to_table() 会制造大量临时表，间接抬高插件全量 GC 的成本。
+		local len = #(ctx.input or "")
+		if ctx:is_composing() and len >= (env._cap_len or 0) then
+			env._cap_len = len
+			return
+		end
+		env._cap_len = len
 		capture_history(env)
 	end)
 	capture_history(env)

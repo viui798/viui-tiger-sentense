@@ -91,6 +91,8 @@ switches: # 0 默认关，1 默认开
     states: [ U编关, U编开 ]
   - name: yin
     states: [ 关, 音码 ]
+  - name: pinyin_no_model
+    states: [ 反查模型, 反查无模型 ]
   #拼音反查打法：radio 组，同一时间只启用一种（用 /flypy /pinyin /zrm /mspy /sogou 切换）
   #注意：radio 组不能写 name，否则 librime 只当普通开关、忽略 options
   - options: [ yin_flypy, yin_qp, yin_zrm, yin_mspy, yin_sogou ]
@@ -133,16 +135,11 @@ engine:
     - fallback_segmentor
   translators:
     - punct_translator
-    - lua_translator@tiger_sentence_pinyin_translator  # 拼音反查：五阶模型整句引擎（v0.4.0 起，替代 script_translator 万象词库路径）
-    - lua_translator@tiger_mixed_translator  # 虎码 + 拼音反查混输（原型）
+    - lua_translator@tiger_sentence_dispatch  # 共用一次 Lua 翻译调用：反查/混输/数字/计算器/时间/统计
     - table_translator@zaoci           # ' 造词候选
     - table_translator@yin_full        # " 全字集反查候选
     - lua_translator@tiger_zaoci_translator  # 加词模块：内存词库即时出候选
     - lua_translator@tiger_sentence_translator
-    - lua_translator@number_translator  # 数字转大写
-    - lua_translator@calculator_translator  # 简易计算器
-    - lua_translator@shijian2_translator  # 时间/日期
-    - lua_translator@*input_statistics  # 输入统计
   filters:
     - lua_filter@tiger_sentence_buffer_filter  # v1.3 暂存候选过滤
     - simplifier@pinyin  # 拼音滤镜

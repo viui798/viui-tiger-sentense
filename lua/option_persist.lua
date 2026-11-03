@@ -20,6 +20,7 @@ local NAMES = {
   charset_comment_filter = false,
   udpf_switch = false,
   yin = true,
+  pinyin_no_model = false,
   extended_char = true,
   repeat_z = false
 }

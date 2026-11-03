@@ -56,6 +56,8 @@ switches: # 0 默认关，1 默认开
     states: [ 半角, 全角]
   - name: yin  # Ctrl+Q：音码反查总开关（关掉后 ' 前缀不再查拼音）
     states: [ 关, 音码 ]
+  - name: pinyin_no_model
+    states: [ 反查模型, 反查无模型 ]
   #拼音反查打法：radio 组，同一时间只启用一种（用 /flypy /pinyin /zrm /mspy /sogou 切换）
   #注意：radio 组不能写 name，否则 librime 只当普通开关、忽略 options
   - options: [ yin_flypy, yin_qp, yin_zrm, yin_mspy, yin_sogou ]

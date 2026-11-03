@@ -119,16 +119,6 @@ local function capture_commits(env, commit_text)
     if match then overlap = j break end
   end
   local added = n - overlap
-  pcall(function()
-    local f = io.open("/tmp/kf_cap.log", "a")
-    if f then
-      f:write("cap commit_text=[" .. tostring(commit_text) .. "] composing=" .. tostring(env.engine.context:is_composing()) .. " n=" .. n .. " overlap=" .. overlap .. " added=" .. added .. "\n")
-      for i = overlap + 1, n do
-        f:write("   rec type=" .. tostring(tbl[i].type) .. " text=[" .. tostring(tbl[i].text) .. "]\n")
-      end
-      f:close()
-    end
-  end)
   if added <= 0 then return end
   -- 历史被重置/换引擎：只重建基准，清掉挂起文本，绝不把旧文本拼进来
   if overlap == 0 and #prev > 0 then
@@ -219,7 +209,14 @@ function M.init(env)
       state.pending_text = ""
     end
   end)
+  env._kf_cap_len = 0
   env.conn_update2 = env.engine.context.update_notifier:connect(function(ctx)
+    local len = #(ctx.input or "")
+    if ctx:is_composing() and len >= (env._kf_cap_len or 0) then
+      env._kf_cap_len = len
+      return
+    end
+    env._kf_cap_len = len
     capture_commits(env)
   end)
   capture_commits(env)

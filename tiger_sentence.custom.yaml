@@ -4,7 +4,7 @@
 # + 四个 @before 插入）。v0.4.0 反查改走五阶模型引擎
 # （lua/tiger_sentence_pinyin.lua + pinyin.qp.codes.txt），接线全部移入
 # tiger_sentence.schema.yaml 本体：
-#   · engine/translators: lua_translator@tiger_sentence_pinyin_translator
+#   · engine/translators: lua_translator@tiger_sentence_dispatch（模型反查/虎拼混输共用入口）
 #   · 五个 affix_segmentor 配置块（yin_add_user/yin_qp/yin_zrm/yin_mspy/yin_sogou）
 # wanxiang_pro 词库与拼写索引保留给虎单（tiger）/虎词（tigress）的反查使用。
 #

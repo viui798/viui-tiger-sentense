@@ -5142,6 +5142,7 @@ M.options = {};
         charset_comment_filter = false,
         udpf_switch = false,
         yin = true,
+        pinyin_no_model = false,
         repeat_z = false
     }
     -- radio 组按「选中档的 option 名」保存；首次默认见 default 字段。

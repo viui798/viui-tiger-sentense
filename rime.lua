@@ -20,6 +20,7 @@ tiger_sentence_buffer_filter = tiger_sentence.buffer_filter
 
 -- 拼音反查：五阶模型整句引擎（第二实例 + 键位转换，见 lua/tiger_sentence_pinyin.lua）
 tiger_sentence_pinyin_translator = require("tiger_sentence_pinyin").translator
+tiger_sentence_dispatch = require("tiger_sentence_dispatch")
 
 input_statistics = require("input_statistics")
 

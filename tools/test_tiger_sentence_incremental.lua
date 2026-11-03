@@ -704,7 +704,9 @@ end
 print("OK  reverse lookup uses ` prefix, zaoci uses ' prefix, suffix form removed")
 -- 混输（原型）：recognizer + translator 接线。
 assert_contains(sentence_schema, [[mixed: "^[a-z][a-z;']*`[a-z`]*$"]], "缺少混输 recognizer 模式")
-assert_contains(sentence_schema, "lua_translator@tiger_mixed_translator", "缺少混输 translator 接线")
+assert_contains(sentence_schema, "lua_translator@tiger_sentence_dispatch", "缺少反查/混输共用 translator 接线")
+assert_contains(read_repo_file("lua/tiger_sentence_dispatch.lua"),
+    'require("tiger_mixed").translator.func', "共用入口未调用混输 translator")
 assert_contains(read_repo_file("rime.lua"),
     'tiger_mixed_translator = require("tiger_mixed").translator', "rime.lua 未注册混输 translator")
 assert_contains(read_repo_file("lua/tiger_mixed.lua"),

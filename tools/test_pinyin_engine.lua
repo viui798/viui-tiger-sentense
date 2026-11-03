@@ -147,6 +147,37 @@ check(cands[1] and cands[1].text == "好", "非前缀切换：hao（缓存重建
 cands = translate("yin_qp", "zz1")
 check(#cands == 0, "转换失败不出候选（与现状一致）")
 
+-- 模型开关作用域与中途切换：观察第二实例 setter，不需要真实模型。
+local main_engine = require("tiger_sentence")
+main_engine.set_model_enabled(false)
+local setter = engine.set_model_enabled
+local requested = {}
+engine.set_model_enabled = function(enabled)
+    requested[#requested + 1] = enabled
+    -- 夹具测试始终不加载真实模型；这里只拦截并断言路由请求。
+    setter(false)
+end
+local function translate_mode(disabled, tag, raw)
+    yielded = {}
+    local env = fake_env()
+    env.engine.context = { get_option = function(_, name)
+        return name == "pinyin_no_model" and disabled
+    end }
+    pinyin.translator(raw, seg_with_tag(tag), env)
+    return yielded
+end
+check(#translate_mode(true, "yin_qp", "nihao") > 0,
+    "无模型模式仍可拼音组句")
+check(requested[#requested] == false, "关闭模型只路由到拼音第二实例")
+check(#translate_mode(false, "yin_flypy", "nihc") > 0,
+    "重新开启模型后双拼仍可输入")
+check(requested[#requested] == true, "恢复模型评分请求")
+local previous_calls = #requested
+translate_mode(true, "abc", "nihao")
+check(#requested == previous_calls, "普通虎码不触碰拼音模型状态")
+check(not main_engine.model_status().loaded, "反查切换不启用虎码主实例模型")
+engine.set_model_enabled = setter
+
 io.open = original_open
 
 -- ---- 3. 真实码表冒烟（仓库根 pinyin.qp.codes.txt，无模型断言存在性） --------

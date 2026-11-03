@@ -228,6 +228,13 @@ function M.translator(input, seg, env)
 
     apply_parameters(env)
     local engine = ensure_instance()
+    -- 只改变拼音第二实例的模型评分；不开模型仍保留码表组句与调频。
+    -- setter 在值改变时清模型/解码缓存，同值为 noop；跨方案/会话切换也重放。
+    -- 无 context 的纯解码测试保留调用方显式设定的模型状态。
+    local context = env.engine.context
+    if context and type(context.get_option) == "function" then
+        engine.set_model_enabled(not context:get_option("pinyin_no_model"))
+    end
     -- 全拼保留简拼边（fa+nc+ha 合法）；双拼只允许音节组合。
     if engine.set_allow_abbreviation_edges then
         engine.set_allow_abbreviation_edges(scheme == "qp")
