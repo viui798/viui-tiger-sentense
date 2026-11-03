@@ -5,7 +5,9 @@
 **结论：数据层面完全可行，但「逐字等价」只在「只开拆字、其余辅助滤镜全关」时成立。
 实际使用（同时开拼音提示 / emoji / 字符集提示，或用快捷键关掉拆字）下两版显示的注释
 并不一样；本机也没有性能收益，反而多占 12–18 MiB 常驻内存、冷启动慢约 100ms。
-长会话（约 1500 键）漂移两版相同，「少 Lua/少 GC」无累积收益。建议暂缓实施。**
+长会话（约 1500 键）漂移两版相同，「少 Lua/少 GC」无累积收益；**安卓（同文芝版
+模拟器）实测拆字滤镜开-关差 ±8μs/键，成本为零**——最后一条开放路径已关闭。
+建议暂缓实施（实为「不做」）。**
 
 补充实测见 §3.1；纠正了初版评估「等价性全绿」过于乐观的结论。
 
@@ -142,8 +144,8 @@ text 与 comment、commit。
 
 增量来自 99,142 条 OpenCC 字典常驻，是确定的成本。
 
-> 本机数据仅代表 macOS 鼠须管 librime 1.16.0 + 自带 lua 插件。安卓（元书插件）机制
-> 未知，不能由此推断；若目标只在安卓端减负，需另测。
+> 本机数据仅代表 macOS 鼠须管 librime 1.16.0 + 自带 lua 插件。安卓实测见 §4.4：
+> 同文（Trime）的 librime_jni.so 同样内嵌 Lua 5.4 插件与 OpenCC，结论一致。
 
 ### 4.1 长会话漂移：「少 Lua / 少 GC」无累积收益（2026-11-03 补测）
 
@@ -181,6 +183,34 @@ OpenCC 字典的确定加载成本，不是噪声。
 `opencc/hu_cf.txt` 3.19 MiB，zip 内约 1.04 MiB（发行包 388 MiB 的 0.27%）。
 体积不是主要矛盾，但运行时常驻的 3.19 MiB 与 §4 的 12–18 MiB 峰值增量同源。
 
+### 4.4 安卓实测：拆字滤镜成本为零（2026-11-04，同文芝版模拟器）
+
+评估的触发条件是「在目标平台（尤其安卓）实测到拆字滤镜每键耗时或 GC 显著」。
+已在安卓端完成同等测试，触发条件不成立。
+
+环境：`~/Desktop/芝版同文` 项目自带的 AVD（`zhi_test`，arm64-v8a，Android 15）
+运行芝版同文（Trime fork，`com.viui.trime.cheese`）。探针 `tools/bench_chaifen.cpp`
+用项目内 NDK 交叉编译（`-static-libstdc++`），**直接链接并 dlopen 同文 APK 的
+`librime_jni.so`**（librime + Lua 5.4 插件 + OpenCC 全部内嵌，符号 `rime_get_api`
+导出），在 `/data/local/tmp/cf` 隔离目录里跑与 macOS 完全相同的 A/B 矩阵
+（A = Lua 滤镜方案、B = `_cc` simplifier 方案，user 树共用）。
+
+| 场景 | Lua 开 | OpenCC 开 | 开−关差 Lua | 开−关差 OpenCC |
+|---|---|---|---|---|
+| 虎单 单字码流 | 1766 μs | 1740 μs（−1.5%） | +3 μs | −8 μs |
+| 虎词 多字词码流 | 1779 μs | 1789 μs（+0.6%） | −8 μs | +5 μs |
+
+（交错 A/B × 5，中位数；波动区间 ±2~6%。）
+
+- **拆字滤镜自身的开−关差在 ±8μs/键，就是零**——「在安卓上滤镜会显著变贵」
+  的假设不成立；A/B 差 −1.5%/+0.6% 同在噪声内，方向还不一致。
+- 模拟器（Apple Silicon 宿主）每键 ~1.75ms，与 macOS 实机 ~1.5ms 同一量级。
+- 虎整句组未跑：405MB 模型不进本次实验——安卓上引擎开销只会更彻底淹没滤镜
+  成本，单字/词组两组已足以回答问题。
+- 设备侧复现：`adb push` 后 `LD_LIBRARY_PATH=/data/local/tmp/cf ./bench_chaifen …`，
+  驱动为 `tools/bench_chaifen_android.py`（含完整设备侧准备说明）。测试树
+  留在模拟器 `/data/local/tmp/cf`（约 140MB，可随时删除）。
+
 ## 5. 实施必须注意的坑（本次实测踩到）
 
 1. **`option_name: chaifen` 不能漏**。漏写时 simplifier 用默认 `simplification`，
@@ -209,8 +239,10 @@ OpenCC 字典的确定加载成本，不是噪声。
 
 当前版本（v0.3.22）性能瓶颈已通过「Lua 翻译入口 7→1」收敛，再动拆字滤镜性价比低。
 
-若将来仍要做，触发条件建议明确为：**在目标平台（尤其安卓）实测到拆字滤镜的
-每键耗时或 GC 次数确实显著**，再按本文 §1/§5 接线，并用 `compare_chaifen.py` 验收。
+原定的触发条件「在目标平台（尤其安卓）实测到拆字滤镜每键耗时或 GC 显著」
+已于 2026-11-04 在同文芝版模拟器上实测，结果为不显著（§4.4）——该触发条件
+**已被消耗**。除非未来出现新的证据（如某平台 librime-lua 换用其他 Lua 实现、
+或方案规模变化使注释工作量大增），本评估不再需要重开。
 
 ## 7. 复跑方法
 
@@ -238,6 +270,9 @@ python3 tools/check_chaifen_realuse.py > /tmp/cf_realuse.log   # 叠加/关开�
 python3 tools/bench_chaifen.py --repeat 5 --json /tmp/cf_perf.json
 python3 tools/bench_chaifen_drift.py --repeat 5 --json /tmp/cf_drift.json    # 长会话漂移
 python3 tools/bench_chaifen_startup.py --repeat 7 --json /tmp/cf_startup.json  # 冷启动
+
+# 安卓（同文芝版模拟器，设备侧准备见 bench_chaifen_android.py 模块注释）
+python3 tools/bench_chaifen_android.py --repeat 5 --json /tmp/cf_android_perf.json
 ```
 
 `check_chaifen_realuse.py` 会临时改写隔离目录的 `*.options.yaml` 并在结束时恢复。
