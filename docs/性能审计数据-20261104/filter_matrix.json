@@ -1,0 +1,254 @@
+[
+ {
+  "config": "基线（全关）",
+  "key": null,
+  "stream": "单字流",
+  "median_us": 6562.8,
+  "p95_us": 12774.4,
+  "runs": [
+   6562.8,
+   6385.1,
+   7435.8
+  ]
+ },
+ {
+  "config": "基线（全关）",
+  "key": null,
+  "stream": "词流",
+  "median_us": 5691.7,
+  "p95_us": 12035.4,
+  "runs": [
+   7085.8,
+   5691.7,
+   5467.3
+  ]
+ },
+ {
+  "config": "基线（全关）",
+  "key": null,
+  "stream": "整句流",
+  "median_us": 7197.9,
+  "p95_us": 15289.0,
+  "runs": [
+   6773.2,
+   7606.2,
+   7197.9
+  ]
+ },
+ {
+  "config": "拆字注释",
+  "key": "chaifen",
+  "stream": "单字流",
+  "median_us": 5413.2,
+  "p95_us": 11154.2,
+  "runs": [
+   5009.1,
+   5942.2,
+   5413.2
+  ]
+ },
+ {
+  "config": "拆字注释",
+  "key": "chaifen",
+  "stream": "词流",
+  "median_us": 6279.6,
+  "p95_us": 17057.1,
+  "runs": [
+   6279.6,
+   6587.5,
+   6197.7
+  ]
+ },
+ {
+  "config": "拆字注释",
+  "key": "chaifen",
+  "stream": "整句流",
+  "median_us": 7559.7,
+  "p95_us": 16252.2,
+  "runs": [
+   7559.7,
+   6639.2,
+   8644.1
+  ]
+ },
+ {
+  "config": "拼音注释",
+  "key": "pinyin",
+  "stream": "单字流",
+  "median_us": 5844.0,
+  "p95_us": 11334.1,
+  "runs": [
+   6143.4,
+   5844.0,
+   5451.3
+  ]
+ },
+ {
+  "config": "拼音注释",
+  "key": "pinyin",
+  "stream": "词流",
+  "median_us": 5677.6,
+  "p95_us": 11811.0,
+  "runs": [
+   5760.5,
+   5560.8,
+   5677.6
+  ]
+ },
+ {
+  "config": "拼音注释",
+  "key": "pinyin",
+  "stream": "整句流",
+  "median_us": 8788.1,
+  "p95_us": 18162.5,
+  "runs": [
+   8531.4,
+   9397.7,
+   8788.1
+  ]
+ },
+ {
+  "config": "emoji",
+  "key": "emoji_cn",
+  "stream": "单字流",
+  "median_us": 7456.5,
+  "p95_us": 14129.9,
+  "runs": [
+   7525.0,
+   6992.3,
+   7456.5
+  ]
+ },
+ {
+  "config": "emoji",
+  "key": "emoji_cn",
+  "stream": "词流",
+  "median_us": 7072.6,
+  "p95_us": 14944.3,
+  "runs": [
+   7072.6,
+   6934.5,
+   9655.8
+  ]
+ },
+ {
+  "config": "emoji",
+  "key": "emoji_cn",
+  "stream": "整句流",
+  "median_us": 8499.4,
+  "p95_us": 17456.3,
+  "runs": [
+   8499.4,
+   8816.6,
+   8392.3
+  ]
+ },
+ {
+  "config": "U区提示",
+  "key": "charset_comment_filter",
+  "stream": "单字流",
+  "median_us": 6701.4,
+  "p95_us": 13241.0,
+  "runs": [
+   7448.5,
+   6395.0,
+   6701.4
+  ]
+ },
+ {
+  "config": "U区提示",
+  "key": "charset_comment_filter",
+  "stream": "词流",
+  "median_us": 7341.2,
+  "p95_us": 15551.0,
+  "runs": [
+   7187.8,
+   8127.6,
+   7341.2
+  ]
+ },
+ {
+  "config": "U区提示",
+  "key": "charset_comment_filter",
+  "stream": "整句流",
+  "median_us": 8857.5,
+  "p95_us": 17920.3,
+  "runs": [
+   10016.7,
+   8408.5,
+   8857.5
+  ]
+ },
+ {
+  "config": "U编显示",
+  "key": "udpf_switch",
+  "stream": "单字流",
+  "median_us": 7186.6,
+  "p95_us": 14198.8,
+  "runs": [
+   7412.6,
+   6972.3,
+   7186.6
+  ]
+ },
+ {
+  "config": "U编显示",
+  "key": "udpf_switch",
+  "stream": "词流",
+  "median_us": 7752.3,
+  "p95_us": 16247.2,
+  "runs": [
+   7419.0,
+   7752.3,
+   7969.4
+  ]
+ },
+ {
+  "config": "U编显示",
+  "key": "udpf_switch",
+  "stream": "整句流",
+  "median_us": 9058.0,
+  "p95_us": 18832.0,
+  "runs": [
+   8338.8,
+   9058.0,
+   9845.0
+  ]
+ },
+ {
+  "config": "简繁通繁",
+  "key": "tiger_sentence_hans",
+  "stream": "单字流",
+  "median_us": 7314.4,
+  "p95_us": 14170.8,
+  "runs": [
+   7314.4,
+   5917.9,
+   8625.0
+  ]
+ },
+ {
+  "config": "简繁通繁",
+  "key": "tiger_sentence_hans",
+  "stream": "词流",
+  "median_us": 6983.1,
+  "p95_us": 14482.3,
+  "runs": [
+   6896.5,
+   7875.9,
+   6983.1
+  ]
+ },
+ {
+  "config": "简繁通繁",
+  "key": "tiger_sentence_hans",
+  "stream": "整句流",
+  "median_us": 8337.0,
+  "p95_us": 16931.0,
+  "runs": [
+   7773.1,
+   8421.8,
+   8337.0
+  ]
+ }
+]

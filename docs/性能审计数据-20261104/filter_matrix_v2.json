@@ -1,0 +1,182 @@
+[
+ {
+  "stream": "单字流",
+  "config": "拆字注释",
+  "delta_us": 426.3,
+  "delta_range": [
+   -262.6,
+   727.4
+  ],
+  "baseline_us": 6398.9,
+  "config_us": 6488.9,
+  "peak_mib": null
+ },
+ {
+  "stream": "单字流",
+  "config": "拼音注释",
+  "delta_us": 326.2,
+  "delta_range": [
+   184.4,
+   1183.9
+  ],
+  "baseline_us": 6630.2,
+  "config_us": 7307.1,
+  "peak_mib": null
+ },
+ {
+  "stream": "单字流",
+  "config": "emoji",
+  "delta_us": 190.2,
+  "delta_range": [
+   -690.1,
+   602.6
+  ],
+  "baseline_us": 6833.9,
+  "config_us": 6661.8,
+  "peak_mib": null
+ },
+ {
+  "stream": "单字流",
+  "config": "U区提示",
+  "delta_us": -218.7,
+  "delta_range": [
+   -1103.5,
+   742.2
+  ],
+  "baseline_us": 7514.8,
+  "config_us": 7296.1,
+  "peak_mib": null
+ },
+ {
+  "stream": "单字流",
+  "config": "简繁通繁",
+  "delta_us": -400.5,
+  "delta_range": [
+   -541.3,
+   604.3
+  ],
+  "baseline_us": 7158.5,
+  "config_us": 7076.8,
+  "peak_mib": null
+ },
+ {
+  "stream": "词流",
+  "config": "拆字注释",
+  "delta_us": -172.0,
+  "delta_range": [
+   -592.5,
+   73.6
+  ],
+  "baseline_us": 7394.0,
+  "config_us": 7046.8,
+  "peak_mib": null
+ },
+ {
+  "stream": "词流",
+  "config": "拼音注释",
+  "delta_us": 8.4,
+  "delta_range": [
+   -663.7,
+   550.1
+  ],
+  "baseline_us": 7277.2,
+  "config_us": 7594.5,
+  "peak_mib": null
+ },
+ {
+  "stream": "词流",
+  "config": "emoji",
+  "delta_us": -587.1,
+  "delta_range": [
+   -1003.6,
+   150.3
+  ],
+  "baseline_us": 7926.2,
+  "config_us": 7134.0,
+  "peak_mib": null
+ },
+ {
+  "stream": "词流",
+  "config": "U区提示",
+  "delta_us": 26.2,
+  "delta_range": [
+   -1423.2,
+   609.6
+  ],
+  "baseline_us": 7011.2,
+  "config_us": 6618.7,
+  "peak_mib": null
+ },
+ {
+  "stream": "词流",
+  "config": "简繁通繁",
+  "delta_us": -389.1,
+  "delta_range": [
+   -1721.8,
+   -126.9
+  ],
+  "baseline_us": 4723.6,
+  "config_us": 4429.3,
+  "peak_mib": null
+ },
+ {
+  "stream": "整句流",
+  "config": "拆字注释",
+  "delta_us": 20.6,
+  "delta_range": [
+   -314.8,
+   368.3
+  ],
+  "baseline_us": 5231.8,
+  "config_us": 5224.5,
+  "peak_mib": null
+ },
+ {
+  "stream": "整句流",
+  "config": "拼音注释",
+  "delta_us": 117.9,
+  "delta_range": [
+   -493.5,
+   147.9
+  ],
+  "baseline_us": 5459.1,
+  "config_us": 5408.8,
+  "peak_mib": null
+ },
+ {
+  "stream": "整句流",
+  "config": "emoji",
+  "delta_us": 147.0,
+  "delta_range": [
+   -168.0,
+   283.4
+  ],
+  "baseline_us": 5146.1,
+  "config_us": 5240.2,
+  "peak_mib": null
+ },
+ {
+  "stream": "整句流",
+  "config": "U区提示",
+  "delta_us": 307.2,
+  "delta_range": [
+   -316.0,
+   496.2
+  ],
+  "baseline_us": 5261.9,
+  "config_us": 5569.2,
+  "peak_mib": null
+ },
+ {
+  "stream": "整句流",
+  "config": "简繁通繁",
+  "delta_us": 156.2,
+  "delta_range": [
+   -193.3,
+   357.2
+  ],
+  "baseline_us": 5277.7,
+  "config_us": 5336.3,
+  "peak_mib": null
+ }
+]

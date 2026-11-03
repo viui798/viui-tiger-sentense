@@ -1,0 +1,74 @@
+[
+  {
+    "group": "虎单：单字码流",
+    "schema": "tiger",
+    "version": "Lua",
+    "wall_ms_median": 1033.5,
+    "wall_ms_range": [
+      975.9,
+      1073.5
+    ],
+    "first_key_us_median": 1459.4,
+    "runs": 7
+  },
+  {
+    "group": "虎单：单字码流",
+    "schema": "tiger_cc",
+    "version": "OpenCC",
+    "wall_ms_median": 1127.4,
+    "wall_ms_range": [
+      1090.4,
+      1251.6
+    ],
+    "first_key_us_median": 1454.6,
+    "runs": 7
+  },
+  {
+    "group": "虎词：多字词码流",
+    "schema": "tigress",
+    "version": "Lua",
+    "wall_ms_median": 970.0,
+    "wall_ms_range": [
+      946.0,
+      1011.6
+    ],
+    "first_key_us_median": 1375.7,
+    "runs": 7
+  },
+  {
+    "group": "虎词：多字词码流",
+    "schema": "tigress_cc",
+    "version": "OpenCC",
+    "wall_ms_median": 1080.1,
+    "wall_ms_range": [
+      1051.7,
+      1115.5
+    ],
+    "first_key_us_median": 1448.0,
+    "runs": 7
+  },
+  {
+    "group": "虎整句：连续码流",
+    "schema": "tiger_sentence",
+    "version": "Lua",
+    "wall_ms_median": 1176.5,
+    "wall_ms_range": [
+      1170.4,
+      1220.2
+    ],
+    "first_key_us_median": 2586.6,
+    "runs": 7
+  },
+  {
+    "group": "虎整句：连续码流",
+    "schema": "tiger_sentence_cc",
+    "version": "OpenCC",
+    "wall_ms_median": 1281.1,
+    "wall_ms_range": [
+      1267.5,
+      1296.0
+    ],
+    "first_key_us_median": 2729.0,
+    "runs": 7
+  }
+]
