@@ -18,3 +18,10 @@
 # 反查调频运行时数据（用户目录生成，不进仓库/发行包）
 /reverse_freq.txt
 /reverse_freq.txt.tmp
+
+# WorkBuddy 工作区记忆（本地数据，不进仓库）
+/.workbuddy/
+
+# 拆字滤镜 OpenCC 评估产物（tools/export_chaifen_opencc.py 幂等再生，评估专用不进发行包）
+/opencc/hu_cf.txt
+/opencc/hu_cf.json
