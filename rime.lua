@@ -47,3 +47,6 @@ yin_full = require("yin_full")
 
 -- 统计的链首计键处理器（见 lua/input_statistics_proc.lua）
 input_statistics_proc = require("input_statistics_proc")
+
+-- 虎单/虎词：第五码顶屏（见 lua/tiger_five_code.lua）
+tiger_five_code = require("tiger_five_code")
