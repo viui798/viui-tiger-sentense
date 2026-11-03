@@ -12,7 +12,7 @@
 以及一批辅助功能（造词、反查、简繁、快符、拆字、Emoji、Unicode、计算器、时间日期、输入统计）
 整合到同一套 Rime 用户目录里。
 
-- 当前版本：**v0.3.20**
+- 当前版本：**v0.3.21**
 - 虎整句上游：`1.6.20261030.1`（源码 `e86ceeb`）
 - 语言模型：TCSKNM03 五阶 Q8，405,663,171 字节，SHA-256 `756f6c92…ab8681`
 - 方案 ID：`tiger`（虎单）、`tigress`（虎词）、`tiger_sentence`（虎整句）；
@@ -133,15 +133,15 @@
 
 ## 8. 当前状态（2026-11-03）
 
-- `main` = tag `v0.3.20`（全字集反查 + 精确统计（毫秒/脏数据清洗/指令键排除）+ `;z` 整段重复 + 退格保护；
-  v0.3.20 修复 `\` 全字集反查在西文模式下抢占按键）
+- `main` = tag `v0.3.21`（Lua 翻译入口 7→1 的性能优化 + 双拼简拼过滤 + 数字大写 s+数字；
+  沿用全字集反查、精确统计、`;z` 整段重复、退格保护）
 - 拼音反查：虎单/虎词/虎整句共用五阶模型第二实例 + **分页码表索引**
   （`models/pinyin.codes.*`，稳定后每键约 8–14ms；首键约 20–30ms 换入模型页，常驻约 +20MB）；
   词库为 `dicts/pinyin_reverse.dict.yaml` 导出的 24.8 万条（全拼 + 多字词简拼，无辅助码）
 - 短输入反查调频：≤8 字母的反查选过一次非首选词即置顶，记录在 `reverse_freq.txt`
   （`lua/reverse_freq.lua` + `lua_processor@*reverse_freq`；开关 `tiger_sentence/reverse_frequency`）
 - 混输：`lua/tiger_mixed.lua`，支持 `;`/`'` 选重后接拼音块、句首单字母简码；纯反查段已短路
-- 测试：契约 21 cases / 132 checks；`tools/test_pinyin_engine.lua` 40 checks；
+- 测试：契约 21 cases / 132 checks；`tools/test_pinyin_engine.lua` 48 checks；
   `tools/test_tiger_mixed.lua` 7 checks；`run_regressions.py --lua lua` 全绿
 - 万象词库：仓库保留 `dicts/*.pro.dict.yaml` 与 `wanxiang_pro*` 便于回滚，但
   `tools/make_release_zip.py` 已排除，不进发行包
