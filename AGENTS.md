@@ -48,7 +48,7 @@
 | 单个测试 | `LUA_PATH="./lua/?.lua;./lua/?/init.lua;;" lua tools/test_xxx.lua .` |
 | 打包发行 | `python3 tools/make_release_zip.py vX.Y.Z /tmp/cheese-tiger-vX.Y.Z.zip` |
 | 生成增量包 | `python3 tools/make_release_delta.py v0.3.22 v0.3.23 /tmp/cheese-tiger-v0.3.23-update.zip` |
-| 桌面一键更新 | `python3 tools/update_desktop.py --check` / `--yes --deploy --restart`（详见 `docs/多设备更新.md`） |
+| 桌面一键更新 | 见 [`viui798/rime-updater`](https://github.com/viui798/rime-updater)（独立仓库维护） |
 | 部署到鼠须管 | 解压包 → `ditto <包目录> ~/Library/Rime` → 见下方 deployer |
 | 重新部署 | `"/Library/Input Methods/Squirrel.app/Contents/MacOS/rime_deployer" --build ~/Library/Rime "/Library/Input Methods/Squirrel.app/Contents/SharedSupport"` |
 | 重启前端 | `killall Squirrel; open -a "/Library/Input Methods/Squirrel.app"` |
@@ -153,9 +153,9 @@
 - 万象词库：仓库保留 `dicts/*.pro.dict.yaml` 与 `wanxiang_pro*` 便于回滚，但
   `tools/make_release_zip.py` 已排除，不进发行包
 - 上游 `M.*` 导出：100% 覆盖；上游 schema 元素：100% 覆盖
-- 多设备更新：`tools/update_desktop.py`（识别鼠须管/小企鹅/元书/小狼毫并扫描 Windows 其他 Rime 目录）
-  + `tools/make_release_delta.py`（Release 增量包 `*-update.zip`）；mac 三前端已实机验证，
-  Windows 代码路径待实机验证；Android/iOS 尚未接入
+- 多设备更新：增量包由 `tools/make_release_delta.py` 生成（Release 资产 `*-update.zip`）；
+  客户端安装器在独立仓库 [`viui798/rime-updater`](https://github.com/viui798/rime-updater)
+  （mac 三前端已实机验证，Windows 待实机验证，Android/iOS 尚未接入）
 
 ## 9. 已知事项
 
