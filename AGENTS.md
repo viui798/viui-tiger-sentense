@@ -5,7 +5,7 @@
 
 ## 1. 项目是什么
 
-**芝士虎整**：面向 [Rime](https://rime.im) 的虎码输入方案整合包，私有仓库
+**芝士虎整**：面向 [Rime](https://rime.im) 的虎码输入方案整合包，公开仓库
 <https://github.com/viui798/viui-tiger-sentense>（GPL-3.0）。
 
 它在**上游虎整句**（lvyww/tiger-sentense-rime）的基础上，把虎单、虎词、虎整句和统一的拼音反查
