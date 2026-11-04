@@ -49,6 +49,7 @@
 | 单个测试 | `LUA_PATH="./lua/?.lua;./lua/?/init.lua;;" lua tools/test_xxx.lua .` |
 | 打包发行 | `python3 tools/make_release_zip.py vX.Y.Z /tmp/cheese-tiger-vX.Y.Z.zip` |
 | 生成增量包 | `python3 tools/make_release_delta.py v0.3.22 v0.3.23 /tmp/cheese-tiger-v0.3.23-update.zip` |
+| 无模型完整包 | `python3 tools/make_release_zip.py vX.Y.Z /tmp/cheese-tiger-vX.Y.Z-nomodel.zip --no-model`（14.9MB vs 完整包 388MB，含 MODEL.json 指纹） |
 | 桌面一键更新 | 见 [`viui798/rime-updater`](https://github.com/viui798/rime-updater)（独立仓库维护） |
 | 部署到鼠须管 | 解压包 → `ditto <包目录> ~/Library/Rime` → 见下方 deployer |
 | 重新部署 | `"/Library/Input Methods/Squirrel.app/Contents/MacOS/rime_deployer" --build ~/Library/Rime "/Library/Input Methods/Squirrel.app/Contents/SharedSupport"` |
@@ -130,6 +131,10 @@
 4. `python3 tools/make_release_zip.py vX.Y.Z /tmp/cheese-tiger-vX.Y.Z.zip`（检查输出的 SHA-256）。
    再生成增量包：`python3 tools/make_release_delta.py <上一个 tag> vX.Y.Z /tmp/cheese-tiger-vX.Y.Z-update.zip`
    （大模型有变更时 `DELTA.json` 会标 `full_required`，更新器会自动改用完整包）。
+   同时发布**无模型版**与 **MODEL.json** 指纹：更新器三级阶梯 =
+   增量（基座匹配）→ 无模型版（设备模型 sha256 与 MODEL.json 一致，
+   保留设备模型，14.9MB）→ 完整包（模型变更/缺失/底子未知）。
+   每个发行版四个资产：zip / zip.sha256 / -update.zip(+sha) / -nomodel.zip(+sha) / MODEL.json。
    **每个发行版都必须带增量包并核对 DELTA.json**：v0.3.2~v0.3.22 共 20 版
    没有发布过增量包，增量链断到 v0.3.23，导致老底子设备套上断层差异、
    v0.3.24 后打不出字（2026-11-05 事故，见 `docs/项目日志.md`）。
