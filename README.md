@@ -383,6 +383,17 @@ v0.3.10 起反查改用五阶模型 + `pinyin.qp.codes.txt` 分页索引，不�
 - 芝士虎整自身的方案配置、Lua 脚本和文档：Copyright (C) 2026 viui798，按 GPL-3.0 授权。
 - 虎整句的组句引擎、Lua 模块和 TCSKNM03 五阶模型：GPL-3.0，来源与校验见 `docs/虎整句D89-r3-manifest.json`。
 - 虎码、虎词、OpenCC 及其他随包数据：版权归各自作者，使用和再分发请遵循原项目条款。
-- 万象来源的 Lua 模块（`lua/wanxiang/charset_filter.lua`、`super_replacer.lua`）与派生转换表仍在使用；万象拼音反查词库自 v0.3.10 起不再随包发布。
+- 万象来源的 Lua 模块（`lua/wanxiang/` 下的 `charset_filter.lua`、`super_replacer.lua`、`userdb.lua`、`wanxiang.lua`）与派生转换表仍在使用，按其原项目 CC-BY-4.0 授权并署名；万象拼音反查词库自 v0.3.10 起不再随包发布。
+
+## 鸣谢
+
+芝士虎整能维护到今天，靠的是下面这些人和项目：
+
+- **虎整句作者 [lvyww](https://github.com/lvyww)**：组句引擎、Lua 模块与 TCSKNM03 五阶模型，并授权本人维护与公开发布本整合包。
+- **万象拼音 [amzxyz](https://github.com/amzxyz/rime-wanxiang)**：`lua/wanxiang/` 的模块、简繁四档与字集过滤思路。
+- **Rime 中州韵（[rime](https://github.com/rime)）**：librime 引擎与 librime-lua，作者佛振（lotem）及社区；鼠须管、小企鹅、小狼毫、同文、元书等各前端作者。
+- **虎码方案作者与词库维护者**：虎单、虎词的字词表与编码体系；以及虎码社群中反馈问题、补充词条的朋友。
+- **OpenCC（[BYVoid/OpenCC](https://github.com/BYVoid/OpenCC)）**：简繁词表与地区词组来源。
+- **QQ 群里帮忙测试、报问题、提建议的各位**：拼音反查、混输、简繁、统计等功能都是在实测反馈里磨出来的。
 
 发布前可以使用 `SHA256SUMS.txt` 和 Release 提供的 `.sha256` 文件校验包内文件。
