@@ -47,6 +47,8 @@
 | 完整回归 | `python3 tools/run_regressions.py --lua lua` |
 | 单个测试 | `LUA_PATH="./lua/?.lua;./lua/?/init.lua;;" lua tools/test_xxx.lua .` |
 | 打包发行 | `python3 tools/make_release_zip.py vX.Y.Z /tmp/cheese-tiger-vX.Y.Z.zip` |
+| 生成增量包 | `python3 tools/make_release_delta.py v0.3.22 v0.3.23 /tmp/cheese-tiger-v0.3.23-update.zip` |
+| 桌面一键更新 | `python3 tools/update_desktop.py --check` / `--yes --deploy --restart`（详见 `docs/多设备更新.md`） |
 | 部署到鼠须管 | 解压包 → `ditto <包目录> ~/Library/Rime` → 见下方 deployer |
 | 重新部署 | `"/Library/Input Methods/Squirrel.app/Contents/MacOS/rime_deployer" --build ~/Library/Rime "/Library/Input Methods/Squirrel.app/Contents/SharedSupport"` |
 | 重启前端 | `killall Squirrel; open -a "/Library/Input Methods/Squirrel.app"` |
@@ -125,10 +127,13 @@
 2. 提交（中文、说明原因）。
 3. `git tag -a vX.Y.Z -m "芝士虎整 vX.Y.Z …"`，`git push origin main`，`git push origin vX.Y.Z`。
 4. `python3 tools/make_release_zip.py vX.Y.Z /tmp/cheese-tiger-vX.Y.Z.zip`（检查输出的 SHA-256）。
+   再生成增量包：`python3 tools/make_release_delta.py <上一个 tag> vX.Y.Z /tmp/cheese-tiger-vX.Y.Z-update.zip`
+   （大模型有变更时 `DELTA.json` 会标 `full_required`，更新器会自动改用完整包）。
 5. 部署到鼠须管并验证（见 §3），或至少校验编译产物：
    `grep -n "tiger_sentence_ascii" ~/Library/Rime/build/tiger_sentence.schema.yaml`。
 6. `gh release create vX.Y.Z --title "…" --notes-file … --latest`，再
-   `gh release upload vX.Y.Z <zip> <zip.sha256>`；核对 assets 状态为 `uploaded`。
+   `gh release upload vX.Y.Z <zip> <zip.sha256> <update.zip> <update.zip.sha256>`；
+   核对 assets 状态为 `uploaded`。客户端更新器优先选 `*-update.zip`。
 7. 把包复制到 `~/Desktop/输入法/芝士虎整/`（用户的发布目录）。
 
 ## 8. 当前状态（2026-11-04）
@@ -148,6 +153,9 @@
 - 万象词库：仓库保留 `dicts/*.pro.dict.yaml` 与 `wanxiang_pro*` 便于回滚，但
   `tools/make_release_zip.py` 已排除，不进发行包
 - 上游 `M.*` 导出：100% 覆盖；上游 schema 元素：100% 覆盖
+- 多设备更新：`tools/update_desktop.py`（识别鼠须管/小企鹅/元书/小狼毫并扫描 Windows 其他 Rime 目录）
+  + `tools/make_release_delta.py`（Release 增量包 `*-update.zip`）；mac 三前端已实机验证，
+  Windows 代码路径待实机验证；Android/iOS 尚未接入
 
 ## 9. 已知事项
 
