@@ -151,7 +151,7 @@ engine:
     - uniquifier  # 过滤重码
 
 speller:
-  alphabet: "zyxwvutsrqponmlkjihgfedcba;';0123456789~/\\"  # 含 /：统计指令 //1 //60 需要第二个 / 进编码区；\\ 为全字集反查前缀
+  alphabet: "zyxwvutsrqponmlkjihgfedcba;';0123456789~./\\"  # 含 /：统计指令 //1 //60 需要第二个 / 进编码区；\\ 为全字集反查前缀；. 供 s 引导数字的小数点
   initials: "abcdefghijklmnopqrstuvwxyz~/"  # 含 /：统计指令 //1 //60 的第二个 / 需由 speller 接收
   delimiter: " '"  # 拼音/音码音节分隔符
   auto_select: true

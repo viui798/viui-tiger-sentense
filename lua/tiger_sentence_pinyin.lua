@@ -219,6 +219,9 @@ function M.translator(input, seg, env)
         end
     end
     if not scheme then return end
+    -- 每次反查段重新判定：混合候选由下面的 build_overlay 路径置真，
+    -- 供 chaifen 滤镜关掉拆分注释（长句逐字拆分会把候选栏挤满）。
+    _G.tiger_mixed_active = false
     if input == "" or input:match("^[a-z]+/$") then return end
 
     local converted = convert_keys(input, scheme)
@@ -265,12 +268,37 @@ function M.translator(input, seg, env)
     local ok, results = pcall(decode_converted, converted)
     if not ok or type(results) ~= "table" then
         last_converted = nil
-        return
+        results = {}
+    end
+
+    -- 拼音在前、虎码在后，且支持一句里多个 ` 块：整段拼音解码不出候选时，
+    -- 把每个 ` 块里可解析的拼音词挂成合成码，其余字母当虎码，交给主引擎组句。
+    -- 纯反查时 build_overlay 返回 nil（没有虎码字面量），原路径完全不变。
+    local mixed_plan
+    if #results == 0 then
+        local ok_mixed, mixed = pcall(require, "tiger_mixed")
+        if ok_mixed and mixed and type(mixed.build_overlay) == "function" then
+            local ok_plan, plan = pcall(mixed.build_overlay, input, scheme)
+            if ok_plan and plan then
+                local ok_main, main = pcall(require, "tiger_sentence")
+                if ok_main and main and type(main.decode_with_overlay) == "function" then
+                    local ok_decode, mixed_results = pcall(main.decode_with_overlay,
+                        plan.raw, plan.overlay, true, nil)
+                    if ok_decode and type(mixed_results) == "table" and #mixed_results > 0 then
+                        results, mixed_plan = mixed_results, plan
+                        _G.tiger_mixed_active = true
+                    end
+                end
+            end
+        end
     end
 
     -- 短输入才参与调频；长句完全交给模型，避免局部偏好破坏整句通顺度。
+    -- 混输候选同样参与「选过即置顶」：key 用去掉反引号的输入串，与纯反查共用
+    -- reverse_freq 的存储和提交挂钩（此前混输直接跳过调频，选过的词下次不会前移）。
+    local freq_code = mixed_plan and (input:gsub("`", "")) or converted
     if reverse_freq.short_enough(letters) and reverse_freq.enabled(env) then
-        results = reverse_freq.rank_for(env, converted, results)
+        results = reverse_freq.rank_for(env, freq_code, results)
     else
         reverse_freq.clear_pending(env)
     end
@@ -278,7 +306,7 @@ function M.translator(input, seg, env)
     -- 双拼：候选字数不能超过用户输入的「音节数」。
     -- 例：`bm 在双拼里是 bian 一个音节，不能因为把 bian 切成 bi+an 而冒出「比按」这类全拼词。
     local max_chars
-    if scheme ~= "qp" then
+    if scheme ~= "qp" and not mixed_plan then
         local ok_pre, pre = pcall(double_preedit, input, scheme)
         if ok_pre and type(pre) == "string" then
             local groups = 0

@@ -45,7 +45,7 @@ local function formatNum(num,t)
 	num=tostring(num)
 	if tonumber(t) < 1 then digitUnit = {"", "十", "百","千"} else digitUnit = {"","拾","佰","仟"} end
 	if tonumber(t) <1 then
-		wordFigure = {"〇","一","二","三","四","五","六","七","八","九"}
+		wordFigure = {"零","一","二","三","四","五","六","七","八","九"}
 	else wordFigure = {"零","壹","贰","叁","肆","伍","陆","柒","捌","玖"} end
 	if string.len(num)>4 or tonumber(num)==0 then return wordFigure[1] end
 	local lens=string.len(num)
@@ -66,7 +66,7 @@ function number2cnChar(num,flag,digitUnit,wordFigure)    --flag=0中文小写反
 	local num1,num2=math.modf(num)
 	if tonumber(num2)==0 then
 		if tonumber(flag) < 1 then
-			digitUnit = digitUnit or {[1]="万";[2]="亿"}  wordFigure = wordFigure or {[1]="〇"; [2]="一"; [3]="十"; [4]="元"}
+			digitUnit = digitUnit or {[1]="万";[2]="亿"}  wordFigure = wordFigure or {[1]="零"; [2]="一"; [3]="十"; [4]="元"}
 		else
 			digitUnit = digitUnit or {[1]="万";[2]="亿"}  wordFigure = wordFigure or {[1]="零"; [2]="壹"; [3]="拾"; [4]="元"}
 		end
@@ -76,6 +76,8 @@ function number2cnChar(num,flag,digitUnit,wordFigure)    --flag=0中文小写反
 		result=result:gsub("^" .. wordFigure[1],"") result=result:gsub(wordFigure[1] .. digitUnit[1],"") result=result:gsub(wordFigure[1] .. digitUnit[2],"")
 		result=result:gsub(wordFigure[1] .. wordFigure[1],wordFigure[1]) result=result:gsub(wordFigure[1] .. "$","")
 		if lens>4 then result=result:gsub("^"..wordFigure[2].. wordFigure[3],wordFigure[3]) end
+		-- 0 会被上面的 gsub 清空，不能当成超限（s0.5 曾显示「数值超限！五」）。
+		if result=="" and tonumber(num1)==0 then result=wordFigure[1] end
 		if result~="" then result=result .. wordFigure[4] else result="数值超限！" end
 	else return "数值超限！" end
 
@@ -86,7 +88,7 @@ local function number2zh(num,t)
 	local result,wordFigure
 	result="" 
 	if tonumber(t) <1 then
-		wordFigure = {"〇","一","二","三","四","五","六","七","八","九"}
+		wordFigure = {"零","一","二","三","四","五","六","七","八","九"}
 	else wordFigure = {"零","壹","贰","叁","肆","伍","陆","柒","捌","玖"} end
 	if tostring(num)==nil then return "" end
 	for pos=1,string.len(num) do
@@ -100,15 +102,15 @@ function number_translatorFunc(num)
 	local numberPart=splitNumPart(num)
 	local result={}
 	if numberPart.dot~="" then
-		table.insert(result,{number2cnChar(numberPart.int,0,{"万", "亿"},{"〇","一","十","点"})..number2zh(numberPart.dec,0),""})
-		table.insert(result,{number2cnChar(numberPart.int,1,{"萬", "億"},{"〇","一","十","点"})..number2zh(numberPart.dec,1),""})
---		table.insert(result,{number2cnChar(numberPart.int,1,{"萬", "億"},{"〇","一","十","点"})..number2zh(numberPart.dec,1),"〔大写〕"})
+		table.insert(result,{number2cnChar(numberPart.int,0,{"万", "亿"},{"零","一","十","点"})..number2zh(numberPart.dec,0),""})
+		table.insert(result,{number2cnChar(numberPart.int,1,{"萬", "億"},{"零","一","十","点"})..number2zh(numberPart.dec,1),""})
+--		table.insert(result,{number2cnChar(numberPart.int,1,{"萬", "億"},{"零","一","十","点"})..number2zh(numberPart.dec,1),"〔大写〕"})
 	else
-		table.insert(result,{number2cnChar(numberPart.int,0,{"万", "亿"},{"〇","一","十",""}),""})
+		table.insert(result,{number2cnChar(numberPart.int,0,{"万", "亿"},{"零","一","十",""}),""})
 		table.insert(result,{number2cnChar(numberPart.int,1,{"萬", "億"},{"零","壹","拾",""}),""})
 	end
 	table.insert(result,{number2cnChar(numberPart.int,1)..decimal_func(numberPart.dec,{[1]="角"; [2]="分"; [3]="厘"; [4]="毫"},{[0]="零"; "壹"; "贰"; "叁" ;"肆"; "伍"; "陆"; "柒"; "捌"; "玖"}),""})
-	table.insert(result,{number2cnChar(numberPart.int,0)..decimal_func(numberPart.dec,{[1]="角"; [2]="分"; [3]="厘"; [4]="毫"},{[0]="〇"; "一"; "二"; "三" ;"四"; "五"; "六"; "七"; "八"; "九"}),""})
+	table.insert(result,{number2cnChar(numberPart.int,0)..decimal_func(numberPart.dec,{[1]="角"; [2]="分"; [3]="厘"; [4]="毫"},{[0]="零"; "一"; "二"; "三" ;"四"; "五"; "六"; "七"; "八"; "九"}),""})
 	return result
 end
 

@@ -19,6 +19,10 @@
 /reverse_freq.txt
 /reverse_freq.txt.tmp
 
+# 探针/本地部署在 lua 目录下生成的 LevelDB 缓存与重建日志（运行时数据，不进仓库）
+/lua/*.userdb/
+/lua/data/db_rebuild.log
+
 # WorkBuddy 工作区记忆（本地数据，不进仓库）
 /.workbuddy/
 

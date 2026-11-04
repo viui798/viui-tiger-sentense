@@ -39,7 +39,9 @@ local function scheme_of(ctx)
 end
 
 -- 解析一个拼音块：返回 (完整拼音 code, 消费的字母数)；只接受词库里存在**词条**的整段。
-local function parse_chunk(chunk, scheme)
+-- loose=true 时双拍末尾的单键按简拼声母处理（与反查的 convert_keys 一致）；
+-- 默认关闭，保持原有「混输拼音块」行为不变。
+local function parse_chunk(chunk, scheme, loose)
     local parts = {}  -- { syllable, letters }
     if scheme == "qp" then
         local set = qp_syllables()
@@ -58,12 +60,20 @@ local function parse_chunk(chunk, scheme)
         local map = keymaps[scheme]
         if not map then return nil end
         local i = 1
-        while i + 1 <= #chunk do
+        while i <= #chunk do
             local unit = chunk:sub(i, i + 1)
-            local syllable = map.units[unit]
-            if not syllable then break end
-            parts[#parts + 1] = { syllable, 2 }
-            i = i + 2
+            local syllable = #unit == 2 and map.units[unit] or nil
+            if syllable then
+                parts[#parts + 1] = { syllable, 2 }
+                i = i + 2
+            elseif loose then
+                local initial = map.initials and map.initials[chunk:sub(i, i)]
+                if not initial then break end
+                parts[#parts + 1] = { initial, 1 }
+                i = i + 1
+            else
+                break
+            end
         end
     end
     if #parts == 0 then return nil end
@@ -76,14 +86,17 @@ local function parse_chunk(chunk, scheme)
         letters = letters + parts[i][2]
         local entries = index.lookup(code)
         if entries then
-            local has_word = false
+            -- 单音节码（如 gan）在码表里只有单字，不能要求多字词条；
+            -- 多音节码才要求整词，避免「发内存哈」那类拼接。
+            local min_len = i >= 2 and 2 or 1
+            local ok_word = false
             for j = 1, #entries do
-                if utf8.len(entries[j].t) > 1 then has_word = true; break end
+                if (utf8.len(entries[j].t) or 1) >= min_len then ok_word = true; break end
             end
-            if has_word then best = { code = code, consumed = letters } end
+            if ok_word then best = { code = code, consumed = letters, syllables = i } end
         end
     end
-    return best and best.code, best and best.consumed or 0
+    return best and best.code, best and best.consumed or 0, best and best.syllables or 0
 end
 
 local function user_dir()
@@ -181,12 +194,17 @@ local function translate(input, seg, env)
             local j = i + 1
             while j <= #input and input:sub(j, j):match("[a-z]") do j = j + 1 end
             local chunk = input:sub(i + 1, j - 1)
-            local code, consumed = parse_chunk(chunk, scheme)
+            local code, consumed, syllables = parse_chunk(chunk, scheme)
             if code and consumed > 0 then
                 local entries = index.lookup(code)
                 local words = {}
+                -- 单音节块（双拼 gj→gan）在码表里只有单字，不能只收多字词，
+                -- 否则 ` 后面的单音节拼音会退回成虎码。
+                local min_len = (syllables or 0) >= 2 and 2 or 1
                 for k = 1, #entries do
-                    if utf8.len(entries[k].t) > 1 then words[#words + 1] = entries[k].t end
+                    if (utf8.len(entries[k].t) or 1) >= min_len then
+                        words[#words + 1] = entries[k].t
+                    end
                 end
                 if #words > 0 then
                     local key = cache.synthetic[i]
@@ -252,5 +270,83 @@ local function translate(input, seg, env)
 end
 
 M.translator = { func = translate }
+
+-- 供反查引擎复用：把以 ` 开头的段扫成「拼音块 + 虎码」序列。
+-- 规则：段首默认是拼音（affix 已剥掉开头的 `），每个 ` 之后也优先按拼音解析；
+-- 解析出的词条挂到合成码上，解析不了的部分原样保留当虎码。
+-- 只有「至少解析出一个拼音词 + 至少存在一段虎码字面量」才返回方案：
+-- 纯拼音段（`jiyu、`jiyu`nihao）交回反查整串解码，双拼打法不匹配时不会冒出虎码乱码。
+function M.build_overlay(input, scheme)
+    if not input or input == "" then return nil end
+    local index = M.index_handle()
+    if not index then return nil end
+    local sentence = require("tiger_sentence")
+    local out, overlay, used = {}, {}, {}
+    local has_literal, any_word = false, false
+    local i = 1
+    local first_block = true
+    local expect_pinyin = true   -- 段首：反查段已由 affix 剥掉前缀
+    while i <= #input do
+        local ch = input:sub(i, i)
+        if ch == "`" then
+            expect_pinyin = true
+            i = i + 1
+        elseif expect_pinyin and ch:match("[a-z]") then
+            local j = i
+            while j <= #input and input:sub(j, j):match("[a-z]") do j = j + 1 end
+            local chunk = input:sub(i, j - 1)
+            local code, consumed, syllables = parse_chunk(chunk, scheme, true)
+            local words = {}
+            -- 整块都被解析成拼音（没有残余）时，单音节也照收：` 后面本来就该优先拼音，
+            -- 例如双拼 gi/gj 这种一个完整音节。只有「解析出一点、后面还剩一长串」的
+            -- 情况才要求至少两个音节，否则全拼 womenunid 打到双拼模式会被拆成
+            -- 「玩偶（wo 的简拼词条）+ menunid」。
+            local complete = consumed == #chunk
+            local min_syllables = complete and 1 or 2
+            if code and consumed > 0 and (syllables or 0) >= min_syllables then
+                local entries = index.lookup(code)
+                local min_len = (syllables or 0) >= 2 and 2 or 1
+                for k = 1, #entries do
+                    if (utf8.len(entries[k].t) or 1) >= min_len then
+                        words[#words + 1] = entries[k].t
+                    end
+                end
+            end
+            if #words > 0 then
+                local key = allocate_code(sentence, used)
+                if key then
+                    used[key] = true
+                    overlay[key] = build(words)
+                    out[#out + 1] = key
+                    any_word = true
+                end
+                local rest = chunk:sub(consumed + 1)
+                if rest ~= "" then
+                    out[#out + 1] = rest
+                    has_literal = true
+                end
+            else
+                -- 整块解析不出词条时：段首块直接放弃（用户是按了 ` 进来反查的，
+                -- 不能反过来把这段当虎码解出乱码），过长的块也放弃 —— 虎码单字
+                -- 最多五码，六字母以上当字面量只会得到「住衣缺」这类噪声。
+                if first_block or #chunk > 5 then return nil end
+                out[#out + 1] = chunk
+                has_literal = true
+            end
+            first_block = false
+            i = j
+            expect_pinyin = false
+        else
+            local j = i
+            while j <= #input and input:sub(j, j) ~= "`" do j = j + 1 end
+            out[#out + 1] = input:sub(i, j - 1)
+            has_literal = true
+            i = j
+            expect_pinyin = false
+        end
+    end
+    if not any_word or not has_literal then return nil end
+    return { raw = table.concat(out), overlay = overlay }
+end
 
 return M

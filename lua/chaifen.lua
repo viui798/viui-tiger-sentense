@@ -103,6 +103,15 @@ function ZH.init(env)
         return
     end
 
+    -- 反查段里的「拼音前缀 + 虎码」组句候选同样不显示拆分：这类候选是整句，
+    -- 逐字拆分会把候选栏挤满。状态由 tiger_sentence_pinyin 的 build_overlay 路径置位。
+    if seg and _G.tiger_mixed_active and (
+        seg:has_tag("yin_add_user") or seg:has_tag("yin_flypy") or
+        seg:has_tag("yin_qp") or seg:has_tag("yin_zrm") or
+        seg:has_tag("yin_mspy") or seg:has_tag("yin_sogou")) then
+        return
+    end
+
     -- 优先级1：直接检查开关选项（最快路径）
     if context:get_option("chaifen") then
         env.chaifen_enabled = true

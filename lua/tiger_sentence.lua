@@ -4129,6 +4129,9 @@ local function is_plain_char_key(key_event, repr)
     return nil
 end
 
+-- 注：「s + 数字」的小数点判定内联在 processor 里，不在此处新增 local 函数 ——
+-- 本文件主 chunk 的局部变量已到上限（200 个），见 AGENTS.md 铁律 #3。
+
 -- Learning staging is processor-local. Only the immutable score index is
 -- shared with the translator; pending confirmations never cross contexts.
 local function learning_selection(env, state)
@@ -4402,6 +4405,19 @@ local function processor(key_event, env)
         env._tiger_sentence_dot_armed = false
     end
     local ch = is_plain_char_key(key_event, repr)
+    -- 「s + 数字」的小数点：period 键会先被 speller / punctuator 吃掉（speller
+    -- 不接收这个键），必须由处理器直接送进输入串；speller.alphabet 里的 . 只负责
+    -- 让 matcher 认可这段含点的编码。仅接在「s + 纯数字」之后，整段最多一个点，
+    -- 其余点号仍交给 punctuator。
+    if not ch and context:is_composing() and
+        (repr == "period" or repr == "KP_Decimal") and
+        not key_event:shift() and not key_event:ctrl() and
+        not key_event:alt() and not key_event:super() then
+        local composing_input = context.input or ""
+        if composing_input:match("^[Ss]+%d+$") then
+            ch = "."
+        end
+    end
     if ch then
         if not context:is_composing() and
             (state.committed_raw ~= "" or state.last_seen_raw ~= "" or
