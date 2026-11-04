@@ -130,6 +130,11 @@
 4. `python3 tools/make_release_zip.py vX.Y.Z /tmp/cheese-tiger-vX.Y.Z.zip`（检查输出的 SHA-256）。
    再生成增量包：`python3 tools/make_release_delta.py <上一个 tag> vX.Y.Z /tmp/cheese-tiger-vX.Y.Z-update.zip`
    （大模型有变更时 `DELTA.json` 会标 `full_required`，更新器会自动改用完整包）。
+   **每个发行版都必须带增量包并核对 DELTA.json**：v0.3.2~v0.3.22 共 20 版
+   没有发布过增量包，增量链断到 v0.3.23，导致老底子设备套上断层差异、
+   v0.3.24 后打不出字（2026-11-05 事故，见 `docs/项目日志.md`）。
+   更新器（rime-updater，2026-11-05 起）已带基座校验：DELTA.json 的
+   `from` 与已装版本不符或未知时自动改用完整包。
 5. 部署到鼠须管并验证（见 §3），或至少校验编译产物：
    `grep -n "tiger_sentence_ascii" ~/Library/Rime/build/tiger_sentence.schema.yaml`。
 6. `gh release create vX.Y.Z --title "…" --notes-file … --latest`，再
