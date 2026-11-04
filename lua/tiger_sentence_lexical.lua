@@ -40,10 +40,14 @@ end
 -- Integer intermediates stay below 2^53, so this is exact in both ordinary
 -- Lua integer builds and LuaJIT's double-number build.  Parser-level bitwise
 -- operators are intentionally avoided for Lua 5.1/LuaJIT compatibility.
+local MEMO_CAP = 16384
+local POW2 = { [0] = 1, 2, 4, 8, 16, 32, 64, 128 }
+
 local function hashes(text)
     local first, second = 2166136261, 16777619
-    for index = 1, #text do
-        local byte = text:byte(index)
+    local bytes = { string.byte(text, 1, #text) }
+    for index = 1, #bytes do
+        local byte = bytes[index]
         first = (first * 131 + byte + 17) % MODULUS
         second = (second * 137 + byte + 53) % MODULUS
     end
@@ -53,19 +57,36 @@ end
 
 local function contains(model, text, cache)
     if not model or not model.bits or text == "" then return false end
+    -- 性能审计 2026-11-04：bloom 探测的跨键 memo（模型文件静态，文本->bool 永久有效）。
+    -- 挂在 model 上，避免不同模型（测试夹具）互串；封顶后停止新增，防止无限增长。
+    local memo = model.memo
+    if memo == nil then
+        memo = { n = 0 }
+        model.memo = memo
+    end
+    local memoed = memo[text]
+    if memoed ~= nil then
+        if cache then cache[text] = memoed end
+        return memoed
+    end
     if cache and cache[text] ~= nil then return cache[text] end
     local first, second = hashes(text)
+    local result = true
     for index = 0, model.hash_count - 1 do
         local bit = (first + index * second + index * index * 97) % model.bit_count
+        local mask = POW2[bit % 8]
         local byte = model.bits:byte(math.floor(bit / 8) + 1)
-        local mask = 2 ^ (bit % 8)
-        if math.floor(byte / mask) % 2 == 0 then
-            if cache then cache[text] = false end
-            return false
+        if byte % (mask * 2) < mask then
+            result = false
+            break
         end
     end
-    if cache then cache[text] = true end
-    return true
+    if cache then cache[text] = result end
+    if memo.n < MEMO_CAP then
+        memo[text] = result
+        memo.n = memo.n + 1
+    end
+    return result
 end
 
 local function load(path)

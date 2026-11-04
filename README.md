@@ -314,7 +314,7 @@
 | `dicts/` | 虎码反查词库（`pinyin_reverse.dict.yaml`）和其他辅助词表；旧版万象 `.pro` 词库仅保留在仓库，不进发行包 |
 | `tiger_dicts/` | 虎码扩展词表 |
 | `zuci/` | 组词、联想和多音词表 |
-| `opencc/` | 拼音和 Emoji 转换数据 |
+| `opencc/` | 拼音和 Emoji 转换数据：`.txt` 为源表，`.ocd2` 为运行时预编译字典（由 `tools/build_opencc_ocd2.py` 生成） |
 | `docs/` | 上游来源、授权、算法说明和更新文档 |
 | `tools/` | 开发、测试和打包脚本，不进入 Release |
 | `validation/` | 回归和验证记录，不进入 Release |

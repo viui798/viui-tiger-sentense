@@ -596,7 +596,26 @@ function M.func(input, env)
     local seg = ctx.composition:back()
     local current_seg_tags = seg and seg.tags or {}
     if seg then input_code = string.sub(ctx.input, seg.start + 1, seg._end) end
-    
+
+    -- 性能审计 2026-11-04：开关与 tag 判定每菜单只算一次，避免每个候选重复
+    -- 调用 ctx:get_option（原先约 12 次/候选）。开关变化会刷新菜单，本轮缓存安全。
+    local rule_active = {}
+    for i, t in ipairs(rules) do
+        local is_active = false
+        for _, trigger in ipairs(t.triggers) do
+            if trigger == true then is_active = true; break
+            elseif type(trigger) == "string" and ctx:get_option(trigger) then is_active = true; break end
+        end
+        local is_tag_match = true
+        if t.tags then
+            is_tag_match = false
+            for req_tag, _ in pairs(t.tags) do
+                if current_seg_tags[req_tag] then is_tag_match = true; break end
+            end
+        end
+        rule_active[i] = is_active and is_tag_match
+    end
+
     local function process_rules(cand)
         local results = {}
         local current_text = cand.text
@@ -608,23 +627,9 @@ function M.func(input, env)
         clear_table(env.shared_pending)
         clear_table(env.shared_comments)
       
-        for _, t in ipairs(rules) do
+        for i, t in ipairs(rules) do
             if t.mode ~= "abbrev" then
-                local is_active = false
-                for _, trigger in ipairs(t.triggers) do
-                    if trigger == true then is_active = true; break
-                    elseif type(trigger) == "string" and ctx:get_option(trigger) then is_active = true; break end
-                end
-              
-                local is_tag_match = true
-                if t.tags then
-                    is_tag_match = false
-                    for req_tag, _ in pairs(t.tags) do
-                        if current_seg_tags[req_tag] then is_tag_match = true; break end
-                    end
-                end
-              
-                if is_active and is_tag_match then
+                if rule_active[i] then
                     local query_text = is_chain and current_text or cand.text
                     local key = t.prefix .. query_text
                     local val = db:fetch(key)
@@ -729,23 +734,9 @@ function M.func(input, env)
     local top_buffer = {}
 
     -- 第一步：提前提取简码候选，分配阵营
-    for _, t in ipairs(rules) do
+    for i, t in ipairs(rules) do
         if t.mode == "abbrev" and env.input_type ~= "pinyin" then
-            local is_active = false
-            for _, trigger in ipairs(t.triggers) do
-                if trigger == true then is_active = true; break
-                elseif type(trigger) == "string" and ctx:get_option(trigger) then is_active = true; break end
-            end
-
-            local is_tag_match = true
-            if t.tags then
-                is_tag_match = false
-                for req_tag, _ in pairs(t.tags) do
-                    if current_seg_tags[req_tag] then is_tag_match = true; break end
-                end
-            end
-
-            if is_active and is_tag_match and input_code ~= "" then 
+            if rule_active[i] and input_code ~= "" then 
                 local key = t.prefix .. input_code
                 local val = db:fetch(key) or (not s_match(input_code, "[A-Z]") and db:fetch(t.prefix .. s_upper(input_code)))
                 

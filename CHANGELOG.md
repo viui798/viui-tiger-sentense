@@ -2,6 +2,43 @@
 
 本文件记录「芝士虎整」方案包的主要更新。虎整句方案版本见 `tiger_sentence.schema.yaml` 中 `schema.version`（当前 `1.6.20261030.1`，基于上游 `1.6.20261030.1` / `e86ceeb` 发布）。
 
+## v0.3.23（2026-11-04）
+
+性能审计后的方案包优化，**输入行为不变**。
+
+### 词先验 bloom（主要每键收益）
+
+- `lua/tiger_sentence_lexical.lua`：批量 `string.byte`、`POW2` 位测、按模型隔离的
+  跨键 memo（封顶 16384 条）。
+- 审计 A/B：整句流旧运行时 **-405μs/键**，新运行时 **-77μs/键**；
+  2,200 条文本逐条对比 `contains` / `score` 无差异。
+
+### `super_replacer` 选项轮询
+
+- 开关/tag 判定从“每个候选”提升到“每菜单一次”，减少重复 `get_option`。
+- `s2t` / `s2hk` / `s2tw` 三档输出逐字不变。
+
+### OpenCC 字典预编译 `.ocd2`
+
+- `opencc/pinyin.json`、`emoji.json` 改为 `type: ocd2`，新增 3 个 `.ocd2`；
+  `.txt` 源表保留。
+- 真实 librime：pinyin 首次出候选 **188–199ms → 123ms**；emoji 基本无变化。
+  两个滤镜默认关闭，不开启时收益为 0。
+- 新增 `tools/build_opencc_ocd2.py`（生成 / `--check` 检查）。
+- 发行包约 **+0.74MB**（压缩后）。
+
+### 清理
+
+- 删除 `lua/db.lua` 中 `wanxiang_pro` 注音死代码（168 行），消除引擎启动时的
+  `wanxiang_pro.reverse.bin` 缺失告警；拼音注释仍由 OpenCC `simplifier@pinyin` 提供。
+- 本机用户目录清理旧万象 `prism` 约 40MB 与 `zc.userdb`（不影响发行包）。
+
+### 验证
+
+- 契约 21 cases / 132 checks；完整回归全绿。
+- macOS 鼠须管 + Android 同文模拟器实机：`vujgad` → 这个丁、`unid` → 部（bù）、
+  `s2t` → 這個丁；OpenCC / wanxiang 日志无告警。
+
 ## v0.3.22（2026-11-03）
 
 本版补齐虎单/虎词与秃版一致的码流行为，并清理双拼反查里的两类“不该出现的词”。

@@ -23,15 +23,12 @@ local PATHS = {
     collision_tiger = find_dict_path("chongma_tiger.txt"),
     collision_wubi  = find_dict_path("chongma_wubi.txt"),
     tigress_ci      = find_dict_path("tiger_dicts/tigress/tigress_ci.dict.yaml") or find_dict_path("tigress_ci.dict.yaml"),
-    wubici          = find_dict_path("wubici.dict.yaml"),
-    zhuyin_word     = find_dict_path("lua/zhuyin.txt") or find_dict_path("zhuyin.txt"),
-    zhuyin_zi       = find_dict_path("lua/zhuyin_zi.txt") or find_dict_path("zhuyin_zi.txt")
+    wubici          = find_dict_path("wubici.dict.yaml")
 }
 
 -- 全局句柄缓存
 local GLOBAL_CACHE = {
-    dbs = {},
-    reverse_lookup = nil
+    dbs = {}
 }
 
 -- ==================== 2. 数据库与通用工具 ====================
@@ -289,173 +286,12 @@ function tigress_ci_dict.get_candidates(prefix)
     return res
 end
 
--- ==================== 6. 注音模块 (zhuyin) ====================
-local zhuyin = {
-    db_word_name = "lua/zhuyin_word",
-    db_zi_name = "lua/zhuyin_zi",
-    version = "zhuyin_v4", 
-    db_word = nil,
-    db_zi = nil,
-    enum = 4
-}
-
-local function split_by_comma(str)
-    local res = {}
-    local start = 1
-    while true do
-        local pos = str:find(",", start, true)
-        if not pos then
-            table.insert(res, str:sub(start))
-            break
-        end
-        table.insert(res, str:sub(start, pos - 1))
-        start = pos + 1
-    end
-    return res
-end
-
-function zhuyin.init(env)
-    zhuyin.enum = tonumber(env.engine.schema.config:get_string("enum/zhuyin")) or 4
-    if zhuyin.enum > 1 then
-        local db_word, rebuild_word = fast_init_db(zhuyin.db_word_name, zhuyin.version)
-        zhuyin.db_word = db_word
-        if rebuild_word and PATHS.zhuyin_word then
-            local t0 = os.clock()
-            db_word:empty()
-            local f = io.open(PATHS.zhuyin_word, "r")
-            if f then
-                for line in f:lines() do
-                    if line ~= "" and string.byte(line) ~= 35 then
-                        local k, v = string.match(line, "^([^\t]+)\t([^\r\n]+)")
-                        if k and v then 
-                            db_word:update(k, v) 
-                        end
-                    end
-                end
-                f:close()
-            end
-            db_word:meta_update("version", zhuyin.version)
-            log_rebuild("zhuyin_word", "极速重建", os.clock() - t0)
-        end
-
-        local db_zi, rebuild_zi = fast_init_db(zhuyin.db_zi_name, zhuyin.version)
-        zhuyin.db_zi = db_zi
-        if rebuild_zi and PATHS.zhuyin_zi then
-            local t0 = os.clock()
-            db_zi:empty()
-            local f = io.open(PATHS.zhuyin_zi, "r")
-            if f then
-                for raw_line in f:lines() do
-                    local line = raw_line:match("^%s*(.-)%s*$")
-                    if line ~= "" and not line:match("^#") then
-                        local k, v = line:match("^([^\t]+)\t([^\t]+)")
-                        if not k then k, v = line:match("^(%S+)%s+(%S+)") end
-                        if k and v then db_zi:update(k, v) end
-                    end
-                end
-                f:close()
-            end
-            db_zi:meta_update("version", zhuyin.version)
-            log_rebuild("zhuyin_zi", "重建", os.clock() - t0)
-        end
-    end
-
-    if not GLOBAL_CACHE.reverse_lookup then
-        GLOBAL_CACHE.reverse_lookup = ReverseLookup("wanxiang_pro")
-    end
-end
-
-function zhuyin.func(ctx, cand)
-    if not ctx:get_option("pinyin") then return cand end
-    local text = cand:get_genuine().text
-    local clen = utf8.len(text)
-    
-    if clen > zhuyin.enum then return cand end
-
-    local rev = GLOBAL_CACHE.reverse_lookup
-    if not rev then return cand end
-
-    local chars = {}
-    local rev_results = {}
-    local has_polyphone = false
-    local all_failed = true
-
-    for p, c in utf8.codes(text) do
-        local ch = utf8.char(c)
-        table.insert(chars, ch)
-        local raw = rev:lookup(ch)
-        local py_list = {}
-        if raw and raw ~= "" then
-            all_failed = false
-            raw = raw:gsub(";[^%s]*", "")
-            for py in raw:gmatch("%S+") do
-                table.insert(py_list, py)
-            end
-        end
-        table.insert(rev_results, py_list)
-        if #py_list > 1 or #py_list == 0 then
-            has_polyphone = true
-        end
-    end
-
-    if all_failed then return cand end
-
-    local final_pinyin = {}
-
-    if not has_polyphone then
-        for _, py_list in ipairs(rev_results) do
-            table.insert(final_pinyin, py_list[1] or "")
-        end
-    else
-        local word_pinyin_str = zhuyin.db_word and zhuyin.db_word:fetch(text) or ""
-        
-        if word_pinyin_str ~= "" then
-            local vals = split_by_comma(word_pinyin_str)
-            for i, ch in ipairs(chars) do
-                local py = vals[i]
-                if py and py ~= "" then
-                    table.insert(final_pinyin, py)
-                else
-                    local r = rev_results[i]
-                    table.insert(final_pinyin, (r and r[1]) or "")
-                end
-            end
-        else
-            for i, ch in ipairs(chars) do
-                local r = rev_results[i]
-                if #r > 1 or #r == 0 then
-                    local zi_py = zhuyin.db_zi and zhuyin.db_zi:fetch(ch) or ""
-                    if zi_py ~= "" then
-                        table.insert(final_pinyin, zi_py)
-                    else
-                        table.insert(final_pinyin, (r and r[1]) or "")
-                    end
-                else
-                    table.insert(final_pinyin, r[1])
-                end
-            end
-        end
-    end
-
-    local valid_pinyin = {}
-    for _, py in ipairs(final_pinyin) do
-        if py ~= "" then table.insert(valid_pinyin, py) end
-    end
-
-    if #valid_pinyin > 0 then
-        cand:get_genuine().comment = " " .. table.concat(valid_pinyin, " ")
-    end
-
-    return cand
-end
-
 -- ==================== 7. 主模块 ====================
 local merged_dict = {}
 
 function merged_dict.init(e)
     collision_dict.init(e); e.collision = collision_dict
     tigress_ci_dict.init(e); e.tigress_ci = tigress_ci_dict
-    zhuyin.init(e); e.zhuyin = zhuyin
     e.engine_ctx = e.engine.context
 
     -- v0.3.3：反查改为 ` 前缀；后缀式（拼音+`）暂时移除，这里不再拦截尾随反引号。
@@ -466,7 +302,7 @@ function merged_dict.func(input, env)
 
     local s = ctx.input:gsub("%s+", ""); if #s == 0 then for c in input:iter() do yield(c) end return end
     
-    local opt_p, opt_c = ctx:get_option("pinyin"), ctx:get_option("completion")
+    local opt_c = ctx:get_option("completion")
     
     -- === 新增：读取重码替换开关状态 ===
     local chongma_off = ctx:get_option("chongma_off")
@@ -477,7 +313,7 @@ function merged_dict.func(input, env)
     local SUBS = {"₂", "₃", "₄", "₅", "₆"}
 
     for cand in input:iter() do
-        local pc = (opt_p and env.zhuyin) and env.zhuyin.func(ctx, cand) or cand
+        local pc = cand
         local col, g = env.collision, pc:get_genuine()
         
         -- === 修改：当 chongma_off 为 true 时，直接跳过重码逻辑 ===
