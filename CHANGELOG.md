@@ -4,6 +4,21 @@
 
 ## 未发布
 
+### 双拼反查改用专用码表（小鹤）
+
+- 新增 `tools/export_double_pinyin_codes.py`：从 `dicts/pinyin_reverse.dict.yaml`
+  生成双拼表 `pinyin.flypy.codes.txt`（键串 → 全拼码，**只含整音节词条，无简拼行**）。
+- 新增 `models/pinyin.flypy.{idx,dat,pool}`（约 4.2MB，86,151 条），
+  由 `tools/build_pinyin_codes_index.py --prefix pinyin.flypy` 生成（脚本新增 `--prefix`）。
+- 新增 `lua/tiger_pinyin_map.lua`：按打法懒加载专用表，**精确匹配**；
+  查不到就是没有候选，不再做键位转换兜底。
+- `lua/tiger_sentence_pinyin.lua`：双拼走查表，全拼保持原路径；
+  缺少专用表时退回键位转换（测试/旧部署兼容）。
+- 性能：查表 16 µs/键，旧转换 0.74 µs/键，模型解码 8–14 ms/键 —— 影响 < 0.2%；
+  索引比全拼表小（4.2MB vs 7.8MB）。
+- 详见 `docs/双拼专用反查表.md`。
+
+
 ### 双拼候选里不再混入全拼/简拼词（三个泄漏点全部关闭）
 
 1. **混输拼音块收简拼词条**：`bf`→ben 会带出简拼词「包二奶」（见下条）。

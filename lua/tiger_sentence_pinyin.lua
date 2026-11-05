@@ -230,7 +230,20 @@ function M.translator(input, seg, env)
 
     local letters = #(input:gsub("[^A-Za-z]", ""))
     local code, selector = split_selectors(input, scheme)
-    local converted = convert_keys(code, scheme)
+    -- 双拼：查专用表（精确匹配，不兜底）；全拼：沿用原来的恒等转换。
+    local converted
+    if scheme == "qp" then
+        converted = convert_keys(code, scheme)
+    else
+        local ok_map, map = pcall(require, "tiger_pinyin_map")
+        if ok_map and map and map.available(scheme) then
+            converted = map.lookup(scheme, code)
+        else
+            -- 没有专用表（测试环境 / 旧部署缺文件）时退回键位转换；
+            -- 转换出的结果仍受「无简拼、禁残余兜底」的过滤约束。
+            converted = convert_keys(code, scheme)
+        end
+    end
     local converted_code = converted
     local results = {}
 

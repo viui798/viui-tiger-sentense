@@ -74,9 +74,11 @@
 | `lua/tiger_symbol_select.lua` | 虎单/虎词 `;` `'` 顶字（本地功能） |
 | `lua/tiger_zaoci.lua` | 造词模块（本地功能，与引擎桥接） |
 | `lua/tiger_sentence_pinyin.lua` | 拼音反查引擎（v0.3.3：主 chunk 第二实例 + 键位转换 + 分页码表索引，反查候选由五阶模型生成；v0.3.10 起虎单/虎词/虎整句共用） |
+| `lua/tiger_pinyin_map.lua` | 双拼键串 → 全拼码的精确查表（无兜底；见 `docs/双拼专用反查表.md`） |
 | `lua/tiger_mixed.lua` | 虎码 + 拼音混输（词块外挂解码、3 字母合成码、纯反查短路） |
 | `lua/reverse_freq.lua` | 短输入反查调频（`reverse_freq.txt`、选非首选一次即置顶） |
 | `models/pinyin.codes.*` | 拼音反查分页索引（**生成文件**，`tools/build_pinyin_codes_index.py` 重生成） |
+| `models/pinyin.flypy.*` | **双拼专用反查索引**（生成文件，`tools/export_double_pinyin_codes.py` + `build_pinyin_codes_index.py --prefix pinyin.flypy`） |
 | `lua/pinyin_keymaps.lua` | 五打法键位转换表（**生成文件**，勿手改；`tools/export_pinyin_tables.py` 重生成） |
 | `models/` | 五阶模型（LFS）+ 词先验 |
 | `pinyin.qp.codes.txt` | 拼音反查码表（**生成文件**，24.8 万条；`tools/export_reverse_codes.py` 重生成） |

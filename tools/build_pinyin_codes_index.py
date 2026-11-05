@@ -34,6 +34,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", default=str(REPO / "pinyin.qp.codes.txt"))
     parser.add_argument("--out-dir", default=str(REPO / "models"))
+    parser.add_argument("--prefix", default="pinyin.codes",
+                        help="输出文件名前缀（默认 pinyin.codes；双拼表用 pinyin.<scheme>）")
     args = parser.parse_args()
     source = Path(args.source)
     out = Path(args.out_dir)
@@ -117,9 +119,9 @@ def main():
         body += b"\0\0"  # pad to 32
 
     out.mkdir(parents=True, exist_ok=True)
-    (out / "pinyin.codes.idx").write_bytes(header + body)
-    (out / "pinyin.codes.dat").write_bytes(dat)
-    (out / "pinyin.codes.pool").write_bytes(pool)
+    (out / f"{args.prefix}.idx").write_bytes(header + body)
+    (out / f"{args.prefix}.dat").write_bytes(dat)
+    (out / f"{args.prefix}.pool").write_bytes(pool)
     print(f"codes={len(codes)} entries={len(dat)//8} "
           f"idx={len(header)+len(body)} dat={len(dat)} pool={len(pool)}")
 
