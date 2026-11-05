@@ -35,6 +35,22 @@ local keymaps = require("pinyin_keymaps")
 local SEPARATORS = { [" "] = true, ["'"] = true, ["`"] = true } -- `：后缀式反查的尾部反引号（affix 未剥时兜底）
 local MAX_CONVERTED = 120 -- 低于主实例 max_raw_length(128)，留安全余量
 
+-- 反查段尾部的选重键（与整句引擎 parse_selector 一致）：数字一律是选重；
+-- 分号在 小鹤/全拼/自然码 也是选重，但在 微软/搜狗 里 `;` 是 ing 键，不能剥离。
+-- 返回 (去掉选重键的主体, 选重键串)，主体交给 convert_keys，选重键原样进解码。
+local function split_selectors(raw, scheme)
+    local index = #raw
+    while index >= 1 do
+        local ch = raw:sub(index, index)
+        if ch:match("%d") or (ch == ";" and scheme ~= "mspy" and scheme ~= "sogou") then
+            index = index - 1
+        else
+            break
+        end
+    end
+    return raw:sub(1, index), raw:sub(index + 1)
+end
+
 -- ---- 第二引擎实例 ----------------------------------------------------------
 -- dofile（非 require）绕过模块缓存，得到独立的 lexicon_state/beam/decode 缓存。
 -- 路径从本文件自身推导，兼容 librime 的 LUA_PATH 与测试的 package.path。
@@ -224,51 +240,58 @@ function M.translator(input, seg, env)
     _G.tiger_mixed_active = false
     if input == "" or input:match("^[a-z]+/$") then return end
 
-    local converted = convert_keys(input, scheme)
-    if not converted or converted == "" or #converted > MAX_CONVERTED then
-        return
-    end
-
-    apply_parameters(env)
-    local engine = ensure_instance()
-    -- 只改变拼音第二实例的模型评分；不开模型仍保留码表组句与调频。
-    -- setter 在值改变时清模型/解码缓存，同值为 noop；跨方案/会话切换也重放。
-    -- 无 context 的纯解码测试保留调用方显式设定的模型状态。
-    local context = env.engine.context
-    if context and type(context.get_option) == "function" then
-        engine.set_model_enabled(not context:get_option("pinyin_no_model"))
-    end
-    -- 全拼保留简拼边（fa+nc+ha 合法）；双拼只允许音节组合。
-    if engine.set_allow_abbreviation_edges then
-        engine.set_allow_abbreviation_edges(scheme == "qp")
-    end
-    -- 双拼不出现简拼（含整段简拼 jsj=计算机、nh=你好）；全拼保留。
-    if engine.set_strict_abbreviation then
-        engine.set_strict_abbreviation(scheme ~= "qp")
-    end
-    -- 音节级标记（内部 `）：短输入时允许全部同音单字参与，给出多条候选；
-    -- 长输入仍走单条最优句，避免解码爆炸。阈值：字母数 ≤16 且内部标记 ≤4。
-    -- 字母数用「删除非字母后的长度」统计（gsub 的第二个返回值是被替换的次数，
-    -- 不是剩余长度；v0.3.4 的长度闸门曾因此失效）。
-    -- 末尾的 ` 是旧后缀式习惯，不算音节分隔标记；只要有 1 个内部 ` 就展开
-    -- （两字词「fj`ia」只有一个音节边界，旧阈值 >=2 让两字词永远不展开）。
-    local body = input:gsub("`$", "")
-    local marks = select(2, body:gsub("`", ""))
     local letters = #(input:gsub("[^A-Za-z]", ""))
-    local marked = marks >= 1
-    local expand = marked and marks <= 5 and letters <= 16
-    if engine.set_allow_duplicate_single then
-        engine.set_allow_duplicate_single(expand)
-    end
-    local ok_lexicon, _ = pcall(engine.ensure_lexicon, {
-        engine = { schema = { config = fake_config() } },
-    })
-    if not ok_lexicon then return end
+    local code, selector = split_selectors(input, scheme)
+    local converted = convert_keys(code, scheme)
+    local converted_code = converted
+    local results = {}
 
-    local ok, results = pcall(decode_converted, converted)
-    if not ok or type(results) ~= "table" then
-        last_converted = nil
-        results = {}
+    -- 尾部选重键（数字 / 小鹤等的分号）原样附加回编码，交给引擎 parse_selector 处理；
+    -- 转换失败（混输段：拼音后接虎码，或虎码里夹着 ; 数字）不直接放弃，
+    -- 下面统一走 build_overlay，否则整段反查会退化成虎码。
+    if converted and converted ~= "" and #(converted .. selector) <= MAX_CONVERTED then
+        converted = converted .. selector
+        apply_parameters(env)
+        local engine = ensure_instance()
+        -- 只改变拼音第二实例的模型评分；不开模型仍保留码表组句与调频。
+        -- setter 在值改变时清模型/解码缓存，同值为 noop；跨方案/会话切换也重放。
+        -- 无 context 的纯解码测试保留调用方显式设定的模型状态。
+        local context = env.engine.context
+        if context and type(context.get_option) == "function" then
+            engine.set_model_enabled(not context:get_option("pinyin_no_model"))
+        end
+        -- 全拼保留简拼边（fa+nc+ha 合法）；双拼只允许音节组合。
+        if engine.set_allow_abbreviation_edges then
+            engine.set_allow_abbreviation_edges(scheme == "qp")
+        end
+        -- 双拼不出现简拼（含整段简拼 jsj=计算机、nh=你好）；全拼保留。
+        if engine.set_strict_abbreviation then
+            engine.set_strict_abbreviation(scheme ~= "qp")
+        end
+        -- 音节级标记（内部 `）：短输入时允许全部同音单字参与，给出多条候选；
+        -- 长输入仍走单条最优句，避免解码爆炸。阈值：字母数 ≤16 且内部标记 ≤4。
+        -- 字母数用「删除非字母后的长度」统计（gsub 的第二个返回值是被替换的次数，
+        -- 不是剩余长度；v0.3.4 的长度闸门曾因此失效）。
+        -- 末尾的 ` 是旧后缀式习惯，不算音节分隔标记；只要有 1 个内部 ` 就展开
+        -- （两字词「fj`ia」只有一个音节边界，旧阈值 >=2 让两字词永远不展开）。
+        local marked_body = input:gsub("`$", "")
+        local marks = select(2, marked_body:gsub("`", ""))
+        local marked = marks >= 1
+        local expand = marked and marks <= 5 and letters <= 16
+        if engine.set_allow_duplicate_single then
+            engine.set_allow_duplicate_single(expand)
+        end
+        local ok_lexicon, _ = pcall(engine.ensure_lexicon, {
+            engine = { schema = { config = fake_config() } },
+        })
+        if ok_lexicon then
+            local ok, decoded = pcall(decode_converted, converted)
+            if ok and type(decoded) == "table" then
+                results = decoded
+            else
+                last_converted = nil
+            end
+        end
     end
 
     -- 拼音在前、虎码在后，且支持一句里多个 ` 块：整段拼音解码不出候选时，
@@ -296,7 +319,8 @@ function M.translator(input, seg, env)
     -- 短输入才参与调频；长句完全交给模型，避免局部偏好破坏整句通顺度。
     -- 混输候选同样参与「选过即置顶」：key 用去掉反引号的输入串，与纯反查共用
     -- reverse_freq 的存储和提交挂钩（此前混输直接跳过调频，选过的词下次不会前移）。
-    local freq_code = mixed_plan and (input:gsub("`", "")) or converted
+    local freq_code = mixed_plan and (input:gsub("`", "")) or converted_code or
+        (input:gsub("`", ""))
     if reverse_freq.short_enough(letters) and reverse_freq.enabled(env) then
         results = reverse_freq.rank_for(env, freq_code, results)
     else
@@ -335,6 +359,7 @@ end
 -- 测试钩子：转换与 preedit 是纯函数，直接暴露给单测。
 M.convert_keys = convert_keys
 M.double_preedit = double_preedit
+M.split_selectors = split_selectors
 M._engine_for_test = ensure_instance
 M._reset_for_test = function()
     instance = nil

@@ -76,6 +76,17 @@ check(pinyin.convert_keys("fjv", "flypy") == "fanz", "小鹤简拼尾键 v->z")
 check(pinyin.convert_keys("jsj", "qp") == "jsj", "全拼简拼恒等")
 check(pinyin.convert_keys("zz1", "flypy") == nil, "非法键序放弃转换")
 
+-- 尾部选重键：数字/分号剥离后再转换，交给引擎 parse_selector。
+local function split(raw, scheme)
+    local body, sel = pinyin.split_selectors(raw, scheme)
+    return body .. "|" .. sel
+end
+check(split("jiyu1", "flypy") == "jiyu|1", "尾部数字剥离为选重")
+check(split("jiyu12", "flypy") == "jiyu|12", "连续数字整体剥离")
+check(split("jiyu;", "flypy") == "jiyu|;", "小鹤尾部分号是选重")
+check(split("j;", "mspy") == "j;|", "微软分号是 ing 键，不剥离")
+check(split("jiyu", "flypy") == "jiyu|", "无选重键时原样")
+
 check(pinyin.double_preedit("fjia", "flypy") == "fj ia", "双拍 preedit 分组")
 check(pinyin.double_preedit("fj ia", "flypy") == "fj ia", "双拍 preedit 原分隔")
 
@@ -151,6 +162,13 @@ check(cands[1] and cands[1].text == "好", "非前缀切换：hao（缓存重建
 
 cands = translate("yin_qp", "zz1")
 check(#cands == 0, "转换失败不出候选（与现状一致）")
+
+-- 选重键不再中断反查：尾部数字/分号仍按反查解码，只选出对应名次。
+cands = translate("yin_qp", "nihao1")
+check(cands[1] and cands[1].text == "你好", "全拼尾部数字仍出候选（选重键不中断反查）")
+cands = translate("yin_flypy", "fjia;")
+check(#cands > 0 and texts(cands):find("反差", 1, true),
+    "小鹤尾部分号仍出候选（选重键不中断反查）")
 
 -- 模型开关作用域与中途切换：观察第二实例 setter，不需要真实模型。
 local main_engine = require("tiger_sentence")

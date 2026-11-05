@@ -48,10 +48,22 @@ mixed.index_handle = function()
     return {
         lookup = function(code)
             if code == "cha" then return { { t = "查杀" } } end
+            if code == "jiyu" then return { { t = "觊觎" } } end
             return nil
         end,
     }
 end
+-- 选重键（; / 数字）必须原样留在字面量里，交给整句引擎的 parse_selector；
+-- 不能被 build_overlay 当成拼音的一部分吃掉。
+sentence.ensure_lexicon = function() end
+sentence.lexicon_probe = function() return nil end
+local plan_semicolon = mixed.build_overlay("jiyu;unid", "flypy")
+check(plan_semicolon and plan_semicolon.raw:find(";unid", 1, true),
+    "反查混输的分号应留在字面量")
+local plan_digit = mixed.build_overlay("jiyu1unid", "flypy")
+check(plan_digit and plan_digit.raw:find("1unid", 1, true),
+    "反查混输的数字应留在字面量")
+
 sentence.decode_with_overlay = function()
     decode_calls = decode_calls + 1
     return { { text = "结果" } }

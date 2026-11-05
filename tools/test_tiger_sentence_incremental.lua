@@ -686,7 +686,7 @@ local function assert_contains(content, needle, message)
     if not content:find(needle, 1, true) then fail(message) end
 end
 assert_contains(sentence_schema, [[zaoci: "^'[a-z]*$"]], "虎整句 zaoci 前缀应为单引号")
-assert_contains(sentence_schema, [[yin_add_user: "^`[A-Za-z';`]*$"]],
+assert_contains(sentence_schema, [[yin_add_user: "^`[A-Za-z';`0-9]*$"]],
     "虎整句反查应为反引号前缀且不再含后缀式")
 assert_contains(sentence_schema, [[  prefix: "`"]], "虎整句反查 affix 应为空前缀（保留 preedit 的 `）")
 local _, yin_prefixes = sentence_schema:gsub('prefix: "`"', "")
@@ -695,7 +695,7 @@ if sentence_schema:find('suffix: "`"', 1, true) then fail("虎整句仍残留后
 for _, name in ipairs({ "tiger", "tigress" }) do
     local content = read_repo_file(name .. ".schema.yaml")
     assert_contains(content, [[zaoci: "^'[a-z]*$"]], name .. " zaoci 前缀应为单引号")
-    assert_contains(content, [[yin_add_user: "^`[A-Za-z';`]*$"]],
+    assert_contains(content, [[yin_add_user: "^`[A-Za-z';`0-9]*$"]],
         name .. " 反查应为反引号前缀且不再含后缀式")
     assert_contains(content, [[  prefix: "'"]], name .. " zaoci prefix 应为单引号")
     local custom = read_repo_file(name .. ".custom.yaml")
@@ -703,7 +703,7 @@ for _, name in ipairs({ "tiger", "tigress" }) do
 end
 print("OK  reverse lookup uses ` prefix, zaoci uses ' prefix, suffix form removed")
 -- 混输（原型）：recognizer + translator 接线。
-assert_contains(sentence_schema, [[mixed: "^[a-z][a-z;']*`[a-z`]*$"]], "缺少混输 recognizer 模式")
+assert_contains(sentence_schema, [[mixed: "^[a-z][a-z;'0-9]*`[a-z`;'0-9]*$"]], "缺少混输 recognizer 模式")
 assert_contains(sentence_schema, "lua_translator@tiger_sentence_dispatch", "缺少反查/混输共用 translator 接线")
 assert_contains(read_repo_file("lua/tiger_sentence_dispatch.lua"),
     'require("tiger_mixed").translator.func', "共用入口未调用混输 translator")
