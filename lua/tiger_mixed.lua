@@ -358,7 +358,10 @@ function M.build_overlay(input, scheme)
             expect_pinyin = false
         end
     end
-    if not any_word or not has_literal then return nil end
+    if not any_word then return nil end
+    -- 纯反查段可以整段只有拼音块（`xu`ky 这类连续单字反查），不要求必须有虎码字面量；
+    -- 混输段（虎码在前）仍然要求有字面量，避免把虎码段整段吞掉。
+    if not has_literal and leading_pinyin == false then return nil end
     return { raw = table.concat(out), overlay = overlay }
 end
 
