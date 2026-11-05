@@ -87,6 +87,27 @@ def lfs_paths(paths):
     return found
 
 
+def previous_tag(from_ref):
+    """返回按语义版本排序、严格早于 from_ref 的最近一个 vX.Y.Z tag。"""
+    tags = subprocess.run(
+        ["git", "-c", "core.quotepath=false", "tag", "-l", "v[0-9]*"],
+        capture_output=True, check=True).stdout.decode().split()
+    def key(t):
+        nums = []
+        for part in t.lstrip("v").split("."):
+            digits = "".join(ch for ch in part if ch.isdigit())
+            nums.append(int(digits) if digits else 0)
+        return tuple(nums)
+    current = key(from_ref)
+    earlier = [t for t in tags if key(t) < current]
+    return max(earlier, key=key) if earlier else None
+
+
+def is_ancestor(tag, ref):
+    """tag 是否为 ref 的祖先（即基座确实在目标版本的历史里）。"""
+    return subprocess.run(["git", "merge-base", "--is-ancestor", tag, ref]).returncode == 0
+
+
 def changed_entries(from_ref, to_ref):
     raw = subprocess.run(
         ["git", "-c", "core.quotepath=false", "diff", "--name-status", "-z", from_ref, to_ref],
@@ -117,6 +138,13 @@ def main():
     from_ref, to_ref, out_zip = sys.argv[1], sys.argv[2], os.path.abspath(sys.argv[3])
     repo = git("rev-parse", "--show-toplevel").strip()
     os.chdir(repo)
+
+    # 基座必须是目标版本的祖先，否则增量包会把不属于该基座的差异当成"用户已装内容"。
+    if not is_ancestor(from_ref, to_ref):
+        sys.exit(f"错误：基座 {from_ref} 不是 {to_ref} 的祖先，拒绝生成增量包")
+    prior = previous_tag(from_ref)
+    if prior and not is_ancestor(prior, from_ref):
+        sys.exit(f"错误：上一版 {prior} 不是 {from_ref} 的祖先，增量链断裂，请先修复 tag 历史")
 
     entries = changed_entries(from_ref, to_ref)
     runtime = [(s, old, new) for s, old, new in entries
@@ -158,6 +186,7 @@ def main():
 
     manifest = {
         "from": from_ref,
+        "base_previous": prior,
         "to": to_ref,
         "generated": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "full_required": full_required,
