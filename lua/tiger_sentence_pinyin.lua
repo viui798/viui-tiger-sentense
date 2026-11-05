@@ -121,9 +121,10 @@ local function apply_parameters(env)
 end
 
 -- ---- 键位转换 --------------------------------------------------------------
--- 双拍：每 2 键一个音节单元；单元查不到时，剩余键全部按简拼声母（首字母）处理；
--- 仍失败则整段放弃（与现状「打错键不出候选」一致）。分隔符（空格/引号）跳过。
--- 全拼：恒等（剥分隔符；简拼首字母码在码表里，如 jsj）。
+-- 双拍：每 2 键一个音节单元。**单元查不到就整段放弃**，不再退化成「首字母简拼」——
+-- 否则打错的键（如 qz、im 不是小鹤音节）会被折成简拼串，五阶模型照样能拼出一句
+-- 读起来通顺但语义无关的话（例：构件安装包包二奶），比不出候选更难发现。
+-- 分隔符（空格/引号/反引号）跳过。全拼：恒等（简拼首字母码在码表里，如 jsj）。
 local function convert_keys(raw, scheme)
     local s = raw:lower()
     if scheme == "qp" then
@@ -131,7 +132,7 @@ local function convert_keys(raw, scheme)
     end
     local map = keymaps[scheme]
     if not map then return nil end
-    local units, initials = map.units, map.initials
+    local units = map.units
     local parts = {}
     local i = 1
     while i <= #s do
@@ -144,21 +145,8 @@ local function convert_keys(raw, scheme)
                 parts[#parts + 1] = syllable
                 i = i + 2
             else
-                local rest, ok = {}, true
-                for j = i, #s do
-                    local c = s:sub(j, j)
-                    if not SEPARATORS[c] then
-                        local initial = initials[c]
-                        if not initial then
-                            ok = false
-                            break
-                        end
-                        rest[#rest + 1] = initial
-                    end
-                end
-                if not ok then return nil end
-                parts[#parts + 1] = table.concat(rest)
-                i = #s + 1
+                -- 不是合法音节组：整段放弃，交给别的路径（如混输/普通输入）
+                return nil
             end
         end
     end

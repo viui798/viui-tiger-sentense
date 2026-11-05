@@ -72,7 +72,7 @@ end
 check(pinyin.convert_keys("fjia", "flypy") == "fancha", "小鹤 fjia -> fancha")
 check(pinyin.convert_keys("fj ia", "flypy") == "fancha", "小鹤分隔符跳过")
 check(pinyin.convert_keys("NIHAO", "qp") == "nihao", "全拼大小写归一")
-check(pinyin.convert_keys("fjv", "flypy") == "fanz", "小鹤简拼尾键 v->z")
+check(pinyin.convert_keys("fjv", "flypy") == nil, "小鹤不再把残余键兜底成简拼（fjv 放弃）")
 check(pinyin.convert_keys("jsj", "qp") == "jsj", "全拼简拼恒等")
 check(pinyin.convert_keys("zz1", "flypy") == nil, "非法键序放弃转换")
 
