@@ -41,6 +41,14 @@ end
 -- 解析一个拼音块：返回 (完整拼音 code, 消费的字母数)；只接受词库里存在**词条**的整段。
 -- loose=true 时双拍末尾的单键按简拼声母处理（与反查的 convert_keys 一致）；
 -- 默认关闭，保持原有「混输拼音块」行为不变。
+-- 双拼块只要「整音节」词条：简拼码（如 ben=包二奶）在双拼里是打不出来的，
+-- 允许它就会出现「本」被「包二奶」顶掉的情况。全拼维持原样（简拼合法）。
+local function word_ok(entry, allow_abbrev, min_len)
+    if (utf8.len(entry.t) or 1) < min_len then return false end
+    if not allow_abbrev and entry.abbrev then return false end
+    return true
+end
+
 local function parse_chunk(chunk, scheme, loose)
     local parts = {}  -- { syllable, letters }
     if scheme == "qp" then
@@ -89,9 +97,10 @@ local function parse_chunk(chunk, scheme, loose)
             -- 单音节码（如 gan）在码表里只有单字，不能要求多字词条；
             -- 多音节码才要求整词，避免「发内存哈」那类拼接。
             local min_len = i >= 2 and 2 or 1
+            local allow_abbrev = (scheme == "qp")
             local ok_word = false
             for j = 1, #entries do
-                if (utf8.len(entries[j].t) or 1) >= min_len then ok_word = true; break end
+                if word_ok(entries[j], allow_abbrev, min_len) then ok_word = true; break end
             end
             if ok_word then best = { code = code, consumed = letters, syllables = i } end
         end
@@ -201,8 +210,9 @@ local function translate(input, seg, env)
                 -- 单音节块（双拼 gj→gan）在码表里只有单字，不能只收多字词，
                 -- 否则 ` 后面的单音节拼音会退回成虎码。
                 local min_len = (syllables or 0) >= 2 and 2 or 1
+                local allow_abbrev = (scheme == "qp")
                 for k = 1, #entries do
-                    if (utf8.len(entries[k].t) or 1) >= min_len then
+                    if word_ok(entries[k], allow_abbrev, min_len) then
                         words[#words + 1] = entries[k].t
                     end
                 end
@@ -306,8 +316,9 @@ function M.build_overlay(input, scheme)
             if code and consumed > 0 and (syllables or 0) >= min_syllables then
                 local entries = index.lookup(code)
                 local min_len = (syllables or 0) >= 2 and 2 or 1
+                local allow_abbrev = (scheme == "qp")
                 for k = 1, #entries do
-                    if (utf8.len(entries[k].t) or 1) >= min_len then
+                    if word_ok(entries[k], allow_abbrev, min_len) then
                         words[#words + 1] = entries[k].t
                     end
                 end
