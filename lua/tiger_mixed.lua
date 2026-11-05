@@ -305,7 +305,9 @@ function M.build_overlay(input, scheme)
             local j = i
             while j <= #input and input:sub(j, j):match("[a-z]") do j = j + 1 end
             local chunk = input:sub(i, j - 1)
-            local code, consumed, syllables = parse_chunk(chunk, scheme, true)
+            -- 双拼不做「残余字母→首字母简拼」的兜底：那会把全拼/简拼词条混进双拼候选
+            -- （例：wbagti 被折成简拼码后解出「安装包」）。全拼仍允许。
+            local code, consumed, syllables = parse_chunk(chunk, scheme, scheme == "qp")
             local words = {}
             -- 整块都被解析成拼音（没有残余）时，单音节也照收：` 后面本来就该优先拼音，
             -- 例如双拼 gi/gj 这种一个完整音节。只有「解析出一点、后面还剩一长串」的
