@@ -4,7 +4,7 @@
 
 ## 未发布
 
-### 双拼反查改用专用码表（小鹤）
+### 双拼反查改用专用码表（小鹤 + 自然码）
 
 - 新增 `tools/export_double_pinyin_codes.py`：从 `dicts/pinyin_reverse.dict.yaml`
   生成双拼表 `pinyin.flypy.codes.txt`（键串 → 全拼码，**只含整音节词条，无简拼行**）。
@@ -16,6 +16,8 @@
   缺少专用表时退回键位转换（测试/旧部署兼容）。
 - 性能：查表 16 µs/键，旧转换 0.74 µs/键，模型解码 8–14 ms/键 —— 影响 < 0.2%；
   索引比全拼表小（4.2MB vs 7.8MB）。
+- 自然码同法生成：`pinyin.zrm.codes.txt` + `models/pinyin.zrm.{idx,dat,pool}`；
+  切到 `/zrm` 后 `nihk`→你好、`bm`→遍/变/便、`jsj`→无候选（简拼不存在）。
 - 详见 `docs/双拼专用反查表.md`。
 
 
