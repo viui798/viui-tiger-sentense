@@ -19,11 +19,17 @@
   · 文件名写 UTF-8 标志位，Windows 与 macOS 解压都不会乱码；
   · 同时输出同名 .sha256 文件。
 
+更新阶梯（2026-11-05 起）：完整包 / 无模型版（--no-model，缺
+  models/sentence-fivegram-mobile.bin，供「落后几版但模型没变」的设备，
+  保留设备已有模型）/ 增量包（make_release_delta.py）。三种包都携带根目录
+  MODEL.json（模型文件的 sha256/字节数），更新器据此判断设备模型是否与
+  本版兼容：一致 → 无模型版；缺失或不一致 → 完整包。
 注意：模型 models/sentence-fivegram-mobile.bin 在 git 里是 LFS 指针，
       所以必须从工作区读取真实文件，不能用 git archive。
 """
 
 import hashlib
+import json
 import os
 import shutil
 import subprocess
@@ -98,6 +104,10 @@ INSTALL_NOTE = """芝士虎整 {version} 安装说明
     custom_phrase.txt、reverse_freq.txt、各前端皮肤配置都属于用户数据，升级时请自行保留。
   - 包内体积主要来自 models/sentence-fivegram-mobile.bin（约 387MB），
     虎整句与拼音反查都需要它；请勿删除 models/。
+  - 【无模型版】包内没有 sentence-fivegram-mobile.bin：适用于设备上已有
+    同版本模型的更新（MODEL.json 里是本版模型的 sha256，更新器会自动
+    比对；不一致或缺失时请改用完整包）。缺模型时方案仍可打字（字词候选），
+    但整句组句与拼音反查降级为无模型模式。
   - 旧版万象反查词库自 v0.3.10 起不再随包发布，升级后无需再编译 wanxiang_pro 拼写索引；
     用户目录里残留的 wanxiang_pro*.yaml 与 dicts/*.pro.dict.yaml 可手动删除。
   - 更新内容见 CHANGELOG.md 与 docs/ 下的更新说明。
@@ -125,9 +135,12 @@ def lfs_paths(paths):
 
 
 def main():
-    if len(sys.argv) != 3:
+    if len(sys.argv) not in (3, 4):
         sys.exit(__doc__)
     ref, out_zip = sys.argv[1], os.path.abspath(sys.argv[2])
+    no_model = len(sys.argv) == 4 and sys.argv[3] == "--no-model"
+    if len(sys.argv) == 4 and not no_model:
+        sys.exit(__doc__)
     repo = git("rev-parse", "--show-toplevel").strip()
     os.chdir(repo)
 
@@ -151,6 +164,26 @@ def main():
     dropped = sorted(set(files) - set(kept))
 
     lfs = lfs_paths(kept)
+    model_rel = "models/sentence-fivegram-mobile.bin"
+    model_info = None
+    if no_model:
+        if model_rel not in kept:
+            sys.exit(f"✗ --no-model 需要 {model_rel} 在打包清单里")
+        kept = [f for f in kept if f != model_rel]
+        src = os.path.join(repo, model_rel)
+        if not os.path.exists(src) or os.path.getsize(src) < 1024:
+            sys.exit(f"✗ 工作区缺少真实模型：{model_rel}（需要先 git lfs pull）")
+        digest_model = hashlib.sha256()
+        with open(src, "rb") as fh:
+            for chunk in iter(lambda: fh.read(1 << 20), b""):
+                digest_model.update(chunk)
+        model_info = {
+            "file": model_rel,
+            "bytes": os.path.getsize(src),
+            "sha256": digest_model.hexdigest(),
+            "note": "无模型版不含此文件；设备上模型 sha256 一致时可用无模型版更新",
+        }
+        print(f"  无模型版：跳过 {model_rel}（MODEL.json 记录 sha256={model_info['sha256'][:16]}…）")
     stage = tempfile.mkdtemp(prefix="cheese-tiger-release-")
     root = os.path.join(stage, f"芝士虎整-{version}")
     for rel in kept:
@@ -170,6 +203,10 @@ def main():
             with open(dst, "wb") as fh:
                 fh.write(data)
 
+    if model_info:
+        with open(os.path.join(root, "MODEL.json"), "w", encoding="utf-8") as fh:
+            json.dump(model_info, fh, ensure_ascii=False, indent=2)
+            fh.write("\n")
     note = INSTALL_NOTE.format(version=version, underline="=" * (len(version) + 13))
     with open(os.path.join(root, "安装说明.txt"), "w", encoding="utf-8") as fh:
         fh.write(note)
@@ -201,9 +238,17 @@ def main():
     sha = digest.hexdigest()
     with open(out_zip + ".sha256", "w", encoding="utf-8") as fh:
         fh.write(f"{sha}  {os.path.basename(out_zip)}\n")
+    # 模型指纹独立资产：更新器先下这个 1KB 文件比对设备模型，再决定
+    # 下载无模型版还是完整包（避免白下 388MB）
+    if model_info:
+        with open(os.path.join(os.path.dirname(out_zip) or ".", "MODEL.json"),
+                  "w", encoding="utf-8") as fh:
+            json.dump(model_info, fh, ensure_ascii=False, indent=2)
+            fh.write("\n")
+        print(f"模型指纹: {os.path.join(os.path.dirname(out_zip) or '.', 'MODEL.json')}")
 
     shutil.rmtree(stage, ignore_errors=True)
-    print(f"版本: {version}")
+    print(f"版本: {version}" + ("（无模型版）" if no_model else ""))
     print(f"打包 {len(kept) + 1} 个文件（含生成的《安装说明.txt》）")
     print(f"排除 {len(dropped)} 个：")
     for rel in dropped:
