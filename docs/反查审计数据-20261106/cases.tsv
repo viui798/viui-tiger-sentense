@@ -1,0 +1,20 @@
+# 特性1：正常反查（小鹤）
+flypy	`fjia	反查	-
+flypy	`vsgo	中国	-
+flypy	`gx	寡	-
+flypy	`fu	覆	-
+# 特性2：以字定词（模型组词）
+flypy	`cd`xu`ky	蔡徐坤	-
+flypy	`yi`yh`qm`xi	易烊千玺	-
+flypy	`yici`lwtv	以此类推	-
+flypy	`uuru`fa	输入法	-
+# 特性3：混输不落句
+flypy	be`jidubeuegmmup	她嫉妒她的美貌	-
+flypy	j;`iimwwhllbtmzaqocbhub`sy`wu`ks	什么魑魅魍魉妖魔都不怕孙悟空	-
+flypy	`fugdyf`hzhzuemd`mmbw	覆盖上厚厚的大棉被	-
+# 特性4：全拼/双拼隔离
+qp	`fan`cha	反查	-
+qp	`jsj	计算机	-
+qp	`nh	你好	-
+flypy	`jsj	计算机	-
+flypy	`bm	比按	-

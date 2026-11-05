@@ -1,0 +1,438 @@
+[opts-debug] init called
+[opts-debug] sync called, live=	true
+[opts-debug] init called
+[opts-debug] sync called, live=	true
+[fancha-debug] scheme=	flypy	input=	v
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	vs
+[fancha-debug] converted=	zhong	selector=	
+[fancha-debug] scheme=	flypy	input=	vsg
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	vsgo
+[fancha-debug] converted=	zhongguo	selector=	
+{"input":"`vsgo","mode":"flypy","expected":"中国","found_at":0,"count":2,"top3":["中国","中过"]}
+[fancha-debug] scheme=	flypy	input=	f
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	fj
+[fancha-debug] converted=	fan	selector=	
+[fancha-debug] scheme=	flypy	input=	fji
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	fjia
+[fancha-debug] converted=	fancha	selector=	
+{"input":"`fjia","mode":"flypy","expected":"反查","found_at":0,"count":3,"top3":["反查","反差","梵刹"]}
+[fancha-debug] scheme=	flypy	input=	j
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	jk
+[fancha-debug] converted=	jing	selector=	
+[fancha-debug] scheme=	flypy	input=	jkj
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	jkji
+[fancha-debug] converted=	jingji	selector=	
+[opts-debug] sync called, live=	true
+{"input":"`jkji","mode":"flypy","expected":"经济","found_at":0,"count":9,"top3":["经济","经及","竞技"]}
+[fancha-debug] scheme=	flypy	input=	g
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	gs
+[fancha-debug] converted=	gong	selector=	
+[fancha-debug] scheme=	flypy	input=	gss
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	gssi
+[fancha-debug] converted=	gongsi	selector=	
+{"input":"`gssi","mode":"flypy","expected":"公司","found_at":0,"count":3,"top3":["公司","共四","公私"]}
+[fancha-debug] scheme=	flypy	input=	f
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	fu
+[fancha-debug] converted=	fu	selector=	
+[fancha-debug] scheme=	flypy	input=	fuw
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	fuwu
+[fancha-debug] converted=	fuwu	selector=	
+{"input":"`fuwu","mode":"flypy","expected":"服务","found_at":0,"count":2,"top3":["服务","服无"]}
+[fancha-debug] scheme=	flypy	input=	f
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	fa
+[fancha-debug] converted=	fa	selector=	
+[fancha-debug] scheme=	flypy	input=	fav
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	favj
+[fancha-debug] converted=	fazhan	selector=	
+{"input":"`favj","mode":"flypy","expected":"发展","found_at":0,"count":1,"top3":["发展"]}
+[fancha-debug] scheme=	flypy	input=	j
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	jn
+[fancha-debug] converted=	jiao	selector=	
+[fancha-debug] scheme=	flypy	input=	jny
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	jnyu
+[fancha-debug] converted=	jiaoyu	selector=	
+{"input":"`jnyu","mode":"flypy","expected":"教育","found_at":0,"count":3,"top3":["教育","叫与","交语"]}
+[fancha-debug] scheme=	flypy	input=	w
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	wf
+[fancha-debug] converted=	wen	selector=	
+[fancha-debug] scheme=	flypy	input=	wfh
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	wfhx
+[fancha-debug] converted=	wenhua	selector=	
+{"input":"`wfhx","mode":"flypy","expected":"文化","found_at":0,"count":3,"top3":["文化","问话","文华"]}
+[fancha-debug] scheme=	flypy	input=	l
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	li
+[fancha-debug] converted=	li	selector=	
+[fancha-debug] scheme=	flypy	input=	liu
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	liui
+[fancha-debug] converted=	lishi	selector=	
+[opts-debug] sync called, live=	true
+[opts-debug] sync called, live=	true
+{"input":"`liui","mode":"flypy","expected":"历史","found_at":0,"count":14,"top3":["历史","里是","离世"]}
+[fancha-debug] scheme=	flypy	input=	w
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	wu
+[fancha-debug] converted=	wu	selector=	
+[fancha-debug] scheme=	flypy	input=	wul
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	wuli
+[fancha-debug] converted=	wuli	selector=	
+[opts-debug] sync called, live=	true
+[opts-debug] sync called, live=	true
+{"input":"`wuli","mode":"flypy","expected":"物理","found_at":0,"count":12,"top3":["物理","无里","无力"]}
+[fancha-debug] scheme=	flypy	input=	h
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	hx
+[fancha-debug] converted=	hua	selector=	
+[fancha-debug] scheme=	flypy	input=	hxx
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	hxxt
+[fancha-debug] converted=	huaxue	selector=	
+{"input":"`hxxt","mode":"flypy","expected":"化学","found_at":0,"count":3,"top3":["化学","话学","滑雪"]}
+[fancha-debug] scheme=	flypy	input=	u
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	ug
+[fancha-debug] converted=	sheng	selector=	
+[fancha-debug] scheme=	flypy	input=	ugw
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	ugwu
+[fancha-debug] converted=	shengwu	selector=	
+{"input":"`ugwu","mode":"flypy","expected":"生物","found_at":0,"count":2,"top3":["生物","生无"]}
+[fancha-debug] scheme=	flypy	input=	y
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	yi
+[fancha-debug] converted=	yi	selector=	
+[fancha-debug] scheme=	flypy	input=	yix
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	yixt
+[fancha-debug] converted=	yixue	selector=	
+{"input":"`yixt","mode":"flypy","expected":"医学","found_at":0,"count":4,"top3":["医学","一学","义学"]}
+[fancha-debug] scheme=	flypy	input=	f
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	fa
+[fancha-debug] converted=	fa	selector=	
+[fancha-debug] scheme=	flypy	input=	fal
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	falv
+[fancha-debug] converted=	falv	selector=	
+{"input":"`falv","mode":"flypy","expected":"法律","found_at":0,"count":2,"top3":["法律","发绿"]}
+[fancha-debug] scheme=	flypy	input=	y
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	yb
+[fancha-debug] converted=	yin	selector=	
+[fancha-debug] scheme=	flypy	input=	ybl
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	yble
+[fancha-debug] converted=	yinle	selector=	
+{"input":"`yble","mode":"flypy","expected":"音乐","found_at":-1,"count":2,"top3":["因了","淫乐"]}
+[fancha-debug] scheme=	flypy	input=	d
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	dm
+[fancha-debug] converted=	dian	selector=	
+[fancha-debug] scheme=	flypy	input=	dmy
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	dmyk
+[fancha-debug] converted=	dianying	selector=	
+{"input":"`dmyk","mode":"flypy","expected":"电影","found_at":0,"count":2,"top3":["电影","点应"]}
+[fancha-debug] scheme=	flypy	input=	y
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	yz
+[fancha-debug] converted=	you	selector=	
+[fancha-debug] scheme=	flypy	input=	yzx
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	yzxi
+[fancha-debug] converted=	youxi	selector=	
+{"input":"`yzxi","mode":"flypy","expected":"游戏","found_at":0,"count":5,"top3":["游戏","有系","有戏"]}
+[fancha-debug] scheme=	flypy	input=	y
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	yy
+[fancha-debug] converted=	yun	selector=	
+[fancha-debug] scheme=	flypy	input=	yyd
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	yyds
+[fancha-debug] converted=	yundong	selector=	
+{"input":"`yyds","mode":"flypy","expected":"运动","found_at":0,"count":2,"top3":["运动","云动"]}
+[fancha-debug] scheme=	flypy	input=	l
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	lv
+[fancha-debug] converted=	lv	selector=	
+[fancha-debug] scheme=	flypy	input=	lvx
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	lvxk
+[fancha-debug] converted=	lvxing	selector=	
+{"input":"`lvxk","mode":"flypy","expected":"旅行","found_at":0,"count":3,"top3":["旅行","绿行","履行"]}
+[fancha-debug] scheme=	flypy	input=	m
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	mw
+[fancha-debug] converted=	mei	selector=	
+[fancha-debug] scheme=	flypy	input=	mwu
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	mwui
+[fancha-debug] converted=	meishi	selector=	
+[opts-debug] sync called, live=	true
+{"input":"`mwui","mode":"flypy","expected":"美食","found_at":2,"count":6,"top3":["没事","没是","美食"]}
+[fancha-debug] scheme=	flypy	input=	t
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	tm
+[fancha-debug] converted=	tian	selector=	
+[fancha-debug] scheme=	flypy	input=	tmq
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	tmqi
+[fancha-debug] converted=	tianqi	selector=	
+{"input":"`tmqi","mode":"flypy","expected":"天气","found_at":0,"count":5,"top3":["天气","天其","天启"]}
+[fancha-debug] scheme=	flypy	input=	u
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	ui
+[fancha-debug] converted=	shi	selector=	
+[fancha-debug] scheme=	flypy	input=	uij
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	uijm
+[fancha-debug] converted=	shijian	selector=	
+[opts-debug] sync called, live=	true
+[opts-debug] sync called, live=	true
+{"input":"`uijm","mode":"flypy","expected":"时间","found_at":0,"count":13,"top3":["时间","是见","事件"]}
+[fancha-debug] scheme=	flypy	input=	p
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	pg
+[fancha-debug] converted=	peng	selector=	
+[fancha-debug] scheme=	flypy	input=	pgy
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	pgyz
+[fancha-debug] converted=	pengyou	selector=	
+{"input":"`pgyz","mode":"flypy","expected":"朋友","found_at":0,"count":2,"top3":["朋友","碰有"]}
+[fancha-debug] scheme=	flypy	input=	j
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	jx
+[fancha-debug] converted=	jia	selector=	
+[fancha-debug] scheme=	flypy	input=	jxt
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	jxtk
+[fancha-debug] converted=	jiating	selector=	
+{"input":"`jxtk","mode":"flypy","expected":"家庭","found_at":0,"count":2,"top3":["家庭","加听"]}
+[fancha-debug] scheme=	flypy	input=	g
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	gs
+[fancha-debug] converted=	gong	selector=	
+[fancha-debug] scheme=	flypy	input=	gsz
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	gszo
+[fancha-debug] converted=	gongzuo	selector=	
+{"input":"`gszo","mode":"flypy","expected":"工作","found_at":0,"count":2,"top3":["工作","共做"]}
+[fancha-debug] scheme=	flypy	input=	x
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	xt
+[fancha-debug] converted=	xue	selector=	
+[fancha-debug] scheme=	flypy	input=	xtx
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	xtxi
+[fancha-debug] converted=	xuexi	selector=	
+{"input":"`xtxi","mode":"flypy","expected":"学习","found_at":0,"count":3,"top3":["学习","学系","血洗"]}
+[fancha-debug] scheme=	flypy	input=	u
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	ug
+[fancha-debug] converted=	sheng	selector=	
+[fancha-debug] scheme=	flypy	input=	ugh
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	ugho
+[fancha-debug] converted=	shenghuo	selector=	
+{"input":"`ugho","mode":"flypy","expected":"生活","found_at":0,"count":4,"top3":["生活","生或","生火"]}
+[fancha-debug] scheme=	flypy	input=	u
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	ui
+[fancha-debug] converted=	shi	selector=	
+[fancha-debug] scheme=	flypy	input=	uij
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	uijp
+[fancha-debug] converted=	shijie	selector=	
+[opts-debug] sync called, live=	true
+[opts-debug] sync called, live=	true
+{"input":"`uijp","mode":"flypy","expected":"世界","found_at":0,"count":11,"top3":["世界","是解","师姐"]}
+[fancha-debug] scheme=	flypy	input=	g
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	go
+[fancha-debug] converted=	guo	selector=	
+[fancha-debug] scheme=	flypy	input=	goj
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	gojx
+[fancha-debug] converted=	guojia	selector=	
+{"input":"`gojx","mode":"flypy","expected":"国家","found_at":0,"count":3,"top3":["国家","过加","郭嘉"]}
+[fancha-debug] scheme=	flypy	input=	v
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	vg
+[fancha-debug] converted=	zheng	selector=	
+[fancha-debug] scheme=	flypy	input=	vgf
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	vgfu
+[fancha-debug] converted=	zhengfu	selector=	
+{"input":"`vgfu","mode":"flypy","expected":"政府","found_at":0,"count":5,"top3":["政府","正服","征服"]}
+[fancha-debug] scheme=	flypy	input=	c
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	cd
+[fancha-debug] converted=	cai	selector=	
+[fancha-debug] scheme=	flypy	input=	cd`
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	cd`x
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	cd`xu
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	cd`xu`
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	cd`xu`k
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	cd`xu`ky
+[fancha-debug] converted=	nil	selector=	
+[opts-debug] sync called, live=	true
+[opts-debug] sync called, live=	true
+[opts-debug] sync called, live=	true
+{"input":"`cd`xu`ky","mode":"flypy","expected":"蔡徐坤","found_at":0,"count":20,"top3":["蔡徐坤","蔡旭坤","蔡徐昆"]}
+[fancha-debug] scheme=	flypy	input=	y
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	yi
+[fancha-debug] converted=	yi	selector=	
+[fancha-debug] scheme=	flypy	input=	yi`
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	yi`y
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	yi`yh
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	yi`yh`
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	yi`yh`q
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	yi`yh`qm
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	yi`yh`qm`
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	yi`yh`qm`x
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	yi`yh`qm`xi
+[fancha-debug] converted=	nil	selector=	
+[opts-debug] sync called, live=	true
+[opts-debug] sync called, live=	true
+[opts-debug] sync called, live=	true
+{"input":"`yi`yh`qm`xi","mode":"flypy","expected":"易烊千玺","found_at":0,"count":20,"top3":["易烊千玺","易烊千禧","一样纤细"]}
+[fancha-debug] scheme=	flypy	input=	v
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	vi
+[fancha-debug] converted=	zhi	selector=	
+[fancha-debug] scheme=	flypy	input=	vi`
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	vi`u
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	vi`ui
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	vi`ui`
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	vi`ui`h
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	vi`ui`hu
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	vi`ui`hu`
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	vi`ui`hu`v
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	vi`ui`hu`vg
+[fancha-debug] converted=	nil	selector=	
+[opts-debug] sync called, live=	true
+[opts-debug] sync called, live=	true
+[opts-debug] sync called, live=	true
+{"input":"`vi`ui`hu`vg","mode":"flypy","expected":"芝士虎整","found_at":-1,"count":20,"top3":["只是虎整","知识互证","只是户政"]}
+[fancha-debug] scheme=	flypy	input=	f
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	fj
+[fancha-debug] converted=	fan	selector=	
+[fancha-debug] scheme=	flypy	input=	fj`
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	fj`i
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	fj`ia
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	fj`ia`
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	fj`ia`m
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	fj`ia`mg
+[fancha-debug] converted=	nil	selector=	
+[opts-debug] sync called, live=	true
+[opts-debug] sync called, live=	true
+[opts-debug] sync called, live=	true
+{"input":"`fj`ia`mg","mode":"flypy","expected":"反差萌","found_at":0,"count":20,"top3":["反差萌","翻查蒙","反差盟"]}
+[fancha-debug] scheme=	flypy	input=	n
+[fancha-debug] converted=	n	selector=	
+[fancha-debug] scheme=	flypy	input=	nw
+[fancha-debug] converted=	nei	selector=	
+[fancha-debug] scheme=	flypy	input=	nw`
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	nw`j
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	nw`jr
+[fancha-debug] converted=	nil	selector=	
+[opts-debug] sync called, live=	true
+[opts-debug] sync called, live=	true
+[opts-debug] sync called, live=	true
+{"input":"`nw`jr","mode":"flypy","expected":"内卷","found_at":0,"count":20,"top3":["内卷","内圈","那卷"]}
+[fancha-debug] scheme=	flypy	input=	t
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	th
+[fancha-debug] converted=	tang	selector=	
+[fancha-debug] scheme=	flypy	input=	th`
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	th`p
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	th`pk
+[fancha-debug] converted=	nil	selector=	
+[opts-debug] sync called, live=	true
+[opts-debug] sync called, live=	true
+[opts-debug] sync called, live=	true
+{"input":"`th`pk","mode":"flypy","expected":"躺平","found_at":0,"count":20,"top3":["躺平","唐平","烫平"]}
+[fancha-debug] scheme=	flypy	input=	p
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	po
+[fancha-debug] converted=	po	selector=	
+[fancha-debug] scheme=	flypy	input=	po`
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	po`f
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	po`fh
+[fancha-debug] converted=	nil	selector=	
+[opts-debug] sync called, live=	true
+[opts-debug] sync called, live=	true
+[opts-debug] sync called, live=	true
+{"input":"`po`fh","mode":"flypy","expected":"破防","found_at":0,"count":20,"top3":["破防","朴芳","破房"]}
+[fancha-debug] scheme=	flypy	input=	j
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	jt
+[fancha-debug] converted=	jue	selector=	
+[fancha-debug] scheme=	flypy	input=	jt`
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	jt`j
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	jt`jt
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	jt`jt`
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	jt`jt`z
+[fancha-debug] converted=	nil	selector=	
+[fancha-debug] scheme=	flypy	input=	jt`jt`zi
+[fancha-debug] converted=	nil	selector=	
+[opts-debug] sync called, live=	true
+[opts-debug] sync called, live=	true
+[opts-debug] sync called, live=	true
+{"input":"`jt`jt`zi","mode":"flypy","expected":"绝绝子","found_at":0,"count":20,"top3":["绝绝子","绝绝紫","橛橛子"]}
