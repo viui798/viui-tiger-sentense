@@ -1,6 +1,6 @@
 
 name: tiger
-version: "2026.08.14"
+version: "2026.08.30"
 sort: by_weight
 use_preset_vocabulary: false
 columns:
@@ -14361,6 +14361,7 @@ columns:
 𱇣	wsri	257
 𱇫	bdw	257
 𱇫	bdwv	257
+𱇮	wlfw	257
 𱇱	jghw	257
 𱇻	wxpj	257
 𱈃	wqvy	257
@@ -15110,6 +15111,7 @@ columns:
 汱	kmqs	255
 匜	neyk	255
 鸸	lxne	255
+佸	jasr	255
 微	wvfo	255
 赢	fdvo	255
 徽	wvfi	255
@@ -106174,7 +106176,6 @@ columns:
 𱇪	wsg	0
 𱇬	wqc	0
 𱇭	wahb	0
-𱇮	wlfw	0
 𱇯	wyvy	0
 𱇰	wdmb	0
 𱇲	wyhi	0

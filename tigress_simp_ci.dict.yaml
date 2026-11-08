@@ -1,5 +1,5 @@
 name: tigress_simp_ci
-version: "2026.08.14"
+version: "2026.08.30"
 sort: by_weight
 use_preset_vocabulary: false
 columns:
@@ -26,15 +26,18 @@ encoder:
 地方	5000	g
 孩子	5000	h
 为什么	5000	i
+为啥	5000	i
 什么	5000	j
 没有	5000	k
 而且	5000	l
 所以	5000	m
 现在	5000	n
 自己	5000	o
+知道	5000	o
 起来	5000	p
 特别	5000	q
 因为	5000	r
+东西	5000	r
 出来	5000	s
 我们	5000	t
 工作	5000	u
