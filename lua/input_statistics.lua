@@ -123,14 +123,48 @@ local keyTouchCnt = 0 --记录编码键按下次数
 local proc_keys, proc_code = 0, 0
 local round_start_ts, last_key_ts = nil, nil
 local round_active = false
+local pending_raw_chars = 0
+local capture_snapshot = nil
+-- 上一次真正上屏的时刻（毫秒），只给「生字词」判定用。
+-- 不能拿 avgSpdInfo.commitTime 代替：它会被 translator 的空闲重置改写，语义不稳定。
+local last_commit_ms = nil
 
 -- 毫秒时间：os.time() 只有秒精度，机器速度的输入会被算成 720+ 字/分
 local function now_ms()
 	if rime_api and rime_api.get_time_ms then return rime_api.get_time_ms() end
 	return os.time() * 1000
 end
-local pending_raw_chars = 0
-local capture_snapshot = nil
+
+-- 统计口径参数
+-- 单轮样本的合理性：短于 0.3s（一两键）噪声太大；单字耗时超过 3s（≈20 字/分）
+-- 基本是思考/选词停顿，不是打字速度；400 字/分以上按非人类速度丢弃。
+-- 旧存档里被「挂着候选窗发呆」污染的超长样本由同一套规则清掉。
+local MIN_SAMPLE_S = 0.3
+local MAX_SAMPLE_S = 300
+local MAX_SAMPLE_PER_CHAR_S = 3
+local MAX_SAMPLE_SPD = 400
+-- 每个周期只保留最近 120 个样本（10s 极速窗口够用）。平均速度另用 avgGapSum /
+-- avgCntSum 按全周期累计，不因截尾变成滑动平均；旧存档能涨到 1MB+ 就是数组无限增长。
+local AVG_TAIL_KEEP = 120
+-- 生词判定门限（毫秒）
+local BOGGLE_MS = boggleThd_s * 1000
+
+-- 一个速度样本是否可信（写入和清洗历史共用同一套规则）
+local function valid_sample(gap, cnt)
+	if not gap or not cnt or gap <= 0 or cnt <= 0 then return false end
+	local spd = cnt / gap * 60
+	return spd <= MAX_SAMPLE_SPD and gap <= MAX_SAMPLE_S
+		and gap <= math.max(3, cnt * MAX_SAMPLE_PER_CHAR_S)
+end
+
+-- 一轮（一个上屏单元）结束：清空计键与缓冲，下一键重新计时。
+local function reset_round()
+	proc_keys, proc_code = 0, 0
+	pending_raw_chars = 0
+	round_active = false
+	round_start_ts = nil
+end
+
 -- 标记log版本
 local verOfStatsFormat = 4
 -- 报告风格， 0: 短款（默认），1: 长款
@@ -628,6 +662,34 @@ local function start_of_year(t)
 	return os.time { year = t.year, month = 1, day = 1, hour = 0 }
 end
 
+-- 只保留数组尾部 keep 个元素（返回新表，避免 table.remove 的 O(n) 位移）
+local function trim_tail(t, keep)
+	local n = #t
+	if n <= keep then return t end
+	local out = {}
+	for i = n - keep + 1, n do
+		out[#out + 1] = t[i]
+	end
+	return out
+end
+
+-- 追加一个速度样本：
+--   总和单独累加（平均速度按整个周期算，截尾不影响读数）；
+--   数组只留最近 AVG_TAIL_KEEP 个（10s 极速窗口够用），避免存档无限膨胀。
+local function append_avg(p, gap, cnt, code)
+	p.avgGapSum = (p.avgGapSum or 0) + gap
+	p.avgCntSum = (p.avgCntSum or 0) + cnt
+	p.avgCodeSum = (p.avgCodeSum or 0) + code
+	p.avgGaps[#p.avgGaps + 1] = gap
+	p.avgCnts[#p.avgCnts + 1] = cnt
+	p.avgCodeLen[#p.avgCodeLen + 1] = code
+	if #p.avgGaps > AVG_TAIL_KEEP + 30 then
+		p.avgGaps = trim_tail(p.avgGaps, AVG_TAIL_KEEP)
+		p.avgCnts = trim_tail(p.avgCnts, AVG_TAIL_KEEP)
+		p.avgCodeLen = trim_tail(p.avgCodeLen, AVG_TAIL_KEEP)
+	end
+end
+
 -- 更新统计数据
 local function update_stats(input_length, codeLen, codeLenWithoutSpace, avgAvailable)
 	local now = os.date("*t")
@@ -657,69 +719,61 @@ local function update_stats(input_length, codeLen, codeLenWithoutSpace, avgAvail
 
 	-- 更新平均分速统计数据
 	if 1 == avgAvailable then
-		-- 更新时间数据
-		local delt = avgSpdInfo.commitTime - avgSpdInfo.startTime
-		table.insert(input_stats.daily.avgGaps, delt)
-		table.insert(input_stats.weekly.avgGaps, delt)
-		table.insert(input_stats.monthly.avgGaps, delt)
-		table.insert(input_stats.yearly.avgGaps, delt)
+		-- 时间统一用毫秒算，落盘时换成秒（带小数），旧存档里的整数秒可以直接混用
+		local delt = (avgSpdInfo.commitTime - avgSpdInfo.startTime) / 1000
+		local cnt  = avgSpdInfo.count
+		local code = avgSpdInfo.codeLen
 
-		-- 更新编码长度数据
-		table.insert(input_stats.daily.avgCodeLen, avgSpdInfo.codeLen)
-		table.insert(input_stats.weekly.avgCodeLen, avgSpdInfo.codeLen)
-		table.insert(input_stats.monthly.avgCodeLen, avgSpdInfo.codeLen)
-		table.insert(input_stats.yearly.avgCodeLen, avgSpdInfo.codeLen)
+		-- 只收「像打字」的样本：时间太短（一两键）、太长（挂着候选窗发呆）或非人类速度
+		-- 都丢掉。旧版本把几小时的空闲算进本轮，平均分速会掉到 1 字/分。
+		if delt >= MIN_SAMPLE_S and valid_sample(delt, cnt) then
+			append_avg(input_stats.daily, delt, cnt, code)
+			append_avg(input_stats.weekly, delt, cnt, code)
+			append_avg(input_stats.monthly, delt, cnt, code)
+			append_avg(input_stats.yearly, delt, cnt, code)
 
-		-- 更新上屏字数
-		table.insert(input_stats.daily.avgCnts, avgSpdInfo.count)
-		table.insert(input_stats.weekly.avgCnts, avgSpdInfo.count)
-		table.insert(input_stats.monthly.avgCnts, avgSpdInfo.count)
-		table.insert(input_stats.yearly.avgCnts, avgSpdInfo.count)
+			-- 用最近这些样本凑够 10s，计算瞬时速度，作为最大分速的参考
+			local latestGapsSum, latestCntsSum, latestCodeLenSum = 0, 0, 0
+			local latestSpd, latestKeyTouchSpd, latestAvgCodeLen = 0, 0, 0
+			local gaps, cnts, lens = input_stats.yearly.avgGaps, input_stats.yearly.avgCnts,
+				input_stats.yearly.avgCodeLen
+			for i = #gaps, 1, -1 do
+				latestGapsSum = latestGapsSum + (gaps[i] or 0)
+				latestCntsSum = latestCntsSum + (cnts[i] or 0)
+				latestCodeLenSum = latestCodeLenSum + (lens[i] or 0)
+				if latestGapsSum >= 10 then -- 最后10s的平均速度做为瞬时速度
+					break
+				end
+			end
+			if latestGapsSum >= 10 then -- 如果数据的时长小于10s，则不计算最大速度，避免瞬时偏差过大
+				latestSpd = latestCntsSum / latestGapsSum * 60
+				latestKeyTouchSpd = latestCodeLenSum / latestGapsSum
+				if latestCntsSum > 0 then
+					latestAvgCodeLen = latestCodeLenSum / latestCntsSum
+				end
+				if latestSpd > 400 then latestSpd = 0 end -- 非人类速度，丢弃
 
-		-- 最后累计10s的提交数据，计算平均速度做为最大分速的参考
-		local latestGapsSum = 0
-		local latestCntsSum = 0
-		local latestCodeLenSum = 0
-		local latestSpd = 0
-		local latestKeyTouchSpd = 0
-		local latestAvgCodeLen = 0
-		local len = #input_stats.yearly.avgGaps
-		for i = 0, len - 1 do
-			latestGapsSum = latestGapsSum + input_stats.yearly.avgGaps[len - i]
-			latestCntsSum = latestCntsSum + input_stats.yearly.avgCnts[len - i]
-			latestCodeLenSum = latestCodeLenSum + input_stats.yearly.avgCodeLen[len - i]
-			if latestGapsSum >= 10 then -- 最后10s的平均速度做为瞬时速度
-				break
-			end
-		end
-		if latestGapsSum >= 10 then -- 如果数据的时长小于10s，则不计算最大速度，避免瞬时偏差过大
-			latestSpd = latestCntsSum / latestGapsSum * 60
-			latestKeyTouchSpd = latestCodeLenSum / latestGapsSum
-			if latestCntsSum > 0 then
-				latestAvgCodeLen = latestCodeLenSum / latestCntsSum
-			end
-
-			-- 更新最大分速值
-			if latestSpd > 400 then latestSpd = 0 end -- 非人类速度，丢弃
-			if latestSpd > input_stats.daily.fastest.spd then
-				input_stats.daily.fastest.spd = latestSpd
-				input_stats.daily.fastest.keyTouchSpd = latestKeyTouchSpd
-				input_stats.daily.fastest.avgCodeLen = latestAvgCodeLen
-			end
-			if latestSpd > input_stats.weekly.fastest.spd then
-				input_stats.weekly.fastest.spd = latestSpd
-				input_stats.weekly.fastest.keyTouchSpd = latestKeyTouchSpd
-				input_stats.weekly.fastest.avgCodeLen = latestAvgCodeLen
-			end
-			if latestSpd > input_stats.monthly.fastest.spd then
-				input_stats.monthly.fastest.spd = latestSpd
-				input_stats.monthly.fastest.keyTouchSpd = latestKeyTouchSpd
-				input_stats.monthly.fastest.avgCodeLen = latestAvgCodeLen
-			end
-			if latestSpd > input_stats.yearly.fastest.spd then
-				input_stats.yearly.fastest.spd = latestSpd
-				input_stats.yearly.fastest.keyTouchSpd = latestKeyTouchSpd
-				input_stats.yearly.fastest.avgCodeLen = latestAvgCodeLen
+				-- 更新最大分速值
+				if latestSpd > input_stats.daily.fastest.spd then
+					input_stats.daily.fastest.spd = latestSpd
+					input_stats.daily.fastest.keyTouchSpd = latestKeyTouchSpd
+					input_stats.daily.fastest.avgCodeLen = latestAvgCodeLen
+				end
+				if latestSpd > input_stats.weekly.fastest.spd then
+					input_stats.weekly.fastest.spd = latestSpd
+					input_stats.weekly.fastest.keyTouchSpd = latestKeyTouchSpd
+					input_stats.weekly.fastest.avgCodeLen = latestAvgCodeLen
+				end
+				if latestSpd > input_stats.monthly.fastest.spd then
+					input_stats.monthly.fastest.spd = latestSpd
+					input_stats.monthly.fastest.keyTouchSpd = latestKeyTouchSpd
+					input_stats.monthly.fastest.avgCodeLen = latestAvgCodeLen
+				end
+				if latestSpd > input_stats.yearly.fastest.spd then
+					input_stats.yearly.fastest.spd = latestSpd
+					input_stats.yearly.fastest.keyTouchSpd = latestKeyTouchSpd
+					input_stats.yearly.fastest.avgCodeLen = latestAvgCodeLen
+				end
 			end
 		end
 
@@ -924,11 +978,13 @@ local function statisticsCal(s)
 	codeTableFirstN[4] = { codeLen = 0, ratio = 100 - ratioSumOfFirstN }
 
 	-- 计算平均分速
-	local avgDelt = tableSum(s.avgGaps)
+	-- 优先用累计和（v0.3.28 起每次追加样本都累加），旧存档没有这两个字段时退回数组求和
+	local avgDelt = s.avgGapSum or tableSum(s.avgGaps)
+	local avgCnt  = s.avgCntSum or tableSum(s.avgCnts)
 	local avgSpd = 0
-	if avgDelt > 1 then
-		avgSpd = tableSum(s.avgCnts) / avgDelt * 60
-		if avgSpd > fastest.spd then
+	if avgDelt > 0.1 then
+		avgSpd = avgCnt / avgDelt * 60
+		if avgSpd > fastest.spd and avgSpd <= 400 then
 			fastest.spd = avgSpd
 			fastest.keyTouchSpd = avgSpd * avgCodeLen / 60
 			fastest.avgCodeLen = avgCodeLen
@@ -1199,28 +1255,50 @@ local function format_shengzi()
 end
 
 -- 加载保存的统计数据（input_stats.lua）
--- 清洗历史脏数据：机器速度（探针测试）留下的 >400 字/分记录
+-- 清洗历史脏数据：
+--   ① 探针/机器速度留下的 >400 字/分记录；
+--   ② v0.3.27 及以前把「挂着候选窗发呆」的时长（可达数小时）也算进本轮，
+--      平均分速被拖到 1 字/分。这里按同一套口径（0.3s~每字3s、≤400 字/分）重筛，
+--      并顺手把无限增长的数组截到最近 120 个样本。
 local function sanitize_period(p)
 	if type(p) ~= "table" then return end
 	if type(p.fastest) == "table" and (p.fastest.spd or 0) > 400 then
 		p.fastest.spd, p.fastest.keyTouchSpd, p.fastest.avgCodeLen = 0, 0, 0
 	end
-	if type(p.avgGaps) == "table" and type(p.avgCnts) == "table" then
-		local gaps, cnts, lens = {}, {}, {}
+
+	-- 新口径存档（带累计和）：数组只是尾部窗口，不能按数组重算总和，
+	-- 否则每次启动都会把「全周期平均」退化成「最近 120 个样本的滑动平均」。
+	if type(p.avgGapSum) == "number" and type(p.avgCntSum) == "number" then
+		p.avgGaps = trim_tail(type(p.avgGaps) == "table" and p.avgGaps or {}, AVG_TAIL_KEEP)
+		p.avgCnts = trim_tail(type(p.avgCnts) == "table" and p.avgCnts or {}, AVG_TAIL_KEEP)
+		p.avgCodeLen = trim_tail(type(p.avgCodeLen) == "table" and p.avgCodeLen or {}, AVG_TAIL_KEEP)
+		return
+	end
+
+	-- 旧存档：没有累计和，只能逐样本重筛并重算
+	local gaps, cnts, lens = {}, {}, {}
+	local gapSum, cntSum, codeSum = 0, 0, 0
+	if type(p.avgGaps) == "table" then
+		local oldCnts = type(p.avgCnts) == "table" and p.avgCnts or {}
+		local oldLens = type(p.avgCodeLen) == "table" and p.avgCodeLen or {}
 		for i = 1, #p.avgGaps do
-			local gap, cnt = p.avgGaps[i], p.avgCnts[i] or 0
-			local spd = (gap and gap > 0) and (cnt / gap * 60) or 0
-			if spd <= 400 then
+			local gap = tonumber(p.avgGaps[i]) or 0
+			local cnt = tonumber(oldCnts[i]) or 0
+			local code = tonumber(oldLens[i]) or 0
+			if gap >= MIN_SAMPLE_S and valid_sample(gap, cnt) then
 				gaps[#gaps + 1] = gap
 				cnts[#cnts + 1] = cnt
-				if type(p.avgCodeLen) == "table" then
-					lens[#lens + 1] = p.avgCodeLen[i] or 0
-				end
+				lens[#lens + 1] = code
+				gapSum = gapSum + gap
+				cntSum = cntSum + cnt
+				codeSum = codeSum + code
 			end
 		end
-		p.avgGaps, p.avgCnts = gaps, cnts
-		if type(p.avgCodeLen) == "table" then p.avgCodeLen = lens end
 	end
+	p.avgGaps = trim_tail(gaps, AVG_TAIL_KEEP)
+	p.avgCnts = trim_tail(cnts, AVG_TAIL_KEEP)
+	p.avgCodeLen = trim_tail(lens, AVG_TAIL_KEEP)
+	p.avgGapSum, p.avgCntSum, p.avgCodeSum = gapSum, cntSum, codeSum
 end
 
 local function sanitize_stats()
@@ -1268,22 +1346,38 @@ local function load_stats_from_lua_file(schema_id)
 		}
 	end
 
+	-- v0.3.28：生词判定里的毫秒/秒混用已修复。旧存档中的「生字词」是每次上屏都记的
+	-- 脏数据（「的」「我们」这类常用词也在里面），清空一次，避免面板显示「已掌握生词 2400 个」。
+	if (input_stats.wordsFix or 0) < 1 then
+		input_stats.newWords = { startTime = 0, words = {} }
+		input_stats.wordsFix = 1
+	end
+
+	-- v0.3.28：旧口径把上屏用的空格/回车也算进击键，于是「误触」每上屏一次就多一次
+	-- （实测 37%，真正的手误没有这么多）。按上屏次数扣掉这部分；自动顶屏的方案
+	-- 不满足 keyTouch >= 上屏次数 + 码长 就不动，避免扣成负值。
+	if (input_stats.keysFix or 0) < 1 then
+		for _, key in ipairs({ "daily", "weekly", "monthly", "yearly" }) do
+			local p = input_stats[key]
+			if type(p) == "table" and (p.keyTouchCnt or 0) >= (p.count or 0) + (p.totalCodeLenWithoutSpace or 0) then
+				p.keyTouchCnt = p.keyTouchCnt - p.count
+			end
+		end
+		input_stats.keysFix = 1
+	end
+
 	-- 识别设备类型
 	input_stats.deviceType = getDeviceType()
 end
 
 -- 翻译器：处理统计命令
 local function translator(input, seg, env)
-	-- 判断是否在连续输入状态下
-	local timeNow = os.time()
-	if timeNow - avgSpdInfo.clickTime > avgSpdInfo.gapThd then
+	-- 计时统一用毫秒；旧代码这里用 os.time()，与 commit_unit 的毫秒时间戳混用，
+	-- 导致生词判定的间隔永远是天文数字（每个词都被当成生词）。
+	local timeNow = now_ms()
+	if timeNow - avgSpdInfo.clickTime > avgSpdInfo.gapThd * 1000 then
 		-- 如果距离上次按键超时了，即输入已经中断，这是重新开始的输入行为
-		if avgSpdInfo.commitTime - avgSpdInfo.startTime >= 1 and avgSpdInfo.count > 0 then
-			-- 此时的统计数据是有效
-			-- 上屏单元已由 capture_history 结算
-		end
-
-		-- 清除计时
+		-- （上一轮的统计已由 commit_unit 结算，这里只重置计时锚点）
 		avgSpdInfo.startTime = timeNow
 		avgSpdInfo.commitTime = timeNow
 	end
@@ -1301,7 +1395,7 @@ local function translator(input, seg, env)
 
 	local summary = ""
 	local avgAvailable = 0
-	if avgSpdInfo.commitTime - avgSpdInfo.startTime >= 1 and avgSpdInfo.count > 0 then avgAvailable = 1 end
+	if avgSpdInfo.commitTime - avgSpdInfo.startTime >= 1000 and avgSpdInfo.count > 0 then avgAvailable = 1 end
 
 	if reportCommands[input] then
 		if avgAvailable == 1 then -- 如果此时已经有统计数据，则记录该统计数据
@@ -1374,7 +1468,10 @@ local function translator(input, seg, env)
 			deviceType = deviceType,
 			progressBarSkinIdx_word = 1,
 			progressBarSkinIdx_code = 1,
-			career = savedCareer
+			career = savedCareer,
+			-- 迁移标记要跟着走：否则下次启动会把新口径的数据再「修」一次（误触被重复扣减）
+			wordsFix = input_stats.wordsFix or 1,
+			keysFix = input_stats.keysFix or 1
 		}
 		input_stats.progressBarSkinIdx_code = int1
 		input_stats.progressBarSkinIdx_word = int2
@@ -1477,30 +1574,39 @@ end
 
 local function commit_unit(env, chars, text)
 	if chars <= 0 then return end
+	if type(input_stats.newWords) ~= "table" then
+		input_stats.newWords = { startTime = 0, words = {} }
+	end
+	if type(input_stats.newWords.words) ~= "table" then
+		input_stats.newWords.words = {}
+	end
 	local now = now_ms()
 	local start = round_start_ts or now
-	local delt = (now - start) / 1000
 	local keys, code = proc_keys, proc_code
-	proc_keys, proc_code = 0, 0
-	local gap = now - avgSpdInfo.commitTime
-	if gap >= boggleThd_s then
+	-- 生词判定：距上一次上屏的真实间隔（毫秒）。
+	-- 旧代码写成 now(ms) - avgSpdInfo.commitTime(s)，间隔恒为 1e12 级，
+	-- 于是每个上屏都被记成生词（用户的生词本一度涨到 2400 多个）。
+	local gap = last_commit_ms and (now - last_commit_ms) or 0
+	if last_commit_ms and gap >= BOGGLE_MS then
 		if not input_stats.newWords.startTime or input_stats.newWords.startTime < 1
 			or #input_stats.newWords.words < 1 then
-			input_stats.newWords.startTime = now
+			-- startTime 是给 os.date() 显示的，必须是秒
+			input_stats.newWords.startTime = os.time()
 		end
 		input_stats.newWords.words[text] = 1
 	else
 		input_stats.newWords.words[text] = nil
 	end
-	avgSpdInfo.startTime = math.floor(start / 1000)
-	avgSpdInfo.commitTime = math.floor(now / 1000)
+	last_commit_ms = now
+	-- avgSpdInfo 全程用毫秒（与 now_ms 一致），落盘时才换成秒
+	avgSpdInfo.startTime = start
+	avgSpdInfo.commitTime = now
 	avgSpdInfo.count = chars
 	avgSpdInfo.codeLen = code
 	keyTouchCnt = keys
-	local avgAvailable = (delt >= 1 and chars > 0) and 1 or 0
-	update_stats(chars, code, code, avgAvailable)
+	update_stats(chars, code, code, 1)
 	request_save(env.engine.schema.schema_id, false)
-	round_active = false
+	reset_round()
 end
 
 local function capture_history(env)
@@ -1525,21 +1631,49 @@ local function capture_history(env)
 		if match then overlap = j break end
 	end
 	local added = n - overlap
-	if added <= 0 or added > 8 then return end
+	if added <= 0 then return end
+	-- 历史被重置/异常批量插入：无法判断归属，清空本轮计键，绝不把旧键算到下一次上屏
+	if added > 8 then
+		reset_round()
+		return
+	end
+
+	local unit_chars, unit_text, saw_final = 0, nil, false
 	for i = overlap + 1, n do
 		local r = tbl[i]
 		local text = r.text or ""
-		if text ~= "" and text:sub(1, 1) ~= "/" and r.type ~= "thru" and r.type ~= "stat"
-			and isAllChineseCharacter(text) then
+		if text ~= "" and text:sub(1, 1) ~= "/" and r.type ~= "stat" then
 			local count = utf8.len(text) or #text
 			if r.type == "raw" then
-				pending_raw_chars = pending_raw_chars + count
-			else
-				local unit = pending_raw_chars + count
-				pending_raw_chars = 0
-				commit_unit(env, unit, text)
+				-- 提前上屏的片段：先攒着，并入其后的正式提交
+				if isAllChineseCharacter(text) then
+					pending_raw_chars = pending_raw_chars + count
+				end
+			elseif r.type ~= "punct" then
+				-- punct 是句中标点，不算上屏单元，也不打断本轮计键；
+				-- 其余（sentence/phrase/thru/…）都是一次正式提交。
+				saw_final = true
+				if isAllChineseCharacter(text) then
+					unit_chars = unit_chars + pending_raw_chars + count
+					pending_raw_chars = 0
+					unit_text = text
+				end
 			end
 		end
+	end
+
+	if unit_chars > 0 then
+		commit_unit(env, unit_chars, unit_text)
+	elseif saw_final then
+		-- 非汉字上屏（英文/编码/数字）也算一次「上屏」，刷新卡壳基准，
+		-- 否则打完一段英文再打中文，会被误判成「想了很久的新词」。
+		last_commit_ms = now_ms()
+	end
+	-- 这一批里出现了正式提交（不论是不是汉字）：本轮结束。
+	-- 旧代码只在汉字上屏时结算，英文/数字/编码上屏的按键会一直攒到下一次汉字上屏，
+	-- 既把码长算大，也把中间的发呆算进打字时间。
+	if saw_final and not env.engine.context:is_composing() then
+		reset_round()
 	end
 end
 
@@ -1553,28 +1687,49 @@ local function processor(key_event, env)
 	if key_event:ctrl() or key_event:alt() or key_event:super() then return 2 end
 	local kc = key_event.keycode
 	if kc == 0 then return 2 end
+
 	local now = now_ms()
-	if not round_active then
+	-- 两次按键间隔超过 gapThd：视为新一轮开始，本轮计时从这一键算起。
+	-- 否则「打一半去接水再回来上屏」的十分钟会整段算进平均速度。
+	if not round_active or (last_key_ts and now - last_key_ts > avgSpdInfo.gapThd * 1000) then
 		round_start_ts = now
 		round_active = true
 	end
 	last_key_ts = now
-	local is_commit = (kc == 0x20 or kc == 0x0d or kc == 0xff0d or kc == 0xff09)
-	local is_backspace = (kc == 0xff08 or kc == 0x08)
-	local is_printable = (kc >= 0x20 and kc <= 0x7e)
-	if is_printable or is_backspace or is_commit then proc_keys = proc_keys + 1 end
-	if is_printable and not is_commit then proc_code = proc_code + 1 end
+
+	-- 按键分类（旧代码把所有可打印键都当编码键）：
+	--   编码键 = 字母/符号（不含数字）→ 计击键 + 码长
+	--   退格/Esc/Delete            → 计击键，不计码长（这就是「误触」的来源）
+	--   空格/回车/Tab、数字选重     → 都不计（上屏键和选重键不是打字成本）
+	local is_commit_key = (kc == 0x20 or kc == 0x0d or kc == 0xff0d or kc == 0xff09)
+	local is_edit_key = (kc == 0xff08 or kc == 0x08 or kc == 0x7f or kc == 0xffff or kc == 0x1b)
+	local is_digit = (kc >= 0x30 and kc <= 0x39)
+	local is_code_key = (kc >= 0x21 and kc <= 0x7e) and not is_digit and not is_commit_key
+	if is_code_key then
+		proc_keys = proc_keys + 1
+		proc_code = proc_code + 1
+	elseif is_edit_key then
+		proc_keys = proc_keys + 1
+	end
 	return 2
 end
 
 local function init(env)
 	schema_name = env.engine.schema.schema_name or '未知'
-	local ctx = env.engine.context
+	-- 模块可能被多个方案/多个引擎复用（require 有缓存），初始化时先把上一轮的状态清干净
+	reset_round()
+	last_commit_ms = nil
+	capture_snapshot = nil
+	keyTouchCnt = 0
+	avgSpdInfo.startTime, avgSpdInfo.commitTime = 0, 0
+	avgSpdInfo.clickTime, avgSpdInfo.count, avgSpdInfo.codeLen = 0, 0, 0
+
 	-- 加载指定输入方案的历史统计数据
 	load_stats_from_lua_file(env.engine.schema.schema_id)
 	sanitize_stats()
-	-- 清洗结果立即落盘，避免磁盘里继续留着 700+ 的极速
-	pcall(function() flush_save(env.engine.schema.schema_id) end)
+	-- 清洗/迁移结果立即落盘：旧存档 1MB+ 的数组、被污染的 2400 个生词都要马上收掉
+	pcall(function() save_stats(env.engine.schema.schema_id) end)
+	save_dirty, last_save_time = false, os.time()
 	-- 更新皮肤
 	progressBarField_word = skinList[input_stats.progressBarSkinIdx_word].field
 	progressBarEmpty_word = skinList[input_stats.progressBarSkinIdx_word].empty
@@ -1615,6 +1770,8 @@ function finit(env)
 	end
 	-- 正常退出（卸载环境/切方案）时把尚未节流落盘的统计补写，不丢数据
 	flush_save(env.engine.schema.schema_id)
+	reset_round()
+	last_commit_ms = nil
 end
 
 return { init = init, fini = finit, func = translator, processor = processor }
